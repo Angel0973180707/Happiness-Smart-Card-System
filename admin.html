@@ -3,736 +3,188 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>HSC 後台管理系統 v6.4.x 完整營運模組版</title>
+  <title>HSC 後台管理系統 v6.5.0 完整營運模組版</title>
   <meta name="theme-color" content="#f7f5f1" />
   <meta name="format-detection" content="telephone=no" />
-  <link rel="stylesheet" href="./admin.css?v=645" />
+  <link rel="stylesheet" href="./admin.css?v=650" />
 </head>
 <body>
-  <div id="app" class="app">
-    <header class="topbar">
-      <div class="brand-block">
-        <h1>HSC 後台管理系統</h1>
-        <p class="topbar-sub">
-          v6.4.x 完整營運版｜簡潔收合操作｜付款→交付→續約→加購→分潤 全閉環
-        </p>
-      </div>
-
-      <div class="topbar-tools">
-        <div class="status-group">
-          <span class="status-label">GAS</span>
-          <span id="gasStatus" class="status-pill">待檢查</span>
-        </div>
-        <button id="btnRefreshAll" class="btn btn-soft">重新整理</button>
-        <button id="btnOpenHub" class="btn btn-soft">開名片館</button>
-        <button id="btnOpenForm" class="btn btn-soft">開申請表</button>
-      </div>
-    </header>
-
-    <div class="layout">
-      <aside class="sidebar">
-        <div class="sidebar-card">
-          <div class="sidebar-title">功能選單</div>
-          <button class="nav-btn active" data-target="dashboardSection">📊 儀表板</button>
-          <button class="nav-btn" data-target="paymentSection">💰 付款管理</button>
-          <button class="nav-btn" data-target="recognitionSection">✅ 採認管理</button>
-          <button class="nav-btn" data-target="renewalSection">🔄 續約管理</button>
-          <button class="nav-btn" data-target="addonSection">🛒 加購管理</button>
-          <button class="nav-btn" data-target="cardSection">📇 卡片查詢管理</button>
-          <button class="nav-btn" data-target="deliverySection">🎛️ 交付卡控制</button>
-          <button class="nav-btn" data-target="agentSection">👥 代理/升級管理</button>
-          <button class="nav-btn" data-target="logsSection">💰 分潤 / Log</button>
-          <button class="nav-btn" data-target="announcementSection">📢 公告/追蹤</button>
-          <button class="nav-btn" data-target="systemToolsSection">🔧 系統工具</button>
-          <button class="nav-btn" data-target="inviteSection">🎫 邀請碼管理</button>
-        </div>
-
-        <div class="sidebar-card">
-          <div class="sidebar-title">目前選取卡片</div>
-          <div class="mini-kv"><span>card_id</span><strong id="currentCardLabel">未選取</strong></div>
-          <div class="mini-kv"><span>客戶</span><strong id="currentCardName">-</strong></div>
-          <div class="mini-kv"><span>付款</span><strong id="currentBillingStatus">-</strong></div>
-          <div class="mini-kv"><span>方案</span><strong id="currentPlan">-</strong></div>
-        </div>
-
-        <div class="sidebar-card">
-          <div class="sidebar-title">目前選取代理</div>
-          <div class="mini-kv"><span>agent_id</span><strong id="currentAgentLabel">未選取</strong></div>
-          <div class="mini-kv"><span>姓名</span><strong id="currentAgentName">-</strong></div>
-          <div class="mini-kv"><span>點數</span><strong id="currentAgentPoints">-</strong></div>
-          <div class="mini-kv"><span>分潤</span><strong id="currentAgentCommission">-</strong></div>
-        </div>
-
-        <div class="sidebar-card">
-          <div class="sidebar-title">🔑 Admin Key</div>
-          <div id="keyStatus" class="key-status warn">⚠️ 尚未設定</div>
-          <div class="field mt8">
-            <input id="adminKeyInput" class="input" type="password" placeholder="貼上 Admin Key，按 Enter 儲存" autocomplete="off" />
-          </div>
-          <div class="action-row" style="margin-top:10px;">
-            <button id="btnSaveKey" class="btn btn-primary btn-xs" style="flex:1;">儲存</button>
-            <button id="btnClearKey" class="btn btn-danger btn-xs">清除</button>
-          </div>
-        </div>
-      </aside>
-
-      <main class="main">
-        <!-- ───────────── DASHBOARD ───────────── -->
-        <section id="dashboardSection" class="section">
-          <div class="card">
-            <div class="card-header">
-              <h2>📊 儀表板 Dashboard</h2>
-              <span class="badge badge-info">v6.4.x 完整營運版</span>
-            </div>
-
-            <div class="stats-grid stats-grid-5">
-              <div class="stat-box"><div class="stat-label">待付款</div><div class="stat-value" id="statUnpaid">-</div></div>
-              <div class="stat-box"><div class="stat-label">待交付</div><div class="stat-value" id="statNeedDelivery">-</div></div>
-              <div class="stat-box"><div class="stat-label">待續約</div><div class="stat-value" id="statNeedRenewal">-</div></div>
-              <div class="stat-box"><div class="stat-label">待加購處理</div><div class="stat-value" id="statAddonPending">-</div></div>
-              <div class="stat-box"><div class="stat-label">代理數</div><div class="stat-value" id="statAgents">-</div></div>
-            </div>
-
-            <div class="section-subtitle mt16">📈 營運 KPI</div>
-            <div class="stats-grid stats-grid-4 mt8">
-              <div class="stat-box"><div class="stat-label">待確認付款</div><div class="stat-value" id="statPendingPayments">-</div></div>
-              <div class="stat-box"><div class="stat-label">待採認</div><div class="stat-value" id="statPendingRecognition">-</div></div>
-              <div class="stat-box"><div class="stat-label">公告啟用中</div><div class="stat-value" id="statActiveAnnouncements">-</div></div>
-              <div class="stat-box"><div class="stat-label">系統異常項</div><div class="stat-value" id="statSystemIssues">-</div></div>
-            </div>
-
-            <div class="section-subtitle mt16">📅 今日 KPI</div>
-            <div class="stats-grid stats-grid-4 mt8">
-              <div class="stat-box stat-box-today"><div class="stat-label">今日付款數</div><div class="stat-value stat-today" id="statTodayPayments">-</div></div>
-              <div class="stat-box stat-box-today"><div class="stat-label">今日新增卡片</div><div class="stat-value stat-today" id="statTodayCards">-</div></div>
-              <div class="stat-box stat-box-today"><div class="stat-label">今日 CTA 點擊</div><div class="stat-value stat-today" id="statTodayCta">-</div></div>
-              <div class="stat-box stat-box-today"><div class="stat-label">今日轉換</div><div class="stat-value stat-today" id="statTodayConversion">-</div></div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><h2>⚠️ 高風險提醒</h2></div>
-            <div id="dashboardRiskList" class="focus-list empty-state">尚未載入資料</div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><h2>📋 最近操作紀錄</h2></div>
-            <div id="recentOpsLogs" class="focus-list empty-state">尚未載入資料</div>
-          </div>
-        </section>
-
-        <!-- ───────────── PAYMENT SECTION ───────────── -->
-        <section id="paymentSection" class="section">
-          <div class="card">
-            <div class="card-header">
-              <h2>💰 付款管理</h2>
-              <div class="header-actions">
-                <button id="btnRefreshPayments" class="btn btn-soft">重新整理</button>
-                <button id="btnLoadPendingOffline" class="btn btn-warn btn-soft">離線付款待確認</button>
-              </div>
-            </div>
-
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr><th>payment_id</th><th>card_id</th><th>event_type</th><th>amount</th><th>status</th><th>due_at</th><th>paid_at</th><th>操作</th></tr>
-                </thead>
-                <tbody id="paymentsTableBody"><tr><td colspan="8" class="empty-cell">尚未載入資料</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-
-          <details class="collapsible-native">
-            <summary>📄 付款詳情區</summary>
-            <div class="details-content">
-              <div id="paymentDetailWrap" class="empty-state">請點擊表格中的「查看詳情」</div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>📊 付款卡摘要</summary>
-            <div class="details-content">
-              <div id="cardPaymentSummaryWrap" class="empty-state">請先選取卡片或付款單</div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>📝 付款文案工具區</summary>
-            <div class="details-content">
-              <div class="tool-grid">
-                <div class="tool-box">
-                  <div class="tool-label">付款通知文案</div>
-                  <textarea id="paymentNoticeText" class="textarea" readonly rows="3"></textarea>
-                  <button id="btnBuildPaymentNotice" class="btn btn-xs btn-soft mt8">生成</button>
-                </div>
-                <div class="tool-box">
-                  <div class="tool-label">已付款通知文案</div>
-                  <textarea id="paidNoticeText" class="textarea" readonly rows="3"></textarea>
-                  <button id="btnBuildPaidNotice" class="btn btn-xs btn-soft mt8">生成</button>
-                </div>
-                <div class="tool-box">
-                  <div class="tool-label">交付通知文案</div>
-                  <textarea id="deliveryNoticeText" class="textarea" readonly rows="3"></textarea>
-                  <button id="btnBuildDeliveryNotice" class="btn btn-xs btn-soft mt8">生成</button>
-                </div>
-              </div>
-            </div>
-          </details>
-        </section>
-
-        <!-- ───────────── RECOGNITION SECTION ───────────── -->
-        <section id="recognitionSection" class="section">
-          <div class="card">
-            <div class="card-header">
-              <h2>✅ 採認管理</h2>
-              <div class="recognition-tabs" id="recognitionTabs">
-                <button class="recognition-tab active" data-type="renewal">續約採認</button>
-                <button class="recognition-tab" data-type="addon">加購採認</button>
-              </div>
-            </div>
-
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr><th>recognition_id</th><th>event_type</th><th>event_id</th><th>card_id</th><th>agent_id</th><th>result</th><th>recognized_at</th><th>操作</th></tr>
-                </thead>
-                <tbody id="recognitionTableBody"><tr><td colspan="8" class="empty-cell">尚未載入資料</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-
-          <details class="collapsible-native">
-            <summary>📄 採認詳情區</summary>
-            <div class="details-content">
-              <div id="recognitionDetailWrap" class="empty-state">請點擊表格中的「查看詳情」</div>
-            </div>
-          </details>
-        </section>
-
-        <!-- ───────────── RENEWAL SECTION ───────────── -->
-        <section id="renewalSection" class="section">
-          <div class="card">
-            <div class="card-header">
-              <h2>🔄 續約管理</h2>
-              <div class="header-actions">
-                <button id="btnRefreshRenewalList" class="btn btn-soft btn-xs">重新整理</button>
-              </div>
-            </div>
-
-            <div class="stats-grid stats-grid-3">
-              <div class="stat-box"><div class="stat-label">即將到期（30天內）</div><div class="stat-value" id="renewalSoonCount">-</div></div>
-              <div class="stat-box"><div class="stat-label">已到期</div><div class="stat-value" id="renewalExpiredCount">-</div></div>
-              <div class="stat-box"><div class="stat-label">待續約付款</div><div class="stat-value" id="renewalPendingPayCount">-</div></div>
-            </div>
-
-            <div class="table-wrap mt16">
-              <table class="data-table">
-                <thead>
-                  <tr><th>續約ID</th><th>card_id</th><th>續約天數</th><th>金額</th><th>狀態</th><th>到期日</th><th>操作</th></tr>
-                </thead>
-                <tbody id="renewalListTableBody"><tr><td colspan="7" class="empty-cell">尚未載入資料</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-
-          <details class="collapsible-native">
-            <summary>📄 續約詳情區</summary>
-            <div class="details-content">
-              <div id="renewalDetailWrap" class="empty-state">請點擊列表中的「查看詳情」</div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>🛠️ 續約操作工具</summary>
-            <div class="details-content">
-              <div class="form-grid">
-                <div class="field"><label for="renewDays">續約天數</label><input id="renewDays" class="input" type="number" value="365" min="1" /></div>
-              </div>
-              <div class="action-row">
-                <button id="btnConfirmRenewalPaid" class="btn btn-primary">付款確認＋續約</button>
-                <button id="btnCopyRenewalText" class="btn btn-primary">複製續約提醒文案</button>
-                <button id="btnCopyRenewalDeliveryText" class="btn btn-soft">複製續約交付文案</button>
-                <button id="btnTriggerPaymentReminder" class="btn btn-soft">觸發付款提醒</button>
-              </div>
-              <textarea id="renewalTextBox" class="textarea mt16" readonly></textarea>
-            </div>
-          </details>
-        </section>
-
-        <!-- ───────────── ADDON SECTION ───────────── -->
-        <section id="addonSection" class="section">
-          <div class="card">
-            <div class="card-header">
-              <h2>🛒 加購管理</h2>
-              <div class="header-actions">
-                <input id="addonSearch" class="input" type="text" placeholder="搜尋 card_id / addon_order_id" />
-                <button id="btnSearchAddons" class="btn btn-primary">搜尋</button>
-                <button id="btnReloadAddons" class="btn btn-soft">重新載入</button>
-              </div>
-            </div>
-
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr><th>addon_order_id</th><th>card_id</th><th>addon_type</th><th>qty</th><th>status</th><th>amount</th><th>due_at</th><th>操作</th></tr>
-                </thead>
-                <tbody id="addonsTableBody"><tr><td colspan="8" class="empty-cell">尚未載入資料</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-
-          <details class="collapsible-native">
-            <summary>📄 加購單詳情</summary>
-            <div class="details-content">
-              <div class="header-actions">
-                <input id="addonDetailId" class="input" type="text" placeholder="輸入 addon_order_id 後查詢" />
-                <button id="btnLoadAddonDetail" class="btn btn-soft">查詢詳情</button>
-              </div>
-              <div id="addonDetailWrap" class="detail-stack empty-state mt16">請先選取一筆加購單。</div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>➕ 建立加購單</summary>
-            <div class="details-content">
-              <div class="form-grid">
-                <div class="field"><label>卡片 ID *</label><input id="createAddonCardId" class="input" type="text" placeholder="card_id" /></div>
-                <div class="field"><label>加購類型 *</label><select id="createAddonType" class="input"><option value="cta">CTA 按鈕 (+1)</option><option value="photo">照片 (+1)</option><option value="update">更新權限 (無限)</option><option value="marquee">跑馬燈功能</option></select></div>
-                <div class="field"><label>數量</label><input id="createAddonQty" class="input" type="number" value="1" min="1" /></div>
-                <div class="field"><label>金額</label><input id="createAddonAmount" class="input" type="number" placeholder="自動計算或手動輸入" /></div>
-              </div>
-              <div class="action-row"><button id="btnSubmitCreateAddon" class="btn btn-primary">建立加購單</button></div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>📝 付款提醒文案</summary>
-            <div class="details-content">
-              <div class="tool-box">
-                <textarea id="addonPaymentReminderText" class="textarea" readonly rows="3"></textarea>
-                <button id="btnCopyAddonReminder" class="btn btn-xs btn-soft mt8">複製</button>
-              </div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>🔧 修復 / due_at 工具</summary>
-            <div class="details-content">
-              <div class="action-row">
-                <button id="btnRepairAddonStatus" class="btn btn-soft btn-sm">修復加購單狀態</button>
-                <button id="btnBackfillDueAt" class="btn btn-soft btn-sm">補填 due_at</button>
-              </div>
-              <div id="addonRepairResult" class="result-box mt8 empty-state">尚未執行</div>
-            </div>
-          </details>
-        </section>
-        <!-- ───────────── CARD SECTION ───────────── -->
-        <section id="cardSection" class="section">
-          <div class="card">
-            <div class="card-header">
-              <h2>📇 卡片查詢管理</h2>
-              <div class="header-actions">
-                <input id="cardSearch" class="input wide-input" type="text" placeholder="搜尋 card_id / 名稱 / 電話 / email" />
-                <button id="btnSearchCards" class="btn btn-primary">搜尋</button>
-                <button id="btnReloadCards" class="btn btn-soft">重新載入</button>
-              </div>
-            </div>
-
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr><th>card_id</th><th>name</th><th>phone</th><th>plan</th><th>status</th><th>billing_status</th><th>expires_at</th><th>操作</th></tr>
-                </thead>
-                <tbody id="cardsTableBody"><tr><td colspan="8" class="empty-cell">尚未載入資料</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-
-          <details class="collapsible-native">
-            <summary>📄 單卡詳情總控區</summary>
-            <div class="details-content">
-              <div class="header-actions">
-                <input id="detailCardId" class="input" type="text" placeholder="輸入 card_id 後查詢" />
-                <button id="btnLoadCardDetail" class="btn btn-soft">查詢詳情</button>
-              </div>
-              <div id="cardDetailWrap" class="detail-stack empty-state mt16">請先選取卡片。</div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>🔗 預覽與交付</summary>
-            <div class="details-content">
-              <div class="tool-grid">
-                <div class="tool-box">
-                  <div class="tool-label">成品預覽連結</div>
-                  <textarea id="previewLinkBox" class="textarea" readonly></textarea>
-                  <button id="btnCopyPreviewLink" class="btn btn-xs btn-soft mt8">複製</button>
-                </div>
-                <div class="tool-box">
-                  <div class="tool-label">交付卡連結</div>
-                  <textarea id="deliveryLinkBox" class="textarea" readonly></textarea>
-                  <button id="btnCopyDeliveryLink" class="btn btn-xs btn-soft mt8">複製</button>
-                </div>
-              </div>
-            </div>
-          </details>
-        </section>
-
-        <!-- ───────────── DELIVERY SECTION ───────────── -->
-        <section id="deliverySection" class="section">
-          <div class="card">
-            <div class="card-header">
-              <h2>🎛️ 交付卡控制區</h2>
-              <span class="badge badge-info">完整管理交付卡行為</span>
-            </div>
-            <div id="deliveryCardMetaWrap" class="empty-state">請先選取卡片</div>
-          </div>
-
-          <details class="collapsible-native">
-            <summary>🔗 交付卡連結工具箱</summary>
-            <div class="details-content">
-              <div class="delivery-meta-grid" id="deliveryLinkToolbox">
-                <div class="delivery-meta-card"><div class="delivery-meta-label">名片連結</div><div class="delivery-meta-value" id="toolboxCardLink">-</div><button id="btnCopyCardLink" class="btn btn-xs btn-soft mt8">複製</button></div>
-                <div class="delivery-meta-card"><div class="delivery-meta-label">交付卡連結</div><div class="delivery-meta-value" id="toolboxPosterLink">-</div><button id="btnCopyPosterLink" class="btn btn-xs btn-soft mt8">複製</button></div>
-                <div class="delivery-meta-card"><div class="delivery-meta-label">推薦入口</div><div class="delivery-meta-value" id="toolboxReferralLink">-</div><button id="btnCopyReferralToolLink" class="btn btn-xs btn-soft mt8">複製</button></div>
-                <div class="delivery-meta-card"><div class="delivery-meta-label">更新入口</div><div class="delivery-meta-value" id="toolboxUpdateLink">-</div><button id="btnCopyUpdateToolLink" class="btn btn-xs btn-soft mt8">複製</button></div>
-                <div class="delivery-meta-card"><div class="delivery-meta-label">續用入口</div><div class="delivery-meta-value" id="toolboxRenewalLink">-</div><button id="btnCopyRenewalToolLink" class="btn btn-xs btn-soft mt8">複製</button></div>
-                <div class="delivery-meta-card"><div class="delivery-meta-label">海報圖片</div><div class="delivery-meta-value" id="toolboxPosterUrl">-</div><button id="btnCopyPosterUrlLink" class="btn btn-xs btn-soft mt8">複製</button></div>
-              </div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>📝 交付卡文案中心</summary>
-            <div class="details-content">
-              <div class="tool-grid">
-                <div class="tool-box"><div class="tool-label">Trial 分享文案</div><textarea id="trialShareText" class="textarea" readonly rows="3"></textarea><button id="btnCopyTrialShareText" class="btn btn-xs btn-soft mt8">複製</button></div>
-                <div class="tool-box"><div class="tool-label">專屬入口文案</div><textarea id="referralEntryText" class="textarea" readonly rows="3"></textarea><button id="btnCopyReferralEntryText" class="btn btn-xs btn-soft mt8">複製</button></div>
-                <div class="tool-box"><div class="tool-label">更新入口文案</div><textarea id="updateEntryText" class="textarea" readonly rows="3"></textarea><button id="btnCopyUpdateEntryText" class="btn btn-xs btn-soft mt8">複製</button></div>
-                <div class="tool-box"><div class="tool-label">續用入口文案</div><textarea id="renewalEntryText" class="textarea" readonly rows="3"></textarea><button id="btnCopyRenewalEntryText" class="btn btn-xs btn-soft mt8">複製</button></div>
-              </div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>⚙️ 交付卡模式模擬器</summary>
-            <div class="details-content"><div id="walletModeSimulator" class="empty-state">請先選取卡片</div></div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>💰 服務荷包觀測區</summary>
-            <div class="details-content"><div id="walletObserver" class="empty-state">請先選取卡片</div></div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>📋 服務快記 / 服務紀錄觀測區</summary>
-            <div class="details-content"><div id="serviceLogObserver" class="empty-state">請先選取卡片</div></div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>⚠️ 交付卡異常提示區</summary>
-            <div class="details-content"><div id="deliveryWarnings" class="empty-state">請先選取卡片</div></div>
-          </details>
-        </section>
-
-        <!-- ───────────── AGENT SECTION ───────────── -->
-        <section id="agentSection" class="section">
-          <div class="card">
-            <div class="card-header">
-              <h2>👥 代理管理</h2>
-              <div class="header-actions">
-                <input id="agentSearch" class="input" type="text" placeholder="搜尋 agent_id / owner_name / agent_type" />
-                <button id="btnSearchAgents" class="btn btn-primary">搜尋</button>
-                <button id="btnReloadAgents" class="btn btn-soft">重新載入</button>
-              </div>
-            </div>
-
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead><tr><th>agent_id</th><th>owner_name</th><th>agent_type</th><th>member_tier</th><th>points_balance</th><th>total_commission</th><th>status</th><th>操作</th></tr></thead>
-                <tbody id="agentsTableBody"><tr><td colspan="8" class="empty-cell">尚未載入資料</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-
-          <details class="collapsible-native">
-            <summary>📄 代理詳情</summary>
-            <div class="details-content">
-              <div class="header-actions">
-                <input id="detailAgentId" class="input" type="text" placeholder="輸入 agent_id 後查詢" />
-                <button id="btnLoadAgentDetail" class="btn btn-soft">查詢詳情</button>
-              </div>
-              <div id="agentDetailWrap" class="detail-stack empty-state mt16">請先選取代理。</div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>📝 編輯代理基本資料</summary>
-            <div class="details-content">
-              <div class="form-grid">
-                <div class="field"><label>owner_name</label><input id="editAgentName" class="input" type="text" /></div>
-                <div class="field"><label>phone</label><input id="editAgentPhone" class="input" type="text" /></div>
-                <div class="field"><label>email</label><input id="editAgentEmail" class="input" type="text" /></div>
-                <div class="field"><label>agent_type</label><input id="editAgentType" class="input" type="text" placeholder="referral/partner/self" /></div>
-              </div>
-              <div class="action-row"><button id="btnUpdateAgent" class="btn btn-primary">更新代理資料</button></div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>⬆️ 升級管理</summary>
-            <div class="details-content">
-              <div id="agentUpgradeCard" class="empty-state">請先查詢代理詳情</div>
-              <div class="action-row mt8">
-                <button id="btnSetAgentUpgrade" class="btn btn-primary">設為可升級</button>
-                <button id="btnNormalizeMemberTier" class="btn btn-soft">正規化 member_tier</button>
-                <button id="btnNormalizeTypeAndTier" class="btn btn-soft">正規化 type+tier</button>
-                <button id="btnRepairAgentTypeEnum" class="btn btn-soft">修復 agent_type enum</button>
-              </div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>❄️ 凍結/解凍</summary>
-            <div class="details-content">
-              <div class="action-row">
-                <button id="btnFreezeAgent" class="btn btn-warn">凍結代理</button>
-                <button id="btnUnfreezeAgent" class="btn btn-soft">解凍代理</button>
-              </div>
-            </div>
-          </details>
-
-          <details class="collapsible-native">
-            <summary>🔧 修復工具</summary>
-            <div class="details-content">
-              <div class="action-row">
-                <button id="btnRepairMissingAgents" class="btn btn-soft">修復遺失代理</button>
-                <button id="btnNormalizeAgentType" class="btn btn-soft">正規化類型</button>
-              </div>
-            </div>
-          </details>
-        </section>
-
-        <!-- ───────────── LOGS SECTION ───────────── -->
-        <section id="logsSection" class="section">
-          <div class="card">
-            <div class="card-header"><h2>💰 分潤 / Log</h2></div>
-
-            <details class="collapsible-native">
-              <summary>➕ 點數手動調整</summary>
-              <div class="details-content">
-                <div class="form-grid">
-                  <div class="field"><label>agent_id</label><input id="pointsAgentId" class="input" type="text" /></div>
-                  <div class="field"><label>points</label><input id="pointsValue" class="input" type="number" /></div>
-                  <div class="field field-wide"><label>備註</label><input id="pointsNote" class="input" type="text" /></div>
-                </div>
-                <div class="action-row">
-                  <button id="btnAddPoints" class="btn btn-primary">加點</button>
-                  <button id="btnSubtractPoints" class="btn btn-danger">扣點</button>
-                </div>
-              </div>
-            </details>
-
-            <details class="collapsible-native">
-              <summary>💰 分潤手動調整 / 待支付分潤</summary>
-              <div class="details-content">
-                <div class="form-grid">
-                  <div class="field"><label>agent_id</label><input id="commissionAgentId" class="input" type="text" /></div>
-                  <div class="field"><label>amount</label><input id="commissionValue" class="input" type="number" /></div>
-                  <div class="field field-wide"><label>備註</label><input id="commissionNote" class="input" type="text" /></div>
-                </div>
-                <div class="action-row">
-                  <button id="btnAdjustCommission" class="btn btn-primary">補分潤</button>
-                  <button id="btnLoadPendingCommissions" class="btn btn-warn">載入待支付分潤</button>
-                  <button id="btnLoadCommissions" class="btn btn-soft">載入分潤清單</button>
-                </div>
-
-                <div class="table-wrap mt16">
-                  <table class="data-table">
-                    <thead><tr><th>commission_id</th><th>agent_id</th><th>amount</th><th>status</th><th>payment_id</th><th>操作</th></tr></thead>
-                    <tbody id="commissionListTableBody"><tr><td colspan="6" class="empty-cell">尚未載入</td></tr></tbody>
-                  </table>
-                </div>
-              </div>
-            </details>
-
-            <details class="collapsible-native">
-              <summary>📋 Log 瀏覽</summary>
-              <div class="details-content">
-                <div class="action-row"><button id="btnLoadLogs" class="btn btn-soft">重抓 Log</button></div>
-                <div class="logs-grid mt16">
-                  <div class="sub-card"><div class="sub-card-title">點數 Log</div><div class="table-wrap"><table class="data-table"><thead><tr><th>時間</th><th>type</th><th>before → after</th><th>備註</th></tr></thead><tbody id="pointsLogTableBody"><tr><td colspan="4" class="empty-cell">尚未載入資料</td></tr></tbody></table></div></div>
-                  <div class="sub-card"><div class="sub-card-title">分潤 Log</div><div class="table-wrap"><table class="data-table"><thead><tr><th>時間</th><th>amount</th><th>before → after</th><th>備註</th></tr></thead><tbody id="commissionLogTableBody"><tr><td colspan="4" class="empty-cell">尚未載入資料</td></tr></tbody></table></div></div>
-                </div>
-              </div>
-            </details>
-          </div>
-        </section>
-
-        <!-- ───────────── ANNOUNCEMENT & TRACKING SECTION ───────────── -->
-        <section id="announcementSection" class="section">
-          <div class="card">
-            <div class="card-header">
-              <h2>📢 公告管理</h2>
-              <div class="header-actions">
-                <button id="btnRefreshAnnouncements" class="btn btn-soft">重新整理</button>
-                <button id="btnCreateAnnouncement" class="btn btn-primary">新增公告</button>
-              </div>
-            </div>
-
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead><tr><th>公告ID</th><th>標題</th><th>內容</th><th>狀態</th><th>發布時間</th><th>操作</th></tr></thead>
-                <tbody id="announcementsTableBody"><tr><td colspan="6" class="empty-cell">尚未載入資料</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-
-          <details class="collapsible-native" id="announcementFormCard" style="display:none;">
-            <summary id="announcementFormTitle">新增公告</summary>
-            <div class="details-content">
-              <div class="form-grid">
-                <div class="field field-wide"><label>標題 *</label><input id="announcementTitle" class="input" type="text" /></div>
-                <div class="field field-wide"><label>內容 *</label><textarea id="announcementContent" class="textarea" rows="4"></textarea></div>
-                <div class="field"><label>狀態</label><select id="announcementStatus" class="input"><option value="active">啟用</option><option value="draft">草稿</option></select></div>
-              </div>
-              <div class="action-row">
-                <button id="btnSaveAnnouncement" class="btn btn-primary">儲存</button>
-                <button id="btnCancelAnnouncement" class="btn btn-soft">取消</button>
-              </div>
-            </div>
-          </details>
-
-          <div class="card mt16">
-            <div class="card-header">
-              <h2>📊 追蹤分析中心</h2>
-              <div class="header-actions"><button id="btnRefreshTracking" class="btn btn-soft">重新整理</button></div>
-            </div>
-
-            <div class="tracking-kpi-grid stats-grid stats-grid-4">
-              <div class="stat-box"><div class="stat-label">總卡片數</div><div class="stat-value" id="trackingTotalCards">-</div></div>
-              <div class="stat-box"><div class="stat-label">總代理數</div><div class="stat-value" id="trackingTotalAgents">-</div></div>
-              <div class="stat-box"><div class="stat-label">本月付款總額</div><div class="stat-value" id="trackingMonthlyRevenue">-</div></div>
-              <div class="stat-box"><div class="stat-label">本月分潤總額</div><div class="stat-value" id="trackingMonthlyCommission">-</div></div>
-            </div>
-
-            <details class="collapsible-native">
-              <summary>📇 單卡追蹤</summary>
-              <div class="details-content">
-                <div class="form-grid"><div class="field"><label>卡片 ID</label><input id="trackingCardId" class="input" type="text" placeholder="card_id" /></div></div>
-                <div class="action-row"><button id="btnGetCardTracking" class="btn btn-primary">查詢</button></div>
-                <div id="cardTrackingDetail" class="detail-stack mt16 empty-state">請輸入 card_id 查詢</div>
-              </div>
-            </details>
-
-            <details class="collapsible-native">
-              <summary>👤 單代理追蹤</summary>
-              <div class="details-content">
-                <div class="form-grid"><div class="field"><label>代理 ID</label><input id="trackingAgentId" class="input" type="text" placeholder="agent_id" /></div></div>
-                <div class="action-row"><button id="btnGetAgentTracking" class="btn btn-primary">查詢</button></div>
-                <div id="agentTrackingDetail" class="detail-stack mt16 empty-state">請輸入 agent_id 查詢</div>
-              </div>
-            </details>
-          </div>
-        </section>
-
-        <!-- ───────────── SYSTEM TOOLS SECTION ───────────── -->
-        <section id="systemToolsSection" class="section">
-          <div class="card">
-            <div class="card-header"><h2>🔧 系統工具 / 維運中心</h2></div>
-
-            <details class="collapsible-native">
-              <summary>📋 Schema 健康檢查</summary>
-              <div class="details-content">
-                <div id="schemaStatus" class="empty-state">尚未檢查</div>
-                <div class="action-row mt8"><button id="btnCheckSchema" class="btn btn-primary">執行檢查</button></div>
-              </div>
-            </details>
-
-            <details class="collapsible-native">
-              <summary>🔧 修復工具</summary>
-              <div class="details-content">
-                <div class="tools-button-grid">
-                  <button id="btnRepairDueAt" class="btn btn-soft btn-sm">修復 due_at</button>
-                  <button id="btnRepairAddonStatusTool" class="btn btn-soft btn-sm">修復加購單狀態</button>
-                  <button id="btnRepairDataValidation" class="btn btn-soft btn-sm">修復資料驗證</button>
-                  <button id="btnNormalizeCardTheme" class="btn btn-soft btn-sm">正規化卡片主題欄位</button>
-                  <button id="btnAuditCardTheme" class="btn btn-soft btn-sm">稽核卡片主題</button>
-                </div>
-              </div>
-            </details>
-
-            <details class="collapsible-native">
-              <summary>⚙️ 系統觸發器</summary>
-              <div class="details-content">
-                <div class="tools-button-grid">
-                  <button id="btnInstallSystemTriggers" class="btn btn-primary btn-sm">安裝系統觸發器</button>
-                  <button id="btnInstallCommercialTriggers" class="btn btn-primary btn-sm">安裝商業觸發器</button>
-                  <button id="btnRunDailyOps" class="btn btn-warn btn-sm">執行每日維運</button>
-                </div>
-              </div>
-            </details>
-
-            <details class="collapsible-native">
-              <summary>📜 最近維運紀錄</summary>
-              <div class="details-content">
-                <div id="opsLogsList" class="focus-list empty-state">尚未載入</div>
-                <div class="action-row mt8"><button id="btnRefreshOpsLogs" class="btn btn-soft btn-xs">重新整理</button></div>
-              </div>
-            </details>
-          </div>
-        </section>
-
-        <!-- ───────────── INVITE SECTION ───────────── -->
-        <section id="inviteSection" class="section">
-          <div class="card">
-            <div class="card-header"><h2>🎫 申請碼 / 邀請碼管理</h2></div>
-
-            <details class="collapsible-native">
-              <summary>➕ 建立邀請碼</summary>
-              <div class="details-content">
-                <div class="form-grid">
-                  <div class="field"><label for="createInviteCount">建立數量</label><input id="createInviteCount" class="input" type="number" value="1" min="1" /></div>
-                  <div class="field"><label for="createInviteDays">有效天數</label><input id="createInviteDays" class="input" type="number" value="30" min="1" /></div>
-                  <div class="field"><label for="createInviteReferrer">推薦來源 referrer</label><input id="createInviteReferrer" class="input" type="text" placeholder="例如 AG001 / SELF" /></div>
-                  <div class="field"><label for="createInviteServiceAgent">service_agent</label><input id="createInviteServiceAgent" class="input" type="text" placeholder="例如 AG001" /></div>
-                  <div class="field"><label for="createInviteAgentType">agent_type</label><input id="createInviteAgentType" class="input" type="text" placeholder="例如 referral / partner / self" /></div>
-                  <div class="field"><label for="createInviteSource">source</label><input id="createInviteSource" class="input" type="text" value="admin" /></div>
-                </div>
-                <div class="action-row"><button id="btnCreateInviteCode" class="btn btn-primary">建立邀請碼</button></div>
-              </div>
-            </details>
-
-            <details class="collapsible-native">
-              <summary>📋 建立結果與複製</summary>
-              <div class="details-content">
-                <div class="result-box">
-                  <div class="result-title">建立結果（原始）</div>
-                  <pre id="inviteCreateResult">尚未建立。</pre>
-                </div>
-                <div class="tool-grid mt16">
-                  <div class="tool-box"><div class="tool-label">申請連結</div><textarea id="inviteFormUrlBox" class="textarea" readonly placeholder="建立後自動填入"></textarea></div>
-                  <div class="tool-box"><div class="tool-label">客服回覆文案</div><textarea id="inviteReplyTextBox" class="textarea" readonly placeholder="建立後自動填入"></textarea></div>
-                </div>
-                <div class="action-row">
-                  <button id="btnCopyInviteCode" class="btn btn-soft">複製邀請碼</button>
-                  <button id="btnCopyInviteUrl" class="btn btn-primary">複製申請連結</button>
-                  <button id="btnCopyInviteText" class="btn btn-primary">複製客服文案</button>
-                </div>
-              </div>
-            </details>
-          </div>
-        </section>
-      </main>
+<div id="app" class="app">
+  <header class="topbar">
+    <div class="brand-block">
+      <h1>HSC 後台管理系統</h1>
+      <p class="topbar-sub">v6.5.0 完整營運版｜暖色簡潔｜收合優先｜高頻操作直達</p>
     </div>
+    <div class="topbar-tools">
+      <div class="status-group"><span class="status-label">GAS</span><span id="gasStatus" class="status-pill">待檢查</span></div>
+      <button id="btnRefreshAll" class="btn btn-soft">重新整理</button>
+      <button id="btnOpenHub" class="btn btn-soft">開名片館</button>
+      <button id="btnOpenForm" class="btn btn-soft">開申請表</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-card"><div class="sidebar-title">功能選單</div>
+        <button class="nav-btn active" data-target="dashboardSection">📊 儀表板</button>
+        <button class="nav-btn" data-target="paymentSection">💰 付款管理</button>
+        <button class="nav-btn" data-target="recognitionSection">✅ 採認管理</button>
+        <button class="nav-btn" data-target="renewalSection">🔄 續約管理</button>
+        <button class="nav-btn" data-target="addonSection">🛒 加購管理</button>
+        <button class="nav-btn" data-target="cardSection">📇 卡片查詢管理</button>
+        <button class="nav-btn" data-target="deliverySection">🎛️ 交付卡控制</button>
+        <button class="nav-btn" data-target="agentSection">👥 代理/升級管理</button>
+        <button class="nav-btn" data-target="logsSection">💰 分潤 / Log</button>
+        <button class="nav-btn" data-target="announcementSection">📢 公告/追蹤</button>
+        <button class="nav-btn" data-target="systemToolsSection">🔧 系統工具</button>
+        <button class="nav-btn" data-target="inviteSection">🎫 邀請碼管理</button>
+      </div>
+      <div class="sidebar-card"><div class="sidebar-title">目前選取卡片</div>
+        <div class="mini-kv"><span>card_id</span><strong id="currentCardLabel">未選取</strong></div>
+        <div class="mini-kv"><span>客戶</span><strong id="currentCardName">-</strong></div>
+        <div class="mini-kv"><span>付款</span><strong id="currentBillingStatus">-</strong></div>
+        <div class="mini-kv"><span>方案</span><strong id="currentPlan">-</strong></div>
+      </div>
+      <div class="sidebar-card"><div class="sidebar-title">目前選取代理</div>
+        <div class="mini-kv"><span>agent_id</span><strong id="currentAgentLabel">未選取</strong></div>
+        <div class="mini-kv"><span>姓名</span><strong id="currentAgentName">-</strong></div>
+        <div class="mini-kv"><span>點數</span><strong id="currentAgentPoints">-</strong></div>
+        <div class="mini-kv"><span>分潤</span><strong id="currentAgentCommission">-</strong></div>
+      </div>
+      <div class="sidebar-card"><div class="sidebar-title">🔑 Admin Key</div>
+        <div id="keyStatus" class="key-status warn">⚠️ 尚未設定</div>
+        <div class="field mt8"><input id="adminKeyInput" class="input" type="password" placeholder="貼上 Admin Key" autocomplete="off" /></div>
+        <div class="action-row" style="margin-top:10px;"><button id="btnSaveKey" class="btn btn-primary btn-xs">儲存</button><button id="btnClearKey" class="btn btn-danger btn-xs">清除</button></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- dashboardSection -->
+      <section id="dashboardSection" class="section">
+        <div class="card"><div class="card-header"><h2>📊 儀表板 Dashboard</h2><span class="badge badge-info">v6.5.0 完整營運版</span></div>
+          <div class="stats-grid stats-grid-5"><div class="stat-box"><div class="stat-label">待付款</div><div class="stat-value" id="statUnpaid">-</div></div><div class="stat-box"><div class="stat-label">待交付</div><div class="stat-value" id="statNeedDelivery">-</div></div><div class="stat-box"><div class="stat-label">待續約</div><div class="stat-value" id="statNeedRenewal">-</div></div><div class="stat-box"><div class="stat-label">待加購處理</div><div class="stat-value" id="statAddonPending">-</div></div><div class="stat-box"><div class="stat-label">代理數</div><div class="stat-value" id="statAgents">-</div></div></div>
+          <div class="section-subtitle mt16">📈 營運 KPI</div><div class="stats-grid stats-grid-4 mt8"><div class="stat-box"><div class="stat-label">待確認付款</div><div class="stat-value" id="statPendingPayments">-</div></div><div class="stat-box"><div class="stat-label">待採認</div><div class="stat-value" id="statPendingRecognition">-</div></div><div class="stat-box"><div class="stat-label">公告啟用中</div><div class="stat-value" id="statActiveAnnouncements">-</div></div><div class="stat-box"><div class="stat-label">系統異常項</div><div class="stat-value" id="statSystemIssues">-</div></div></div>
+          <div class="section-subtitle mt16">📅 今日 KPI</div><div class="stats-grid stats-grid-4 mt8"><div class="stat-box stat-box-today"><div class="stat-label">今日付款數</div><div class="stat-value stat-today" id="statTodayPayments">-</div></div><div class="stat-box stat-box-today"><div class="stat-label">今日新增卡片</div><div class="stat-value stat-today" id="statTodayCards">-</div></div><div class="stat-box stat-box-today"><div class="stat-label">今日 CTA 點擊</div><div class="stat-value stat-today" id="statTodayCta">-</div></div><div class="stat-box stat-box-today"><div class="stat-label">今日轉換</div><div class="stat-value stat-today" id="statTodayConversion">-</div></div></div>
+        </div>
+        <div class="card"><div class="card-header"><h2>⚠️ 高風險提醒</h2></div><div id="dashboardRiskList" class="focus-list empty-state">尚未載入資料</div></div>
+        <div class="card"><div class="card-header"><h2>📋 最近操作紀錄</h2></div><div id="recentOpsLogs" class="focus-list empty-state">尚未載入資料</div></div>
+      </section>
+
+      <!-- paymentSection -->
+      <section id="paymentSection" class="section">
+        <div class="card"><div class="card-header"><h2>💰 付款管理</h2><div class="header-actions"><button id="btnRefreshPayments" class="btn btn-soft">重新整理</button><button id="btnLoadPendingOffline" class="btn btn-warn btn-soft">離線付款待確認</button></div></div>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>payment_id</th><th>card_id</th><th>event_type</th><th>amount</th><th>status</th><th>due_at</th><th>paid_at</th><th>操作</th></tr></thead><tbody id="paymentsTableBody"><tr><td colspan="8" class="empty-cell">尚未載入資料</td></tr></tbody></table></div>
+        </div>
+        <details class="collapsible-native"><summary>📄 付款詳情區</summary><div class="details-content"><div id="paymentDetailWrap" class="empty-state">請點擊表格中的「查看詳情」</div></div></details>
+        <details class="collapsible-native"><summary>📊 付款卡摘要</summary><div class="details-content"><div id="cardPaymentSummaryWrap" class="empty-state">請先選取卡片或付款單</div></div></details>
+        <details class="collapsible-native"><summary>📝 付款文案工具區</summary><div class="details-content"><div class="tool-grid"><div class="tool-box"><div class="tool-label">付款通知文案</div><textarea id="paymentNoticeText" class="textarea" readonly rows="3"></textarea><button id="btnBuildPaymentNotice" class="btn btn-xs btn-soft mt8">生成</button></div><div class="tool-box"><div class="tool-label">已付款通知文案</div><textarea id="paidNoticeText" class="textarea" readonly rows="3"></textarea><button id="btnBuildPaidNotice" class="btn btn-xs btn-soft mt8">生成</button></div><div class="tool-box"><div class="tool-label">交付通知文案</div><textarea id="deliveryNoticeText" class="textarea" readonly rows="3"></textarea><button id="btnBuildDeliveryNotice" class="btn btn-xs btn-soft mt8">生成</button></div></div></div></details>
+      </section>
+
+      <!-- recognitionSection -->
+      <section id="recognitionSection" class="section">
+        <div class="card"><div class="card-header"><h2>✅ 採認管理</h2><div class="recognition-tabs" id="recognitionTabs"><button class="recognition-tab active" data-type="renewal">續約採認</button><button class="recognition-tab" data-type="addon">加購採認</button></div></div>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>recognition_id</th><th>event_type</th><th>event_id</th><th>card_id</th><th>agent_id</th><th>result</th><th>recognized_at</th><th>操作</th></tr></thead><tbody id="recognitionTableBody"><tr><td colspan="8" class="empty-cell">尚未載入資料</td></tr></tbody></table></div>
+        </div>
+        <details class="collapsible-native"><summary>📄 採認詳情區</summary><div class="details-content"><div id="recognitionDetailWrap" class="empty-state">請點擊表格中的「查看詳情」</div></div></details>
+      </section>
+
+      <!-- renewalSection -->
+      <section id="renewalSection" class="section">
+        <div class="card"><div class="card-header"><h2>🔄 續約管理</h2><div class="header-actions"><button id="btnRefreshRenewalList" class="btn btn-soft btn-xs">重新整理</button></div></div>
+          <div class="stats-grid stats-grid-3"><div class="stat-box"><div class="stat-label">即將到期（30天內）</div><div class="stat-value" id="renewalSoonCount">-</div></div><div class="stat-box"><div class="stat-label">已到期</div><div class="stat-value" id="renewalExpiredCount">-</div></div><div class="stat-box"><div class="stat-label">待續約付款</div><div class="stat-value" id="renewalPendingPayCount">-</div></div></div>
+          <div class="table-wrap mt16"><table class="data-table"><thead><tr><th>續約ID</th><th>card_id</th><th>續約天數</th><th>金額</th><th>狀態</th><th>到期日</th><th>操作</th></tr></thead><tbody id="renewalListTableBody"><tr><td colspan="7" class="empty-cell">尚未載入資料</td></tr></tbody></table></div>
+        </div>
+        <details class="collapsible-native"><summary>📄 續約詳情區</summary><div class="details-content"><div id="renewalDetailWrap" class="empty-state">請點擊列表中的「查看詳情」</div></div></details>
+        <details class="collapsible-native"><summary>🛠️ 續約操作工具</summary><div class="details-content"><div class="form-grid"><div class="field"><label for="renewDays">續約天數</label><input id="renewDays" class="input" type="number" value="365" min="1" /></div></div><div class="action-row"><button id="btnConfirmRenewalPaid" class="btn btn-primary">付款確認＋續約</button><button id="btnCopyRenewalText" class="btn btn-primary">複製續約提醒文案</button><button id="btnCopyRenewalDeliveryText" class="btn btn-soft">複製續約交付文案</button><button id="btnTriggerPaymentReminder" class="btn btn-soft">觸發付款提醒</button></div><textarea id="renewalTextBox" class="textarea mt16" readonly></textarea></div></details>
+      </section>
+
+      <!-- addonSection -->
+      <section id="addonSection" class="section">
+        <div class="card"><div class="card-header"><h2>🛒 加購管理</h2><div class="header-actions"><input id="addonSearch" class="input" type="text" placeholder="搜尋 card_id / addon_order_id" /><button id="btnSearchAddons" class="btn btn-primary">搜尋</button><button id="btnReloadAddons" class="btn btn-soft">重新載入</button></div></div>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>addon_order_id</th><th>card_id</th><th>addon_type</th><th>qty</th><th>status</th><th>amount</th><th>due_at</th><th>操作</th></tr></thead><tbody id="addonsTableBody"><tr><td colspan="8" class="empty-cell">尚未載入資料</td></tr></tbody></table></div>
+        </div>
+        <details class="collapsible-native"><summary>📄 加購單詳情</summary><div class="details-content"><div class="header-actions"><input id="addonDetailId" class="input" type="text" placeholder="輸入 addon_order_id 後查詢" /><button id="btnLoadAddonDetail" class="btn btn-soft">查詢詳情</button></div><div id="addonDetailWrap" class="detail-stack empty-state mt16">請先選取一筆加購單。</div></div></details>
+        <details class="collapsible-native"><summary>➕ 建立加購單</summary><div class="details-content"><div class="form-grid"><div class="field"><label>卡片 ID *</label><input id="createAddonCardId" class="input" type="text" placeholder="card_id" /></div><div class="field"><label>加購類型 *</label><select id="createAddonType" class="input"><option value="cta">CTA 按鈕 (+1)</option><option value="photo">照片 (+1)</option><option value="update">更新權限 (無限)</option><option value="marquee">跑馬燈功能</option></select></div><div class="field"><label>數量</label><input id="createAddonQty" class="input" type="number" value="1" min="1" /></div><div class="field"><label>金額</label><input id="createAddonAmount" class="input" type="number" placeholder="自動計算或手動輸入" /></div></div><div class="action-row"><button id="btnSubmitCreateAddon" class="btn btn-primary">建立加購單</button></div></div></details>
+        <details class="collapsible-native"><summary>📝 付款提醒文案</summary><div class="details-content"><div class="tool-box"><textarea id="addonPaymentReminderText" class="textarea" readonly rows="3"></textarea><button id="btnCopyAddonReminder" class="btn btn-xs btn-soft mt8">複製</button></div></div></details>
+        <details class="collapsible-native"><summary>🔧 修復 / due_at 工具</summary><div class="details-content"><div class="action-row"><button id="btnRepairAddonStatus" class="btn btn-soft btn-sm">修復加購單狀態</button><button id="btnBackfillDueAt" class="btn btn-soft btn-sm">補填 due_at</button></div><div id="addonRepairResult" class="result-box mt8 empty-state">尚未執行</div></div></details>
+      </section>
+
+      <!-- cardSection -->
+      <section id="cardSection" class="section">
+        <div class="card"><div class="card-header"><h2>📇 卡片查詢管理</h2><div class="header-actions"><input id="cardSearch" class="input wide-input" type="text" placeholder="搜尋 card_id / 名稱 / 電話 / email" /><button id="btnSearchCards" class="btn btn-primary">搜尋</button><button id="btnReloadCards" class="btn btn-soft">重新載入</button></div></div>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>card_id</th><th>name</th><th>phone</th><th>plan</th><th>status</th><th>billing_status</th><th>expires_at</th><th>操作</th></tr></thead><tbody id="cardsTableBody"><tr><td colspan="8" class="empty-cell">尚未載入資料</td></tr></tbody></table></div>
+        </div>
+        <details class="collapsible-native"><summary>📄 單卡詳情總控區</summary><div class="details-content"><div class="header-actions"><input id="detailCardId" class="input" type="text" placeholder="輸入 card_id 後查詢" /><button id="btnLoadCardDetail" class="btn btn-soft">查詢詳情</button></div><div id="cardDetailWrap" class="detail-stack empty-state mt16">請先選取卡片。</div></div></details>
+        <details class="collapsible-native"><summary>🔗 預覽與交付</summary><div class="details-content"><div class="tool-grid"><div class="tool-box"><div class="tool-label">成品預覽連結</div><textarea id="previewLinkBox" class="textarea" readonly></textarea><button id="btnCopyPreviewLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="tool-box"><div class="tool-label">交付卡連結</div><textarea id="deliveryLinkBox" class="textarea" readonly></textarea><button id="btnCopyDeliveryLink" class="btn btn-xs btn-soft mt8">複製</button></div></div></div></details>
+      </section>
+
+      <!-- deliverySection (完整營運版) -->
+      <section id="deliverySection" class="section">
+        <div class="card"><div class="card-header"><h2>🎛️ 交付卡控制區</h2><span class="badge badge-info">完整管理交付卡行為</span></div><div id="deliveryCardMetaWrap" class="empty-state">請先選取卡片</div></div>
+        <details class="collapsible-native" open><summary>🔗 交付卡連結工具箱</summary><div class="details-content"><div class="delivery-meta-grid" id="deliveryLinkToolbox"><div class="delivery-meta-card"><div class="delivery-meta-label">名片連結</div><div class="delivery-meta-value" id="toolboxCardLink">-</div><button id="btnCopyCardLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="delivery-meta-card"><div class="delivery-meta-label">交付卡連結</div><div class="delivery-meta-value" id="toolboxPosterLink">-</div><button id="btnCopyPosterLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="delivery-meta-card"><div class="delivery-meta-label">推薦入口</div><div class="delivery-meta-value" id="toolboxReferralLink">-</div><button id="btnCopyReferralToolLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="delivery-meta-card"><div class="delivery-meta-label">更新入口</div><div class="delivery-meta-value" id="toolboxUpdateLink">-</div><button id="btnCopyUpdateToolLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="delivery-meta-card"><div class="delivery-meta-label">續用入口</div><div class="delivery-meta-value" id="toolboxRenewalLink">-</div><button id="btnCopyRenewalToolLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="delivery-meta-card"><div class="delivery-meta-label">海報圖片</div><div class="delivery-meta-value" id="toolboxPosterUrl">-</div><button id="btnCopyPosterUrlLink" class="btn btn-xs btn-soft mt8">複製</button></div></div></div></details>
+        <details class="collapsible-native" open><summary>📝 交付卡文案中心</summary><div class="details-content"><div class="tool-grid"><div class="tool-box"><div class="tool-label">Trial 分享文案</div><textarea id="trialShareText" class="textarea" readonly rows="3"></textarea><button id="btnCopyTrialShareText" class="btn btn-xs btn-soft mt8">複製</button></div><div class="tool-box"><div class="tool-label">專屬入口文案</div><textarea id="referralEntryText" class="textarea" readonly rows="3"></textarea><button id="btnCopyReferralEntryText" class="btn btn-xs btn-soft mt8">複製</button></div><div class="tool-box"><div class="tool-label">更新入口文案</div><textarea id="updateEntryText" class="textarea" readonly rows="3"></textarea><button id="btnCopyUpdateEntryText" class="btn btn-xs btn-soft mt8">複製</button></div><div class="tool-box"><div class="tool-label">續用入口文案</div><textarea id="renewalEntryText" class="textarea" readonly rows="3"></textarea><button id="btnCopyRenewalEntryText" class="btn btn-xs btn-soft mt8">複製</button></div></div></div></details>
+        <details class="collapsible-native"><summary>⚙️ 交付卡模式模擬器</summary><div class="details-content"><div id="walletModeSimulator" class="empty-state">請先選取卡片</div></div></details>
+        <details class="collapsible-native"><summary>💰 服務荷包觀測區</summary><div class="details-content"><div id="walletObserver" class="empty-state">請先選取卡片</div></div></details>
+        <details class="collapsible-native"><summary>📋 服務快記 / 服務紀錄觀測區</summary><div class="details-content"><div id="serviceLogObserver" class="empty-state">請先選取卡片</div></div></details>
+        <details class="collapsible-native"><summary>⚠️ 交付卡異常提示區</summary><div class="details-content"><div id="deliveryWarnings" class="empty-state">請先選取卡片</div></div></details>
+      </section>
+
+      <!-- agentSection -->
+      <section id="agentSection" class="section">
+        <div class="card"><div class="card-header"><h2>👥 代理管理</h2><div class="header-actions"><input id="agentSearch" class="input" type="text" placeholder="搜尋 agent_id / owner_name / agent_type" /><button id="btnSearchAgents" class="btn btn-primary">搜尋</button><button id="btnReloadAgents" class="btn btn-soft">重新載入</button></div></div>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>agent_id</th><th>owner_name</th><th>agent_type</th><th>member_tier</th><th>points_balance</th><th>total_commission</th><th>status</th><th>操作</th></tr></thead><tbody id="agentsTableBody"><tr><td colspan="8" class="empty-cell">尚未載入資料</td></tr></tbody></table></div>
+        </div>
+        <details class="collapsible-native"><summary>📄 代理詳情</summary><div class="details-content"><div class="header-actions"><input id="detailAgentId" class="input" type="text" placeholder="輸入 agent_id 後查詢" /><button id="btnLoadAgentDetail" class="btn btn-soft">查詢詳情</button></div><div id="agentDetailWrap" class="detail-stack empty-state mt16">請先選取代理。</div></div></details>
+        <details class="collapsible-native"><summary>📝 編輯代理基本資料</summary><div class="details-content"><div class="form-grid"><div class="field"><label>owner_name</label><input id="editAgentName" class="input" type="text" /></div><div class="field"><label>phone</label><input id="editAgentPhone" class="input" type="text" /></div><div class="field"><label>email</label><input id="editAgentEmail" class="input" type="text" /></div><div class="field"><label>agent_type</label><input id="editAgentType" class="input" type="text" placeholder="referral/partner/self" /></div></div><div class="action-row"><button id="btnUpdateAgent" class="btn btn-primary">更新代理資料</button></div></div></details>
+        <details class="collapsible-native"><summary>⬆️ 升級管理</summary><div class="details-content"><div id="agentUpgradeCard" class="empty-state">請先查詢代理詳情</div><div class="form-grid mt16"><div class="field"><label>目標等級 (target_tier)</label><input id="target_tier" class="input" type="text" placeholder="referral / partner" /></div></div><div class="action-row mt8"><button id="btnSetAgentUpgrade" class="btn btn-primary">設為可升級（指定目標等級）</button><button id="btnNormalizeMemberTier" class="btn btn-soft">正規化 member_tier</button><button id="btnNormalizeTypeAndTier" class="btn btn-soft">正規化 type+tier</button><button id="btnRepairAgentTypeEnum" class="btn btn-soft">修復 agent_type enum</button></div></div></details>
+        <details class="collapsible-native"><summary>❄️ 凍結/解凍</summary><div class="details-content"><div class="action-row"><button id="btnFreezeAgent" class="btn btn-warn">凍結代理</button><button id="btnUnfreezeAgent" class="btn btn-soft">解凍代理</button></div></div></details>
+        <details class="collapsible-native"><summary>🔧 修復工具</summary><div class="details-content"><div class="action-row"><button id="btnRepairMissingAgents" class="btn btn-soft">修復遺失代理</button><button id="btnNormalizeAgentType" class="btn btn-soft">正規化類型</button></div></div></details>
+      </section>
+
+      <!-- logsSection -->
+      <section id="logsSection" class="section">
+        <div class="card"><div class="card-header"><h2>💰 分潤 / Log</h2></div>
+          <details class="collapsible-native"><summary>➕ 點數手動調整</summary><div class="details-content"><div class="form-grid"><div class="field"><label>agent_id</label><input id="pointsAgentId" class="input" type="text" /></div><div class="field"><label>points</label><input id="pointsValue" class="input" type="number" /></div><div class="field field-wide"><label>備註</label><input id="pointsNote" class="input" type="text" /></div></div><div class="action-row"><button id="btnAddPoints" class="btn btn-primary">加點</button><button id="btnSubtractPoints" class="btn btn-danger">扣點</button></div></div></details>
+          <details class="collapsible-native"><summary>💰 分潤手動調整 / 待支付分潤</summary><div class="details-content"><div class="form-grid"><div class="field"><label>agent_id</label><input id="commissionAgentId" class="input" type="text" /></div><div class="field"><label>amount</label><input id="commissionValue" class="input" type="number" /></div><div class="field field-wide"><label>備註</label><input id="commissionNote" class="input" type="text" /></div></div><div class="action-row"><button id="btnAdjustCommission" class="btn btn-primary">補分潤</button><button id="btnLoadPendingCommissions" class="btn btn-warn">載入待支付分潤</button><button id="btnLoadCommissions" class="btn btn-soft">載入分潤清單</button></div><div class="table-wrap mt16"><table class="data-table"><thead><tr><th>commission_id</th><th>agent_id</th><th>amount</th><th>status</th><th>payment_id</th><th>操作</th></tr></thead><tbody id="commissionListTableBody"><tr><td colspan="6" class="empty-cell">尚未載入</td></tr></tbody></table></div></div></details>
+          <details class="collapsible-native"><summary>📋 Log 瀏覽</summary><div class="details-content"><div class="action-row"><button id="btnLoadLogs" class="btn btn-soft">重抓 Log</button></div><div class="logs-grid mt16"><div class="sub-card"><div class="sub-card-title">點數 Log</div><div class="table-wrap"><table class="data-table"><thead><tr><th>時間</th><th>type</th><th>before → after</th><th>備註</th></tr></thead><tbody id="pointsLogTableBody"><tr><td colspan="4" class="empty-cell">尚未載入資料</td></tr></tbody></table></div></div><div class="sub-card"><div class="sub-card-title">分潤 Log</div><div class="table-wrap"><table class="data-table"><thead><tr><th>時間</th><th>amount</th><th>before → after</th><th>備註</th></tr></thead><tbody id="commissionLogTableBody"><tr><td colspan="4" class="empty-cell">尚未載入資料</td></tr></tbody></table></div></div></div></div></details>
+        </div>
+      </section>
+
+      <!-- announcementSection -->
+      <section id="announcementSection" class="section">
+        <div class="card"><div class="card-header"><h2>📢 公告管理</h2><div class="header-actions"><button id="btnRefreshAnnouncements" class="btn btn-soft">重新整理</button><button id="btnCreateAnnouncement" class="btn btn-primary">新增公告</button></div></div>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>公告ID</th><th>標題</th><th>內容</th><th>狀態</th><th>發布時間</th><th>操作</th></tr></thead><tbody id="announcementsTableBody"><tr><td colspan="6" class="empty-cell">尚未載入資料</td></tr></tbody></table></div>
+        </div>
+        <details class="collapsible-native" id="announcementFormCard" style="display:none;"><summary id="announcementFormTitle">新增公告</summary><div class="details-content"><div class="form-grid"><div class="field field-wide"><label>標題 *</label><input id="announcementTitle" class="input" type="text" /></div><div class="field field-wide"><label>內容 *</label><textarea id="announcementContent" class="textarea" rows="4"></textarea></div><div class="field"><label>狀態</label><select id="announcementStatus" class="input"><option value="active">啟用</option><option value="draft">草稿</option></select></div></div><div class="action-row"><button id="btnSaveAnnouncement" class="btn btn-primary">儲存</button><button id="btnCancelAnnouncement" class="btn btn-soft">取消</button></div></div></details>
+        <div class="card mt16"><div class="card-header"><h2>📊 追蹤分析中心</h2><div class="header-actions"><button id="btnRefreshTracking" class="btn btn-soft">重新整理</button></div></div>
+          <div class="tracking-kpi-grid stats-grid stats-grid-4"><div class="stat-box"><div class="stat-label">總卡片數</div><div class="stat-value" id="trackingTotalCards">-</div></div><div class="stat-box"><div class="stat-label">總代理數</div><div class="stat-value" id="trackingTotalAgents">-</div></div><div class="stat-box"><div class="stat-label">本月付款總額</div><div class="stat-value" id="trackingMonthlyRevenue">-</div></div><div class="stat-box"><div class="stat-label">本月分潤總額</div><div class="stat-value" id="trackingMonthlyCommission">-</div></div></div>
+          <details class="collapsible-native"><summary>📇 單卡追蹤</summary><div class="details-content"><div class="form-grid"><div class="field"><label>卡片 ID</label><input id="trackingCardId" class="input" type="text" placeholder="card_id" /></div></div><div class="action-row"><button id="btnGetCardTracking" class="btn btn-primary">查詢</button></div><div id="cardTrackingDetail" class="detail-stack mt16 empty-state">請輸入 card_id 查詢</div></div></details>
+          <details class="collapsible-native"><summary>👤 單代理追蹤</summary><div class="details-content"><div class="form-grid"><div class="field"><label>代理 ID</label><input id="trackingAgentId" class="input" type="text" placeholder="agent_id" /></div></div><div class="action-row"><button id="btnGetAgentTracking" class="btn btn-primary">查詢</button></div><div id="agentTrackingDetail" class="detail-stack mt16 empty-state">請輸入 agent_id 查詢</div></div></details>
+        </div>
+      </section>
+
+      <!-- systemToolsSection -->
+      <section id="systemToolsSection" class="section">
+        <div class="card"><div class="card-header"><h2>🔧 系統工具 / 維運中心</h2></div>
+          <details class="collapsible-native"><summary>📋 Schema 健康檢查</summary><div class="details-content"><div id="schemaStatus" class="empty-state">尚未檢查</div><div class="action-row mt8"><button id="btnCheckSchema" class="btn btn-primary">執行檢查</button></div></div></details>
+          <details class="collapsible-native"><summary>🔧 修復工具</summary><div class="details-content"><div class="tools-button-grid"><button id="btnRepairDueAt" class="btn btn-soft btn-sm">修復 due_at</button><button id="btnRepairAddonStatusTool" class="btn btn-soft btn-sm">修復加購單狀態</button><button id="btnRepairDataValidation" class="btn btn-soft btn-sm">修復資料驗證</button><button id="btnNormalizeCardTheme" class="btn btn-soft btn-sm">正規化卡片主題欄位</button><button id="btnAuditCardTheme" class="btn btn-soft btn-sm">稽核卡片主題</button></div><div id="systemToolResult" class="result-box mt8 empty-state">尚未執行修復動作</div></div></details>
+          <details class="collapsible-native"><summary>⚙️ 系統觸發器</summary><div class="details-content"><div class="tools-button-grid"><button id="btnInstallSystemTriggers" class="btn btn-primary btn-sm">安裝系統觸發器</button><button id="btnInstallCommercialTriggers" class="btn btn-primary btn-sm">安裝商業觸發器</button><button id="btnRunDailyOps" class="btn btn-warn btn-sm">執行每日維運</button></div></div></details>
+          <details class="collapsible-native"><summary>📜 最近維運紀錄</summary><div class="details-content"><div id="opsLogsList" class="focus-list empty-state">尚未載入</div><div class="action-row mt8"><button id="btnRefreshOpsLogs" class="btn btn-soft btn-xs">重新整理</button></div></div></details>
+        </div>
+      </section>
+
+      <!-- inviteSection -->
+      <section id="inviteSection" class="section">
+        <div class="card"><div class="card-header"><h2>🎫 申請碼 / 邀請碼管理</h2></div>
+          <details class="collapsible-native"><summary>➕ 建立邀請碼</summary><div class="details-content"><div class="form-grid"><div class="field"><label for="createInviteCount">建立數量</label><input id="createInviteCount" class="input" type="number" value="1" min="1" /></div><div class="field"><label for="createInviteDays">有效天數</label><input id="createInviteDays" class="input" type="number" value="30" min="1" /></div><div class="field"><label for="createInviteReferrer">推薦來源 referrer</label><input id="createInviteReferrer" class="input" type="text" placeholder="例如 AG001 / SELF" /></div><div class="field"><label for="createInviteServiceAgent">service_agent</label><input id="createInviteServiceAgent" class="input" type="text" placeholder="例如 AG001" /></div><div class="field"><label for="createInviteAgentType">agent_type</label><input id="createInviteAgentType" class="input" type="text" placeholder="例如 referral / partner / self" /></div><div class="field"><label for="createInviteSource">source</label><input id="createInviteSource" class="input" type="text" value="admin" /></div></div><div class="action-row"><button id="btnCreateInviteCode" class="btn btn-primary">建立邀請碼</button></div></div></details>
+          <details class="collapsible-native"><summary>📋 建立結果與複製</summary><div class="details-content"><div class="result-box"><div class="result-title">建立結果（原始）</div><pre id="inviteCreateResult">尚未建立。</pre></div><div class="tool-grid mt16"><div class="tool-box"><div class="tool-label">申請連結</div><textarea id="inviteFormUrlBox" class="textarea" readonly placeholder="建立後自動填入"></textarea></div><div class="tool-box"><div class="tool-label">客服回覆文案</div><textarea id="inviteReplyTextBox" class="textarea" readonly placeholder="建立後自動填入"></textarea></div></div><div class="action-row"><button id="btnCopyInviteCode" class="btn btn-soft">複製邀請碼</button><button id="btnCopyInviteUrl" class="btn btn-primary">複製申請連結</button><button id="btnCopyInviteText" class="btn btn-primary">複製客服文案</button></div></div></details>
+        </div>
+      </section>
+    </main>
   </div>
-
-  <div id="loadingMask" class="loading-mask hidden">
-    <div class="loading-box">資料處理中…</div>
-  </div>
-
-  <div id="toast" class="toast hidden"></div>
-
-  <script src="./admin.js?v=645"></script>
+</div>
+<div id="loadingMask" class="loading-mask hidden"><div class="loading-box">資料處理中…</div></div>
+<div id="toast" class="toast hidden"></div>
+<script src="./admin.js?v=650"></script>
 </body>
 </html>
