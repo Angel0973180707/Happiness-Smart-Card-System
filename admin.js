@@ -1295,25 +1295,35 @@ async function refreshAll() {
 
     // invite 相關按鈕（已移除手動建碼按鈕）
     on("#btnAssignInviteToRequest", "click", assignInviteToRequestAligned);
-    on("#btnRefreshRequests", "click", loadRequests);
-    on("#btnCopyInviteCode", "click", () => {
-      const request = state.currentRequest || state.requests.find(r => r.assigned_invite_code);
-      if (request && request.assigned_invite_code) copyText(request.assigned_invite_code, "已複製邀請碼");
-      else toast("請先選取已派發的申請單");
-    });
-    on("#btnCopyInviteUrl", "click", () => {
-      const request = state.currentRequest || state.requests.find(r => r.assigned_invite_code);
-      if (request && request.assigned_invite_code) {
-        const url = buildInviteFormUrl(request.assigned_invite_code);
-        copyText(url, "已複製申請連結");
-      } else toast("請先選取已派發的申請單");
-    });
-    on("#btnCopyInviteText", "click", () => {
-      const request = state.currentRequest || state.requests.find(r => r.assigned_invite_code);
-      if (request && request.assigned_invite_code) {
-        copyText(buildInviteReplyText(request), "已複製客服文案");
-      } else toast("請先選取已派發的申請單");
-    });
+  on("#btnRefreshRequests", "click", loadRequests);
+
+on("#btnCopyInviteCode", "click", () => {
+  const request = state.currentSelectedRequestForInvite;
+  if (request && request.assigned_invite_code) {
+    copyText(request.assigned_invite_code, "已複製邀請碼");
+  } else {
+    toast("請先選取已派發的申請單");
+  }
+});
+
+on("#btnCopyInviteUrl", "click", () => {
+  const request = state.currentSelectedRequestForInvite;
+  if (request && request.assigned_invite_code) {
+    const url = buildInviteFormUrl(request.assigned_invite_code);
+    copyText(url, "已複製申請連結");
+  } else {
+    toast("請先選取已派發的申請單");
+  }
+});
+
+on("#btnCopyInviteText", "click", () => {
+  const request = state.currentSelectedRequestForInvite;
+  if (request && request.assigned_invite_code) {
+    copyText(buildInviteReplyText(request), "已複製客服文案");
+  } else {
+    toast("請先選取已派發的申請單");
+  }
+});
      // ===== Invite 全域按鈕（只綁一次）=====
 if (!inviteGlobalBound) {
   document.addEventListener("click", function (e) {
