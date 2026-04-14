@@ -5,7 +5,7 @@
   //  CONFIG
   // ─────────────────────────────────────────────
   const CONFIG = {
-    VERSION: "v6.5.1-stable-buttons-fix",
+    VERSION: "v6.5.2-stable-buttons-fix",
     GAS_BASE_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
@@ -466,6 +466,7 @@ async function loadRequests() {
     const data = await getRequests();
     state.requests = normalizeList(data, ["requests", "items"]);
     renderRequests();
+    bindRequestListEvents(); // 確保每次重新渲染後事件代理綁定（內部有防重複）
   } catch (err) {
     console.error('載入申請單失敗', err);
     state.requests = [];
@@ -556,16 +557,20 @@ async function loadAddonDetail(addonOrderId) {
   const data = await apiGet("adminGetOrderDetail", { addon_order_id: addonOrderId });
   const detail = data.addon_order || data.order || data.addon || data || {};
   state.currentAddon = detail;
-  $("#addonDetailId").value = addonOrderId;
+  const idInput = $("#addonDetailId");
+  if (idInput) idInput.value = addonOrderId;
   renderAddonDetail(detail);
 }
 async function loadAgentDetail(agentId) {
   const data = await apiGet("adminGetAgent", { agent_id: agentId });
   const detail = data.agent || data || {};
   state.currentAgent = detail;
-  $("#detailAgentId").value = agentId;
-  $("#pointsAgentId").value = agentId;
-  $("#commissionAgentId").value = agentId;
+  const idInput = $("#detailAgentId");
+  if (idInput) idInput.value = agentId;
+  const pointsInput = $("#pointsAgentId");
+  if (pointsInput) pointsInput.value = agentId;
+  const commissionInput = $("#commissionAgentId");
+  if (commissionInput) commissionInput.value = agentId;
   renderAgentDetail(detail);
   syncCurrentAgentBox(detail);
   renderAgentUpgradeCard(detail);
@@ -685,7 +690,7 @@ function renderCards() {
   const rows = state.cards.filter(item => { const hay = [textOf(item.id || item.card_id), textOf(item.name || item.owner_name), textOf(item.phone), textOf(item.email)].join(" ").toLowerCase(); return !keyword || hay.includes(keyword); });
   const tbody = $("#cardsTableBody");
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">查無卡片資料</td></tr>'; return; }
-  tbody.innerHTML = rows.map(item => { const id = textOf(item.id || item.card_id); return `<tr><td>${escapeHtml(id)}</td><td>${escapeHtml(textOf(item.name || item.owner_name))}</td><td>${escapeHtml(textOf(item.phone))}</td><td>${escapeHtml(planText(item.plan))}</td><td>${escapeHtml(textOf(item.status))}</td><td>${escapeHtml(billingStatusText(item.billing_status))}</td><td>${escapeHtml(formatValue(item.expires_at))}</td><td><button class="btn btn-xs btn-soft btn-card-detail" data-card-id="${escapeAttr(id)}">查看</button></td>`; }).join("");
+  tbody.innerHTML = rows.map(item => { const id = textOf(item.id || item.card_id); return `<tr><td>${escapeHtml(id)}</td><td>${escapeHtml(textOf(item.name || item.owner_name))}</td><td>${escapeHtml(textOf(item.phone))}</td><td>${escapeHtml(planText(item.plan))}</td><td>${escapeHtml(textOf(item.status))}</td><td>${escapeHtml(billingStatusText(item.billing_status))}</td><td>${escapeHtml(formatValue(item.expires_at))}</td><td><button class="btn btn-xs btn-soft btn-card-detail" data-card-id="${escapeAttr(id)}">查看</button></td></tr>`; }).join("");
   $$(".btn-card-detail", tbody).forEach(btn => btn.addEventListener("click", async () => loadCardDetail(btn.dataset.cardId)));
 }
 function escapeAttr(str) { return escapeHtml(str); }
@@ -700,7 +705,7 @@ function syncCurrentCardBox(card) {
 function renderPayments() {
   const tbody = $("#paymentsTableBody");
   if (!state.paymentList.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">尚無付款資料</td></tr>'; return; }
-  tbody.innerHTML = state.paymentList.map(p => `<td><td>${escapeHtml(textOf(p.payment_id || p.id))}</td><td>${escapeHtml(textOf(p.card_id))}</td><td>${escapeHtml(textOf(p.event_type))}</td><td>${escapeHtml(formatValue(p.amount))}</td><td><span class="badge ${textOf(p.status).toLowerCase() === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(textOf(p.status) || 'pending')}</span></td><td>${escapeHtml(formatValue(p.due_at))}</td><td>${escapeHtml(formatValue(p.paid_at))}</td><td><div class="table-actions"><button class="btn btn-xs btn-soft btn-payment-detail" data-payment-id="${escapeAttr(p.payment_id || p.id)}">查看</button>${textOf(p.status).toLowerCase() !== 'paid' ? `<button class="btn btn-xs btn-primary btn-payment-confirm" data-payment-id="${escapeAttr(p.payment_id || p.id)}">確認付款</button>` : ''}${textOf(p.status).toLowerCase() === 'paid' ? `<button class="btn btn-xs btn-danger btn-payment-refund" data-payment-id="${escapeAttr(p.payment_id || p.id)}">退款</button>` : ''}</div></td>`).join("");
+  tbody.innerHTML = state.paymentList.map(p => `<tr><td>${escapeHtml(textOf(p.payment_id || p.id))}</td><td>${escapeHtml(textOf(p.card_id))}</td><td>${escapeHtml(textOf(p.event_type))}</td><td>${escapeHtml(formatValue(p.amount))}</td><td><span class="badge ${textOf(p.status).toLowerCase() === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(textOf(p.status) || 'pending')}</span></td><td>${escapeHtml(formatValue(p.due_at))}</td><td>${escapeHtml(formatValue(p.paid_at))}</td><td><div class="table-actions"><button class="btn btn-xs btn-soft btn-payment-detail" data-payment-id="${escapeAttr(p.payment_id || p.id)}">查看</button>${textOf(p.status).toLowerCase() !== 'paid' ? `<button class="btn btn-xs btn-primary btn-payment-confirm" data-payment-id="${escapeAttr(p.payment_id || p.id)}">確認付款</button>` : ''}${textOf(p.status).toLowerCase() === 'paid' ? `<button class="btn btn-xs btn-danger btn-payment-refund" data-payment-id="${escapeAttr(p.payment_id || p.id)}">退款</button>` : ''}</div></td></tr>`).join("");
   $$(".btn-payment-detail", tbody).forEach(btn => btn.addEventListener("click", () => loadPaymentDetail(btn.dataset.paymentId)));
   $$(".btn-payment-confirm", tbody).forEach(btn => btn.addEventListener("click", () => confirmPaymentFromUi(btn.dataset.paymentId)));
   $$(".btn-payment-refund", tbody).forEach(btn => btn.addEventListener("click", () => markPaymentRefundedFromUi(btn.dataset.paymentId)));
@@ -728,7 +733,7 @@ async function buildPaymentNoticeTexts(type) {
 function renderRecognitionQueue(items) {
   const tbody = $("#recognitionTableBody");
   if (!items.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">尚無待採認項目</td></tr>'; return; }
-  tbody.innerHTML = items.map(item => `<tr><td>${escapeHtml(textOf(item.recognition_id || item.id))}</td><td>${escapeHtml(textOf(item.event_type))}</td><td>${escapeHtml(textOf(item.event_id))}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(textOf(item.agent_id))}</td><td><span class="badge badge-warn">${escapeHtml(textOf(item.result) || 'pending')}</span></td><td>${escapeHtml(formatValue(item.recognized_at))}</td><td><button class="btn btn-xs btn-soft btn-recognition-detail" data-recognition-id="${escapeAttr(item.recognition_id || item.id)}">查看</button></td>`).join("");
+  tbody.innerHTML = items.map(item => `<tr><td>${escapeHtml(textOf(item.recognition_id || item.id))}</td><td>${escapeHtml(textOf(item.event_type))}</td><td>${escapeHtml(textOf(item.event_id))}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(textOf(item.agent_id))}</td><td><span class="badge badge-warn">${escapeHtml(textOf(item.result) || 'pending')}</span></td><td>${escapeHtml(formatValue(item.recognized_at))}</td><td><button class="btn btn-xs btn-soft btn-recognition-detail" data-recognition-id="${escapeAttr(item.recognition_id || item.id)}">查看</button></td></tr>`).join("");
   $$(".btn-recognition-detail", tbody).forEach(btn => btn.addEventListener("click", () => loadRecognitionDetail(btn.dataset.recognitionId)));
 }
 function renderRecognitionDetail(detail) {
@@ -745,7 +750,7 @@ async function rejectRecognitionFromUi(recognitionId) { if (!confirm("拒絕此�
 function renderRenewalList() {
   const tbody = $("#renewalListTableBody");
   if (!state.renewalItems.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">尚無續約資料</td></tr>'; return; }
-  tbody.innerHTML = state.renewalItems.map(item => `<tr><td>${escapeHtml(textOf(item.renewal_id || item.id))}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(formatValue(item.renew_days))}</td><td>${escapeHtml(formatValue(item.amount))}</td><td><span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'pending')}</span></td><td>${escapeHtml(formatValue(item.expires_at))}</td><td><button class="btn btn-xs btn-soft btn-renewal-detail" data-renewal-id="${escapeAttr(item.renewal_id || item.id)}">查看詳情</button></td>`).join("");
+  tbody.innerHTML = state.renewalItems.map(item => `<tr><td>${escapeHtml(textOf(item.renewal_id || item.id))}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(formatValue(item.renew_days))}</td><td>${escapeHtml(formatValue(item.amount))}</td><td><span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'pending')}</span></td><td>${escapeHtml(formatValue(item.expires_at))}</td><td><button class="btn btn-xs btn-soft btn-renewal-detail" data-renewal-id="${escapeAttr(item.renewal_id || item.id)}">查看詳情</button></td></tr>`).join("");
   $$(".btn-renewal-detail", tbody).forEach(btn => btn.addEventListener("click", () => loadRenewalDetail(btn.dataset.renewalId)));
 }
 function renderRenewalDetail(detail) {
@@ -765,7 +770,7 @@ function renderAddons() {
   const rows = state.addons.filter(item => { const hay = [textOf(item.addon_order_id), textOf(item.card_id), textOf(item.addon_type)].join(" ").toLowerCase(); return !keyword || hay.includes(keyword); });
   const tbody = $("#addonsTableBody");
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">查無加購資料</td></tr>'; return; }
-  tbody.innerHTML = rows.map(item => { const addonOrderId = textOf(item.addon_order_id); const status = textOf(item.status); return `<tr><td>${escapeHtml(addonOrderId)}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(textOf(item.addon_type))}</td><td>${escapeHtml(formatValue(item.qty || 1))}</td><td><span class="badge ${status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(status || '-')}</span></td><td>${escapeHtml(formatValue(item.amount))}</td><td>${escapeHtml(formatValue(item.due_at))}</td><td><div class="table-actions"><button class="btn btn-xs btn-soft btn-addon-detail" data-addon-id="${escapeAttr(addonOrderId)}">查看</button>${status.toLowerCase() !== 'paid' ? `<button class="btn btn-xs btn-primary btn-addon-paid" data-addon-id="${escapeAttr(addonOrderId)}" data-card-id="${escapeAttr(textOf(item.card_id))}">確認付款</button>` : ''}<button class="btn btn-xs btn-soft btn-addon-reminder" data-addon-id="${escapeAttr(addonOrderId)}">複製提醒</button></div></td>`; }).join("");
+  tbody.innerHTML = rows.map(item => { const addonOrderId = textOf(item.addon_order_id); const status = textOf(item.status); return `<tr><td>${escapeHtml(addonOrderId)}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(textOf(item.addon_type))}</td><td>${escapeHtml(formatValue(item.qty || 1))}</td><td><span class="badge ${status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(status || '-')}</span></td><td>${escapeHtml(formatValue(item.amount))}</td><td>${escapeHtml(formatValue(item.due_at))}</td><td><div class="table-actions"><button class="btn btn-xs btn-soft btn-addon-detail" data-addon-id="${escapeAttr(addonOrderId)}">查看</button>${status.toLowerCase() !== 'paid' ? `<button class="btn btn-xs btn-primary btn-addon-paid" data-addon-id="${escapeAttr(addonOrderId)}" data-card-id="${escapeAttr(textOf(item.card_id))}">確認付款</button>` : ''}<button class="btn btn-xs btn-soft btn-addon-reminder" data-addon-id="${escapeAttr(addonOrderId)}">複製提醒</button></div></td></tr>`; }).join("");
   $$(".btn-addon-detail", tbody).forEach(btn => btn.addEventListener("click", async () => loadAddonDetail(btn.dataset.addonId)));
   $$(".btn-addon-paid", tbody).forEach(btn => btn.addEventListener("click", async () => confirmAddonPaid(btn.dataset.addonId, btn.dataset.cardId, btn)));
   $$(".btn-addon-reminder", tbody).forEach(btn => btn.addEventListener("click", () => { const item = state.addons.find(a => textOf(a.addon_order_id) === btn.dataset.addonId); if (item) buildAddonReminderFromApi(item.addon_order_id); }));
@@ -794,7 +799,7 @@ function renderAgents() {
   const rows = state.agents.filter(item => { const hay = [textOf(item.agent_id), textOf(item.owner_name), textOf(item.agent_type)].join(" ").toLowerCase(); return !keyword || hay.includes(keyword); });
   const tbody = $("#agentsTableBody");
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">查無代理資料</td></tr>'; return; }
-  tbody.innerHTML = rows.map(item => `<td><td>${escapeHtml(textOf(item.agent_id))}</td><td>${escapeHtml(textOf(item.owner_name))}</td><td><span class="badge ${item.agent_type === 'partner' ? 'badge-success' : 'badge-info'}">${escapeHtml(textOf(item.agent_type) || '-')}</span></td><td>${escapeHtml(textOf(item.member_tier) || '-')}</td><td>${escapeHtml(formatValue(item.points_balance))}</td><td>${escapeHtml(formatValue(item.total_commission))}</td><td><span class="badge ${item.status === 'active' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'active')}</span></td><td><button class="btn btn-xs btn-soft btn-agent-detail" data-agent-id="${escapeAttr(textOf(item.agent_id))}">查看</button></td>`).join("");
+  tbody.innerHTML = rows.map(item => `<tr><td>${escapeHtml(textOf(item.agent_id))}</td><td>${escapeHtml(textOf(item.owner_name))}</td><td><span class="badge ${item.agent_type === 'partner' ? 'badge-success' : 'badge-info'}">${escapeHtml(textOf(item.agent_type) || '-')}</span></td><td>${escapeHtml(textOf(item.member_tier) || '-')}</td><td>${escapeHtml(formatValue(item.points_balance))}</td><td>${escapeHtml(formatValue(item.total_commission))}</td><td><span class="badge ${item.status === 'active' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'active')}</span></td><td><button class="btn btn-xs btn-soft btn-agent-detail" data-agent-id="${escapeAttr(textOf(item.agent_id))}">查看</button></td></tr>`).join("");
   $$(".btn-agent-detail", tbody).forEach(btn => btn.addEventListener("click", async () => loadAgentDetail(btn.dataset.agentId)));
 }
 function renderAgentDetail(agent) { const wrap = $("#agentDetailWrap"); if (!agent || !Object.keys(agent).length) { wrap.innerHTML = '<div class="empty-state">查無代理詳情</div>'; return; } wrap.innerHTML = `<div class="detail-section"><div class="detail-title">代理資料</div><div class="detail-grid">${Object.entries(agent).map(([k, v]) => renderDetailItem(k, formatValue(v))).join("")}</div></div>`; }
@@ -805,10 +810,14 @@ function syncCurrentAgentBox(agent) {
   const commission = $("#currentAgentCommission"); if (commission) commission.textContent = formatValue(agent.total_commission);
 }
 function populateAgentEditForm(agent) {
-  $("#editAgentName").value = textOf(agent.owner_name) || "";
-  $("#editAgentPhone").value = textOf(agent.phone) || "";
-  $("#editAgentEmail").value = textOf(agent.email) || "";
-  $("#editAgentType").value = textOf(agent.agent_type) || "";
+  const nameEl = $("#editAgentName");
+  if (nameEl) nameEl.value = textOf(agent.owner_name) || "";
+  const phoneEl = $("#editAgentPhone");
+  if (phoneEl) phoneEl.value = textOf(agent.phone) || "";
+  const emailEl = $("#editAgentEmail");
+  if (emailEl) emailEl.value = textOf(agent.email) || "";
+  const typeEl = $("#editAgentType");
+  if (typeEl) typeEl.value = textOf(agent.agent_type) || "";
 }
 function renderAgentUpgradeCard(agent) {
   const wrap = $("#agentUpgradeCard");
@@ -831,14 +840,14 @@ async function repairMissingAgents() { if (!confirm("修復遺失代理？")) re
 async function adjustPoints(mode) { const agentId = valueOf("#pointsAgentId"); const pointsValue = Number(valueOf("#pointsValue")); const note = valueOf("#pointsNote"); if (!agentId) return alert("請輸入 agent_id"); if (!Number.isFinite(pointsValue) || pointsValue <= 0) return alert("points 必須大於 0"); const points = mode === "subtract" ? -Math.abs(pointsValue) : Math.abs(pointsValue); try { await apiPost("adminAdjustPoints", { agent_id: agentId, points, note }); toast(mode === "subtract" ? "✅ 已扣點" : "✅ 已加點"); await loadAgents(); await loadAgentDetail(agentId); } catch (err) { toast(`操作失敗：${err.message}`); } }
 async function adjustCommission() { const agentId = valueOf("#commissionAgentId"); const amount = Number(valueOf("#commissionValue")); const note = valueOf("#commissionNote"); if (!agentId) return alert("請輸入 agent_id"); if (!Number.isFinite(amount) || amount <= 0) return alert("amount 必須大於 0"); try { await apiPost("adminAdjustCommission", { agent_id: agentId, amount, note }); toast("✅ 已補分潤"); await loadAgents(); await loadAgentDetail(agentId); } catch (err) { toast(`操作失敗：${err.message}`); } }
 async function reloadLogsForCurrentAgent() { const agentId = valueOf("#detailAgentId") || textOf(state.currentAgent?.agent_id); if (!agentId) return alert("請先選取代理"); await renderAgentRecentLogs(agentId); }
-function renderPointsLog(rows) { const tbody = $("#pointsLogTableBody"); if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">沒有點數 Log</td></tr>'; return; } tbody.innerHTML = rows.map(row => `<tr><td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time"])))}</td><td>${escapeHtml(formatValue(firstValue(row, ["type", "action"])))}</td><td>${escapeHtml(`${formatValue(firstValue(row, ["before_balance", "before"]))} → ${formatValue(firstValue(row, ["after_balance", "after"]))}`)}</td><td>${escapeHtml(formatValue(firstValue(row, ["note", "memo"])))}</td>`).join(""); }
-function renderCommissionLog(rows) { const tbody = $("#commissionLogTableBody"); if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">沒有分潤 Log</td></tr>'; return; } tbody.innerHTML = rows.map(row => `<tr><td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time"])))}</td><td>${escapeHtml(formatValue(firstValue(row, ["amount"])))}</td><td>${escapeHtml(`${formatValue(firstValue(row, ["before_total", "before"]))} → ${formatValue(firstValue(row, ["after_total", "after"]))}`)}</td><td>${escapeHtml(formatValue(firstValue(row, ["note", "memo"])))}</td>`).join(""); }
-function renderCommissionList() { const tbody = $("#commissionListTableBody"); if (!state.commissionItems.length) { tbody.innerHTML = '<td><td colspan="6" class="empty-cell">尚無分潤資料</td></tr>'; return; } tbody.innerHTML = state.commissionItems.map(item => `<tr><td>${escapeHtml(textOf(item.commission_id || item.id))}</td><td>${escapeHtml(textOf(item.agent_id))}</td><td>${escapeHtml(formatValue(item.amount))}</td><td><span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'pending')}</span></td><td>${escapeHtml(formatValue(item.payment_id))}</td><td>${item.status !== 'paid' ? `<button class="btn btn-xs btn-primary btn-mark-commission-paid" data-id="${escapeAttr(item.commission_id || item.id)}">標記已付</button>` : '-'}</td>`).join(""); $$(".btn-mark-commission-paid").forEach(btn => btn.addEventListener("click", () => markCommissionPaid(btn.dataset.id))); }
+function renderPointsLog(rows) { const tbody = $("#pointsLogTableBody"); if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">沒有點數 Log</td></tr>'; return; } tbody.innerHTML = rows.map(row => `<tr><td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time"])))}</td><td>${escapeHtml(formatValue(firstValue(row, ["type", "action"])))}</td><td>${escapeHtml(`${formatValue(firstValue(row, ["before_balance", "before"]))} → ${formatValue(firstValue(row, ["after_balance", "after"]))}`)}</td><td>${escapeHtml(formatValue(firstValue(row, ["note", "memo"])))}</td></tr>`).join(""); }
+function renderCommissionLog(rows) { const tbody = $("#commissionLogTableBody"); if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">沒有分潤 Log</td></tr>'; return; } tbody.innerHTML = rows.map(row => `<tr><td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time"])))}</td><td>${escapeHtml(formatValue(firstValue(row, ["amount"])))}</td><td>${escapeHtml(`${formatValue(firstValue(row, ["before_total", "before"]))} → ${formatValue(firstValue(row, ["after_total", "after"]))}`)}</td><td>${escapeHtml(formatValue(firstValue(row, ["note", "memo"])))}</td></tr>`).join(""); }
+function renderCommissionList() { const tbody = $("#commissionListTableBody"); if (!state.commissionItems.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">尚無分潤資料</td></tr>'; return; } tbody.innerHTML = state.commissionItems.map(item => `<tr><td>${escapeHtml(textOf(item.commission_id || item.id))}</td><td>${escapeHtml(textOf(item.agent_id))}</td><td>${escapeHtml(formatValue(item.amount))}</td><td><span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'pending')}</span></td><td>${escapeHtml(formatValue(item.payment_id))}</td><td>${item.status !== 'paid' ? `<button class="btn btn-xs btn-primary btn-mark-commission-paid" data-id="${escapeAttr(item.commission_id || item.id)}">標記已付</button>` : '-'}</td></tr>`).join(""); $$(".btn-mark-commission-paid").forEach(btn => btn.addEventListener("click", () => markCommissionPaid(btn.dataset.id))); }
 async function markCommissionPaid(commissionId) { if (!confirm(`確認分潤單 ${commissionId} 已支付？`)) return; if (!doubleConfirmId(commissionId, "分潤單")) return; try { await apiPost("markCommissionPaid", { commission_id: commissionId }); toast("✅ 分潤已標記為已付"); await loadCommissionList(); } catch (err) { toast(`操作失敗：${err.message}`); } }
 async function loadCommissionList() { try { const data = await apiGet("adminGetCommissionList"); state.commissionItems = normalizeList(data, ["commissions", "data", "items"]); renderCommissionList(); } catch (err) { console.error(err); } }
 async function loadPendingCommissions() { try { const data = await apiGet("getPendingCommissionPayments"); const list = normalizeList(data, ["commissions", "data", "items"]); toast(list.length ? `找到 ${list.length} 筆待支付分潤` : "目前沒有待支付的分潤"); state.commissionItems = list; renderCommissionList(); } catch (err) { console.error(err); } }
 
-function renderAnnouncements() { const tbody = $("#announcementsTableBody"); if (!state.announcementItems.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">尚無公告</td></tr>'; return; } tbody.innerHTML = state.announcementItems.map(a => `<tr><td>${escapeHtml(textOf(a.announcement_id || a.id))}</td><td>${escapeHtml(textOf(a.title))}</td><td>${escapeHtml(textOf(a.content).substring(0, 50))}${textOf(a.content).length > 50 ? "..." : ""}</td><td><span class="badge ${textOf(a.status).toLowerCase() === 'active' ? 'badge-success' : ''}">${escapeHtml(textOf(a.status))}</span></td><td>${escapeHtml(formatValue(a.published_at || a.created_at))}</td><td><button class="btn btn-xs btn-soft btn-toggle-announcement" data-id="${escapeAttr(a.announcement_id || a.id)}" data-status="${escapeAttr(a.status)}">切換狀態</button></td>`).join(""); $$(".btn-toggle-announcement").forEach(btn => btn.addEventListener("click", () => toggleAnnouncement(btn.dataset.id, btn.dataset.status))); }
+function renderAnnouncements() { const tbody = $("#announcementsTableBody"); if (!state.announcementItems.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">尚無公告</td></tr>'; return; } tbody.innerHTML = state.announcementItems.map(a => `<tr><td>${escapeHtml(textOf(a.announcement_id || a.id))}</td><td>${escapeHtml(textOf(a.title))}</td><td>${escapeHtml(textOf(a.content).substring(0, 50))}${textOf(a.content).length > 50 ? "..." : ""}</td><td><span class="badge ${textOf(a.status).toLowerCase() === 'active' ? 'badge-success' : ''}">${escapeHtml(textOf(a.status))}</span></td><td>${escapeHtml(formatValue(a.published_at || a.created_at))}</td><td><button class="btn btn-xs btn-soft btn-toggle-announcement" data-id="${escapeAttr(a.announcement_id || a.id)}" data-status="${escapeAttr(a.status)}">切換狀態</button></td></tr>`).join(""); $$(".btn-toggle-announcement").forEach(btn => btn.addEventListener("click", () => toggleAnnouncement(btn.dataset.id, btn.dataset.status))); }
 function showAnnouncementForm() { const card = $("#announcementFormCard"); if (card) { card.style.display = "block"; if (card.open !== undefined) card.open = true; } $("#announcementTitle").value = ""; $("#announcementContent").value = ""; $("#announcementStatus").value = "draft"; }
 function hideAnnouncementForm() { const card = $("#announcementFormCard"); if (card) { card.style.display = "none"; if (card.open !== undefined) card.open = false; } }
 async function saveAnnouncement() { const title = valueOf("#announcementTitle"); const content = valueOf("#announcementContent"); const status = valueOf("#announcementStatus"); if (!title || !content) return toast("請填寫標題和內容"); try { await apiPost("adminSaveAnnouncement", { title, content, status }); toast("✅ 公告已儲存"); hideAnnouncementForm(); await loadAnnouncements(); } catch (err) { toast(`儲存失敗：${err.message}`); } }
