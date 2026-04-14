@@ -93,7 +93,7 @@
   // ✅ 新增（最重要）
   // 👉 用來記住你目前點的是哪一筆（複製/上方顯示用）
   currentSelectedRequestForInvite: null
-};────────────────────────────────────────────
+};
   //  UTILS
   // ─────────────────────────────────────────────
   function $(selector) { return document.querySelector(selector); }
