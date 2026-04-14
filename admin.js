@@ -1314,6 +1314,29 @@ async function refreshAll() {
         copyText(buildInviteReplyText(request), "已複製客服文案");
       } else toast("請先選取已派發的申請單");
     });
+     // ===== Invite 全域按鈕（只綁一次）=====
+if (!inviteGlobalBound) {
+  document.addEventListener("click", function (e) {
+
+    if (e.target.closest(".btn-copy-invite-code-global")) {
+      copyInviteCodeHandler();
+      return;
+    }
+
+    if (e.target.closest(".btn-copy-invite-url-global")) {
+      copyInviteUrlHandler();
+      return;
+    }
+
+    if (e.target.closest(".btn-copy-invite-text-global")) {
+      copyInviteTextHandler();
+      return;
+    }
+
+  });
+
+  inviteGlobalBound = true;
+}
   }
 
   function init() {
