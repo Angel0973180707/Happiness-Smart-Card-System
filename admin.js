@@ -5,7 +5,7 @@
   //  CONFIG
   // ─────────────────────────────────────────────
   const CONFIG = {
-    VERSION: "v6.5.0",
+    VERSION: "v6.5.1-stable-buttons-fix",
     GAS_BASE_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
@@ -37,7 +37,7 @@
   }
 
   // ─────────────────────────────────────────────
-  //  STATE (移除 lastInviteCreated, lastFormalInviteCreated)
+  //  STATE
   // ─────────────────────────────────────────────
   const state = {
   cards: [],
@@ -74,24 +74,10 @@
   currentRecognitionDetail: null,
   currentRenewalDetail: null,
 
-  // ========================
-  // 🔥 邀請碼系統（核心修正）
-  // ========================
-
-  // 申請單列表（來源）
   requests: [],
-
-  // 篩選
   requestFilter: '',
-
-  // 原本已有（保留）
   currentRequest: null,
-
-  // trace 資料
   currentRequestTrace: null,
-
-  // ✅ 新增（最重要）
-  // 👉 用來記住你目前點的是哪一筆（複製/上方顯示用）
   currentSelectedRequestForInvite: null
 };
   //  UTILS
@@ -121,13 +107,19 @@
   // ─────────────────────────────────────────────
   function toast(message) {
     const el = $("#toast");
+    if (!el) return;
     el.textContent = message;
     el.classList.remove("hidden");
     clearTimeout(toast._timer);
     toast._timer = setTimeout(() => el.classList.add("hidden"), 2200);
   }
-  function setLoading(show) { $("#loadingMask").classList.toggle("hidden", !show); }
-  function setGasStatus(text, type) { const el = $("#gasStatus"); el.textContent = text; el.className = `status-pill ${type || ""}`; }
+  function setLoading(show) { const el = $("#loadingMask"); if (el) el.classList.toggle("hidden", !show); }
+  function setGasStatus(text, type) { 
+    const el = $("#gasStatus"); 
+    if (!el) return;
+    el.textContent = text; 
+    el.className = `status-pill ${type || ""}`; 
+  }
   function setBtnLoading(btnEl, isLoading) {
     if (!btnEl) return;
     if (isLoading) {
@@ -339,8 +331,7 @@ async function reassignInvite(requestId) {
 }
 
 // ========================
-// 申請單列表渲染（收合式操作）
-// 完整覆蓋版
+// 申請單列表渲染（事件代理版，無 inline onclick）
 // ========================
 function renderRequests() {
   const tbody = $("#requestListContainer");
@@ -357,7 +348,7 @@ function renderRequests() {
     const inviteCode = req.assigned_invite_code || '';
 
     return `
-      <tr>
+      <tr data-request-id="${id}">
         <td>${id}</td>
         <td>${escapeHtml(req.created_at || '')}</td>
         <td>${escapeHtml(req.ref || '')}</td>
@@ -370,20 +361,19 @@ function renderRequests() {
         <td>${escapeHtml(req.assigned_by || '')}</td>
         <td>${escapeHtml(req.note || '')}</td>
         <td class="action-buttons">
-          <button class="btn btn-xs btn-soft"
-            onclick="toggleRequest('${id}'); selectRequest('${id}')">
-            查看
-          </button>
+          <button class="btn btn-xs btn-soft" data-action="toggle" data-request-id="${id}">查看</button>
         </td>
       </tr>
 
       <tr class="request-actions-row hidden" id="req-${id}">
         <td colspan="8">
           <div class="request-actions-panel">
-            <button class="btn btn-sm btn-soft" onclick="copyInviteCodeByRequest('${id}')">複製邀請碼</button>
-            <button class="btn btn-sm btn-primary" onclick="copyInviteUrlByRequest('${id}')">複製申請連結</button>
-            <button class="btn btn-sm btn-primary" onclick="copyInviteReplyByRequest('${id}')">複製客服文案</button>
-            <button class="btn btn-sm btn-danger" onclick="reassignInvite('${id}')">重新派發</button>
+            <button class="btn btn-sm btn-soft" data-action="copyInviteCode" data-request-id="${id}">複製邀請碼</button>
+            <button class="btn btn-sm btn-primary" data-action="copyInviteUrl" data-request-id="${id}">複製申請連結</button>
+            <button class="btn btn-sm btn-primary" data-action="copyInviteReply" data-request-id="${id}">複製客服文案</button>
+            <button class="btn btn-sm btn-danger" data-action="reassignInvite" data-request-id="${id}">重新派發</button>
+            <button class="btn btn-sm btn-soft" data-action="fillAssign" data-request-id="${id}">填寫派碼</button>
+            <button class="btn btn-sm btn-soft" data-action="trace" data-request-id="${id}">追蹤</button>
           </div>
         </td>
       </tr>
@@ -520,12 +510,6 @@ function fillRequestToAssignForm(requestId) {
   toast(`已載入申請單 ${textOf(request.request_id)}，可進行派碼`);
 }
 
-function toggleRequest(requestId) {
-  const el = document.getElementById(`req-${requestId}`);
-  if (!el) return;
-  el.classList.toggle("hidden");
-}
-
 function renderFallbackTrace(request) {
   const wrap = $("#requestTraceWrap");
   if (!wrap) return;
@@ -597,13 +581,49 @@ async function handleRequestTrace(requestId) {
   }
 }
 
+// 事件代理綁定（取代 bindRequestListEvents）
 function bindRequestListEvents() {
-  const host = $("#requestListContainer");
-  if (!host) return;
-  if (host.dataset.bound === "1") return;
-
-  // 👉 這裡目前不需要任何內容
-  host.dataset.bound = "1";
+  const container = $("#requestListContainer");
+  if (!container) return;
+  if (container.dataset.bound === "1") return;
+  
+  container.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const requestId = btn.dataset.requestId;
+    if (!requestId) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    switch(action) {
+      case "toggle":
+        toggleRequest(requestId);
+        selectRequest(requestId);
+        break;
+      case "copyInviteCode":
+        copyInviteCodeByRequest(requestId);
+        break;
+      case "copyInviteUrl":
+        copyInviteUrlByRequest(requestId);
+        break;
+      case "copyInviteReply":
+        copyInviteReplyByRequest(requestId);
+        break;
+      case "reassignInvite":
+        reassignInvite(requestId);
+        break;
+      case "fillAssign":
+        fillRequestToAssignForm(requestId);
+        break;
+      case "trace":
+        handleRequestTrace(requestId);
+        break;
+    }
+  });
+  
+  container.dataset.bound = "1";
 }
 // 正式派碼函式
 async function assignInviteToRequestAligned() {
@@ -641,11 +661,10 @@ async function loadRequests() {
     toast('載入申請單失敗：' + err.message);
   }
 }
-}
 
-// 載入申請單追蹤 (request → invite → lead) 含 fallback
+// 載入申請單追蹤 (request → invite → lead) 含 fallback (修正使用 #requestTraceWrap)
 async function loadRequestTrace(requestId) {
-  const container = $("#requestTraceContainer");
+  const container = $("#requestTraceWrap");
   if (!container) return;
   try {
     const trace = await getRequestTrace(requestId);
@@ -669,7 +688,7 @@ async function loadRequestTrace(requestId) {
 }
 
 function renderRequestTrace(trace) {
-  const container = $("#requestTraceContainer");
+  const container = $("#requestTraceWrap");
   if (!container) return;
   if (!trace) {
     container.innerHTML = '<div class="empty-state">無追蹤資料</div>';
@@ -702,14 +721,45 @@ function renderRequestTrace(trace) {
   }
 }
 
-// 跳轉到卡片詳情（沿用原有 loadCardDetail 邏輯）
+// 跳轉到卡片詳情（修正：直接呼叫 API，不再用 click 自呼叫）
 async function loadCardDetail(cardId) {
-  const detailInput = $("#detailCardId");
-  if (detailInput) detailInput.value = cardId;
-  const loadBtn = $("#btnLoadCardDetail");
-  if (loadBtn) loadBtn.click();
-  const cardTab = document.querySelector('[data-target="cardSection"]');
-  if (cardTab) cardTab.click();
+  if (!cardId) {
+    toast("請提供卡片 ID");
+    return;
+  }
+  try {
+    setLoading(true);
+    // 使用 getCard API 獲取卡片詳情
+    const data = await apiGet("getCard", { card_id: cardId });
+    const card = data.card || data || {};
+    if (!card || !Object.keys(card).length) {
+      toast("查無卡片資料");
+      return;
+    }
+    state.currentCard = card;
+    const detailInput = $("#detailCardId");
+    if (detailInput) detailInput.value = cardId;
+    renderCardDetail(card);
+    syncCurrentCardBox(card);
+    syncDeliveryControlPanel(card);
+    // 同步載入付款摘要與續約資訊
+    await loadCardPaymentSummary(cardId);
+    await loadRenewalByCardId(cardId);
+    
+    // 切換到卡片區塊
+    const cardSection = document.getElementById("cardSection");
+    if (cardSection) {
+      $$(".section").forEach(s => s.style.display = "none");
+      cardSection.style.display = "block";
+      cardSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    toast(`已載入卡片 ${cardId}`);
+  } catch (err) {
+    console.error(err);
+    toast(`載入卡片失敗：${err.message}`);
+  } finally {
+    setLoading(false);
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -878,16 +928,20 @@ async function refreshAll() {
     const rows = state.cards.filter(item => { const hay = [textOf(item.id || item.card_id), textOf(item.name || item.owner_name), textOf(item.phone), textOf(item.email)].join(" ").toLowerCase(); return !keyword || hay.includes(keyword); });
     const tbody = $("#cardsTableBody");
     if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">查無卡片資料</td></tr>`; return; }
-    tbody.innerHTML = rows.map(item => { const id = textOf(item.id || item.card_id); return `<tr><td>${escapeHtml(id)}</td><td>${escapeHtml(textOf(item.name || item.owner_name))}</td><td>${escapeHtml(textOf(item.phone))}</td><td>${escapeHtml(planText(item.plan))}</td><td>${escapeHtml(textOf(item.status))}</td><td>${escapeHtml(billingStatusText(item.billing_status))}</td><td>${escapeHtml(formatValue(item.expires_at))}</td><td><button class="btn btn-xs btn-soft btn-card-detail" data-card-id="${escapeAttr(id)}">查看</button></td>`; }).join("");
+    tbody.innerHTML = rows.map(item => { const id = textOf(item.id || item.card_id); return `<tr><td>${escapeHtml(id)}</td><td>${escapeHtml(textOf(item.name || item.owner_name))}</td><td>${escapeHtml(textOf(item.phone))}</td><td>${escapeHtml(planText(item.plan))}</td><td>${escapeHtml(textOf(item.status))}</td><td>${escapeHtml(billingStatusText(item.billing_status))}</td><td>${escapeHtml(formatValue(item.expires_at))}</td><td><button class="btn btn-xs btn-soft btn-card-detail" data-card-id="${escapeAttr(id)}">查看</button></td></tr>`; }).join("");
     $$(".btn-card-detail", tbody).forEach(btn => btn.addEventListener("click", async () => loadCardDetail(btn.dataset.cardId)));
   }
   function escapeAttr(str) { return escapeHtml(str); }
   function renderDetailItem(key, value) { return `<div class="detail-item"><div class="detail-key">${escapeHtml(key)}</div><div class="detail-value">${escapeHtml(formatValue(value))}</div></div>`; }
   function syncCurrentCardBox(card) {
-    $("#currentCardLabel").textContent = textOf(card.id || card.card_id) || "未選取";
-    $("#currentCardName").textContent = textOf(card.name || card.owner_name) || "-";
-    $("#currentBillingStatus").textContent = billingStatusText(card.billing_status);
-    $("#currentPlan").textContent = planText(card.plan);
+    const label = $("#currentCardLabel");
+    if (label) label.textContent = textOf(card.id || card.card_id) || "未選取";
+    const name = $("#currentCardName");
+    if (name) name.textContent = textOf(card.name || card.owner_name) || "-";
+    const billing = $("#currentBillingStatus");
+    if (billing) billing.textContent = billingStatusText(card.billing_status);
+    const plan = $("#currentPlan");
+    if (plan) plan.textContent = planText(card.plan);
   }
 
   // ─────────────────────────────────────────────
@@ -896,7 +950,7 @@ async function refreshAll() {
   function renderPayments() {
     const tbody = $("#paymentsTableBody");
     if (!state.paymentList.length) { tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">尚無付款資料</td></tr>`; return; }
-    tbody.innerHTML = state.paymentList.map(p => `<tr><td>${escapeHtml(textOf(p.payment_id || p.id))}</td><td>${escapeHtml(textOf(p.card_id))}</td><td>${escapeHtml(textOf(p.event_type))}</td><td>${escapeHtml(formatValue(p.amount))}</td><td><span class="badge ${textOf(p.status).toLowerCase() === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(textOf(p.status) || 'pending')}</span></td><td>${escapeHtml(formatValue(p.due_at))}</td><td>${escapeHtml(formatValue(p.paid_at))}</td><td><div class="table-actions"><button class="btn btn-xs btn-soft btn-payment-detail" data-payment-id="${escapeAttr(p.payment_id || p.id)}">查看</button>${textOf(p.status).toLowerCase() !== 'paid' ? `<button class="btn btn-xs btn-primary btn-payment-confirm" data-payment-id="${escapeAttr(p.payment_id || p.id)}">確認付款</button>` : ''}${textOf(p.status).toLowerCase() === 'paid' ? `<button class="btn btn-xs btn-danger btn-payment-refund" data-payment-id="${escapeAttr(p.payment_id || p.id)}">退款</button>` : ''}</div></td>`).join("");
+    tbody.innerHTML = state.paymentList.map(p => `<tr><td>${escapeHtml(textOf(p.payment_id || p.id))}</td><td>${escapeHtml(textOf(p.card_id))}</td><td>${escapeHtml(textOf(p.event_type))}</td><td>${escapeHtml(formatValue(p.amount))}</td><td><span class="badge ${textOf(p.status).toLowerCase() === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(textOf(p.status) || 'pending')}</span></td><td>${escapeHtml(formatValue(p.due_at))}</td><td>${escapeHtml(formatValue(p.paid_at))}</td><td><div class="table-actions"><button class="btn btn-xs btn-soft btn-payment-detail" data-payment-id="${escapeAttr(p.payment_id || p.id)}">查看</button>${textOf(p.status).toLowerCase() !== 'paid' ? `<button class="btn btn-xs btn-primary btn-payment-confirm" data-payment-id="${escapeAttr(p.payment_id || p.id)}">確認付款</button>` : ''}${textOf(p.status).toLowerCase() === 'paid' ? `<button class="btn btn-xs btn-danger btn-payment-refund" data-payment-id="${escapeAttr(p.payment_id || p.id)}">退款</button>` : ''}</div></td></tr>`).join("");
     $$(".btn-payment-detail", tbody).forEach(btn => btn.addEventListener("click", () => loadPaymentDetail(btn.dataset.paymentId)));
     $$(".btn-payment-confirm", tbody).forEach(btn => btn.addEventListener("click", () => confirmPaymentFromUi(btn.dataset.paymentId)));
     $$(".btn-payment-refund", tbody).forEach(btn => btn.addEventListener("click", () => markPaymentRefundedFromUi(btn.dataset.paymentId)));
@@ -927,7 +981,7 @@ async function refreshAll() {
   function renderRecognitionQueue(items) {
     const tbody = $("#recognitionTableBody");
     if (!items.length) { tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">尚無待採認項目</td></tr>`; return; }
-    tbody.innerHTML = items.map(item => `<tr><td>${escapeHtml(textOf(item.recognition_id || item.id))}</td><td>${escapeHtml(textOf(item.event_type))}</td><td>${escapeHtml(textOf(item.event_id))}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(textOf(item.agent_id))}</td><td><span class="badge badge-warn">${escapeHtml(textOf(item.result) || 'pending')}</span></td><td>${escapeHtml(formatValue(item.recognized_at))}</td><td><button class="btn btn-xs btn-soft btn-recognition-detail" data-recognition-id="${escapeAttr(item.recognition_id || item.id)}">查看</button></td>`).join("");
+    tbody.innerHTML = items.map(item => `<tr><td>${escapeHtml(textOf(item.recognition_id || item.id))}</td><td>${escapeHtml(textOf(item.event_type))}</td><td>${escapeHtml(textOf(item.event_id))}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(textOf(item.agent_id))}</td><td><span class="badge badge-warn">${escapeHtml(textOf(item.result) || 'pending')}</span></td><td>${escapeHtml(formatValue(item.recognized_at))}</td><td><button class="btn btn-xs btn-soft btn-recognition-detail" data-recognition-id="${escapeAttr(item.recognition_id || item.id)}">查看</button></td></tr>`).join("");
     $$(".btn-recognition-detail", tbody).forEach(btn => btn.addEventListener("click", () => loadRecognitionDetail(btn.dataset.recognitionId)));
   }
   function renderRecognitionDetail(detail) {
@@ -947,7 +1001,7 @@ async function refreshAll() {
   function renderRenewalList() {
     const tbody = $("#renewalListTableBody");
     if (!state.renewalItems.length) { tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">尚無續約資料</td></tr>`; return; }
-    tbody.innerHTML = state.renewalItems.map(item => `<tr><td>${escapeHtml(textOf(item.renewal_id || item.id))}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(formatValue(item.renew_days))}</td><td>${escapeHtml(formatValue(item.amount))}</td><td><span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'pending')}</span></td><td>${escapeHtml(formatValue(item.expires_at))}</td><td><button class="btn btn-xs btn-soft btn-renewal-detail" data-renewal-id="${escapeAttr(item.renewal_id || item.id)}">查看詳情</button></td>`).join("");
+    tbody.innerHTML = state.renewalItems.map(item => `<tr><td>${escapeHtml(textOf(item.renewal_id || item.id))}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(formatValue(item.renew_days))}</td><td>${escapeHtml(formatValue(item.amount))}</td><td><span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'pending')}</span></td><td>${escapeHtml(formatValue(item.expires_at))}</td><td><button class="btn btn-xs btn-soft btn-renewal-detail" data-renewal-id="${escapeAttr(item.renewal_id || item.id)}">查看詳情</button></td></tr>`).join("");
     $$(".btn-renewal-detail", tbody).forEach(btn => btn.addEventListener("click", () => loadRenewalDetail(btn.dataset.renewalId)));
   }
   function renderRenewalDetail(detail) {
@@ -970,7 +1024,7 @@ async function refreshAll() {
     const rows = state.addons.filter(item => { const hay = [textOf(item.addon_order_id), textOf(item.card_id), textOf(item.addon_type)].join(" ").toLowerCase(); return !keyword || hay.includes(keyword); });
     const tbody = $("#addonsTableBody");
     if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">查無加購資料</td></tr>`; return; }
-    tbody.innerHTML = rows.map(item => { const addonOrderId = textOf(item.addon_order_id); const status = textOf(item.status); return `<tr><td>${escapeHtml(addonOrderId)}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(textOf(item.addon_type))}</td><td>${escapeHtml(formatValue(item.qty || 1))}</td><td><span class="badge ${status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(status || '-')}</span></td><td>${escapeHtml(formatValue(item.amount))}</td><td>${escapeHtml(formatValue(item.due_at))}</td><td><div class="table-actions"><button class="btn btn-xs btn-soft btn-addon-detail" data-addon-id="${escapeAttr(addonOrderId)}">查看</button>${status.toLowerCase() !== 'paid' ? `<button class="btn btn-xs btn-primary btn-addon-paid" data-addon-id="${escapeAttr(addonOrderId)}" data-card-id="${escapeAttr(textOf(item.card_id))}">確認付款</button>` : ''}<button class="btn btn-xs btn-soft btn-addon-reminder" data-addon-id="${escapeAttr(addonOrderId)}">複製提醒</button></div></td>`; }).join("");
+    tbody.innerHTML = rows.map(item => { const addonOrderId = textOf(item.addon_order_id); const status = textOf(item.status); return `<tr><td>${escapeHtml(addonOrderId)}</td><td>${escapeHtml(textOf(item.card_id))}</td><td>${escapeHtml(textOf(item.addon_type))}</td><td>${escapeHtml(formatValue(item.qty || 1))}</td><td><span class="badge ${status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(status || '-')}</span></td><td>${escapeHtml(formatValue(item.amount))}</td><td>${escapeHtml(formatValue(item.due_at))}</td><td><div class="table-actions"><button class="btn btn-xs btn-soft btn-addon-detail" data-addon-id="${escapeAttr(addonOrderId)}">查看</button>${status.toLowerCase() !== 'paid' ? `<button class="btn btn-xs btn-primary btn-addon-paid" data-addon-id="${escapeAttr(addonOrderId)}" data-card-id="${escapeAttr(textOf(item.card_id))}">確認付款</button>` : ''}<button class="btn btn-xs btn-soft btn-addon-reminder" data-addon-id="${escapeAttr(addonOrderId)}">複製提醒</button></div></td></tr>`; }).join("");
     $$(".btn-addon-detail", tbody).forEach(btn => btn.addEventListener("click", async () => loadAddonDetail(btn.dataset.addonId)));
     $$(".btn-addon-paid", tbody).forEach(btn => btn.addEventListener("click", async () => confirmAddonPaid(btn.dataset.addonId, btn.dataset.cardId, btn)));
     $$(".btn-addon-reminder", tbody).forEach(btn => btn.addEventListener("click", () => { const item = state.addons.find(a => textOf(a.addon_order_id) === btn.dataset.addonId); if (item) buildAddonReminderFromApi(item.addon_order_id); }));
@@ -1002,12 +1056,22 @@ async function refreshAll() {
     const rows = state.agents.filter(item => { const hay = [textOf(item.agent_id), textOf(item.owner_name), textOf(item.agent_type)].join(" ").toLowerCase(); return !keyword || hay.includes(keyword); });
     const tbody = $("#agentsTableBody");
     if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">查無代理資料</td></tr>`; return; }
-    tbody.innerHTML = rows.map(item => `<tr><td>${escapeHtml(textOf(item.agent_id))}</td><td>${escapeHtml(textOf(item.owner_name))}</td><td><span class="badge ${item.agent_type === 'partner' ? 'badge-success' : 'badge-info'}">${escapeHtml(textOf(item.agent_type) || '-')}</span></td><td>${escapeHtml(textOf(item.member_tier) || '-')}</td><td>${escapeHtml(formatValue(item.points_balance))}</td><td>${escapeHtml(formatValue(item.total_commission))}</td><td><span class="badge ${item.status === 'active' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'active')}</span></td><td><button class="btn btn-xs btn-soft btn-agent-detail" data-agent-id="${escapeAttr(textOf(item.agent_id))}">查看</button></td>`).join("");
+    tbody.innerHTML = rows.map(item => `<tr> <td>${escapeHtml(textOf(item.agent_id))}</td> <td>${escapeHtml(textOf(item.owner_name))}</td> <td><span class="badge ${item.agent_type === 'partner' ? 'badge-success' : 'badge-info'}">${escapeHtml(textOf(item.agent_type) || '-')}</span></td> <td>${escapeHtml(textOf(item.member_tier) || '-')}</td> <td>${escapeHtml(formatValue(item.points_balance))}</td> <td>${escapeHtml(formatValue(item.total_commission))}</td> <td><span class="badge ${item.status === 'active' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'active')}</span></td> <td><button class="btn btn-xs btn-soft btn-agent-detail" data-agent-id="${escapeAttr(textOf(item.agent_id))}">查看</button></td> </tr>`).join("");
     $$(".btn-agent-detail", tbody).forEach(btn => btn.addEventListener("click", async () => loadAgentDetail(btn.dataset.agentId)));
   }
   function renderAgentDetail(agent) { const wrap = $("#agentDetailWrap"); if (!agent || !Object.keys(agent).length) { wrap.innerHTML = '<div class="empty-state">查無代理詳情</div>'; return; } wrap.innerHTML = `<div class="detail-section"><div class="detail-title">代理資料</div><div class="detail-grid">${Object.entries(agent).map(([k, v]) => renderDetailItem(k, formatValue(v))).join("")}</div></div>`; }
-  function syncCurrentAgentBox(agent) { $("#currentAgentLabel").textContent = textOf(agent.agent_id) || "未選取"; $("#currentAgentName").textContent = textOf(agent.owner_name) || "-"; $("#currentAgentPoints").textContent = formatValue(agent.points_balance); $("#currentAgentCommission").textContent = formatValue(agent.total_commission); }
-  function populateAgentEditForm(agent) { $("#editAgentName").value = textOf(agent.owner_name) || ""; $("#editAgentPhone").value = textOf(agent.phone) || ""; $("#editAgentEmail").value = textOf(agent.email) || ""; $("#editAgentType").value = textOf(agent.agent_type) || ""; }
+  function syncCurrentAgentBox(agent) { 
+    const label = $("#currentAgentLabel"); if (label) label.textContent = textOf(agent.agent_id) || "未選取";
+    const name = $("#currentAgentName"); if (name) name.textContent = textOf(agent.owner_name) || "-";
+    const points = $("#currentAgentPoints"); if (points) points.textContent = formatValue(agent.points_balance);
+    const commission = $("#currentAgentCommission"); if (commission) commission.textContent = formatValue(agent.total_commission);
+  }
+  function populateAgentEditForm(agent) { 
+    $("#editAgentName").value = textOf(agent.owner_name) || ""; 
+    $("#editAgentPhone").value = textOf(agent.phone) || ""; 
+    $("#editAgentEmail").value = textOf(agent.email) || ""; 
+    $("#editAgentType").value = textOf(agent.agent_type) || ""; 
+  }
   function renderAgentUpgradeCard(agent) {
     const wrap = $("#agentUpgradeCard");
     if (!agent || !Object.keys(agent).length) { wrap.innerHTML = '<div class="empty-state">請先查詢代理詳情</div>'; return; }
@@ -1032,9 +1096,9 @@ async function refreshAll() {
   async function adjustPoints(mode) { const agentId = valueOf("#pointsAgentId"); const pointsValue = Number(valueOf("#pointsValue")); const note = valueOf("#pointsNote"); if (!agentId) return alert("請輸入 agent_id"); if (!Number.isFinite(pointsValue) || pointsValue <= 0) return alert("points 必須大於 0"); const points = mode === "subtract" ? -Math.abs(pointsValue) : Math.abs(pointsValue); try { await apiPost("adminAdjustPoints", { agent_id: agentId, points, note }); toast(mode === "subtract" ? "✅ 已扣點" : "✅ 已加點"); await loadAgents(); await loadAgentDetail(agentId); } catch (err) { toast(`操作失敗：${err.message}`); } }
   async function adjustCommission() { const agentId = valueOf("#commissionAgentId"); const amount = Number(valueOf("#commissionValue")); const note = valueOf("#commissionNote"); if (!agentId) return alert("請輸入 agent_id"); if (!Number.isFinite(amount) || amount <= 0) return alert("amount 必須大於 0"); try { await apiPost("adminAdjustCommission", { agent_id: agentId, amount, note }); toast("✅ 已補分潤"); await loadAgents(); await loadAgentDetail(agentId); } catch (err) { toast(`操作失敗：${err.message}`); } }
   async function reloadLogsForCurrentAgent() { const agentId = valueOf("#detailAgentId") || textOf(state.currentAgent?.agent_id); if (!agentId) return alert("請先選取代理"); await renderAgentRecentLogs(agentId); }
-  function renderPointsLog(rows) { const tbody = $("#pointsLogTableBody"); if (!rows.length) { tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">沒有點數 Log</td></tr>`; return; } tbody.innerHTML = rows.map(row => `<tr><td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time"])))}</td><td>${escapeHtml(formatValue(firstValue(row, ["type", "action"])))}</td><td>${escapeHtml(`${formatValue(firstValue(row, ["before_balance", "before"]))} → ${formatValue(firstValue(row, ["after_balance", "after"]))}`)}</td><td>${escapeHtml(formatValue(firstValue(row, ["note", "memo"])))}</td>`).join(""); }
-  function renderCommissionLog(rows) { const tbody = $("#commissionLogTableBody"); if (!rows.length) { tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">沒有分潤 Log</td></tr>`; return; } tbody.innerHTML = rows.map(row => `<tr><td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time"])))}</td><td>${escapeHtml(formatValue(firstValue(row, ["amount"])))}</td><td>${escapeHtml(`${formatValue(firstValue(row, ["before_total", "before"]))} → ${formatValue(firstValue(row, ["after_total", "after"]))}`)}</td><td>${escapeHtml(formatValue(firstValue(row, ["note", "memo"])))}</td>`).join(""); }
-  function renderCommissionList() { const tbody = $("#commissionListTableBody"); if (!state.commissionItems.length) { tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">尚無分潤資料</td></tr>`; return; } tbody.innerHTML = state.commissionItems.map(item => `<tr><td>${escapeHtml(textOf(item.commission_id || item.id))}</td><td>${escapeHtml(textOf(item.agent_id))}</td><td>${escapeHtml(formatValue(item.amount))}</td><td><span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'pending')}</span></td><td>${escapeHtml(formatValue(item.payment_id))}</td><td>${item.status !== 'paid' ? `<button class="btn btn-xs btn-primary btn-mark-commission-paid" data-id="${escapeAttr(item.commission_id || item.id)}">標記已付</button>` : '-'}</td>`).join(""); $$(".btn-mark-commission-paid").forEach(btn => btn.addEventListener("click", () => markCommissionPaid(btn.dataset.id))); }
+  function renderPointsLog(rows) { const tbody = $("#pointsLogTableBody"); if (!rows.length) { tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">沒有點數 Log</td></tr>`; return; } tbody.innerHTML = rows.map(row => `<tr><td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time"])))}</td><td>${escapeHtml(formatValue(firstValue(row, ["type", "action"])))}</td><td>${escapeHtml(`${formatValue(firstValue(row, ["before_balance", "before"]))} → ${formatValue(firstValue(row, ["after_balance", "after"]))}`)}</td><td>${escapeHtml(formatValue(firstValue(row, ["note", "memo"])))}</td></tr>`).join(""); }
+  function renderCommissionLog(rows) { const tbody = $("#commissionLogTableBody"); if (!rows.length) { tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">沒有分潤 Log</td></tr>`; return; } tbody.innerHTML = rows.map(row => `<tr><td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time"])))}</td><td>${escapeHtml(formatValue(firstValue(row, ["amount"])))}</td><td>${escapeHtml(`${formatValue(firstValue(row, ["before_total", "before"]))} → ${formatValue(firstValue(row, ["after_total", "after"]))}`)}</td><td>${escapeHtml(formatValue(firstValue(row, ["note", "memo"])))}</td></tr>`).join(""); }
+  function renderCommissionList() { const tbody = $("#commissionListTableBody"); if (!state.commissionItems.length) { tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">尚無分潤資料</td></tr>`; return; } tbody.innerHTML = state.commissionItems.map(item => `<tr><td>${escapeHtml(textOf(item.commission_id || item.id))}</td><td>${escapeHtml(textOf(item.agent_id))}</td><td>${escapeHtml(formatValue(item.amount))}</td><td><span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'pending')}</span></td><td>${escapeHtml(formatValue(item.payment_id))}</td><td>${item.status !== 'paid' ? `<button class="btn btn-xs btn-primary btn-mark-commission-paid" data-id="${escapeAttr(item.commission_id || item.id)}">標記已付</button>` : '-'}</td></tr>`).join(""); $$(".btn-mark-commission-paid").forEach(btn => btn.addEventListener("click", () => markCommissionPaid(btn.dataset.id))); }
   async function markCommissionPaid(commissionId) { if (!confirm(`確認分潤單 ${commissionId} 已支付？`)) return; if (!doubleConfirmId(commissionId, "分潤單")) return; try { await apiPost("markCommissionPaid", { commission_id: commissionId }); toast("✅ 分潤已標記為已付"); await loadCommissionList(); } catch (err) { toast(`操作失敗：${err.message}`); } }
   async function loadCommissionList() { try { const data = await apiGet("adminGetCommissionList"); state.commissionItems = normalizeList(data, ["commissions", "data", "items"]); renderCommissionList(); } catch (err) { console.error(err); } }
   async function loadPendingCommissions() { try { const data = await apiGet("getPendingCommissionPayments"); const list = normalizeList(data, ["commissions", "data", "items"]); toast(list.length ? `找到 ${list.length} 筆待支付分潤` : "目前沒有待支付的分潤"); state.commissionItems = list; renderCommissionList(); } catch (err) { console.error(err); } }
@@ -1042,9 +1106,9 @@ async function refreshAll() {
   // ─────────────────────────────────────────────
   //  ANNOUNCEMENTS
   // ─────────────────────────────────────────────
-  function renderAnnouncements() { const tbody = $("#announcementsTableBody"); if (!state.announcementItems.length) { tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">尚無公告</td></tr>`; return; } tbody.innerHTML = state.announcementItems.map(a => `<tr><td>${escapeHtml(textOf(a.announcement_id || a.id))}</td><td>${escapeHtml(textOf(a.title))}</td><td>${escapeHtml(textOf(a.content).substring(0, 50))}${textOf(a.content).length > 50 ? "..." : ""}</td><td><span class="badge ${textOf(a.status).toLowerCase() === 'active' ? 'badge-success' : ''}">${escapeHtml(textOf(a.status))}</span></td><td>${escapeHtml(formatValue(a.published_at || a.created_at))}</td><td><button class="btn btn-xs btn-soft btn-toggle-announcement" data-id="${escapeAttr(a.announcement_id || a.id)}" data-status="${escapeAttr(a.status)}">切換狀態</button></td>`).join(""); $$(".btn-toggle-announcement").forEach(btn => btn.addEventListener("click", () => toggleAnnouncement(btn.dataset.id, btn.dataset.status))); }
-  function showAnnouncementForm() { const card = $("#announcementFormCard"); card.style.display = "block"; card.open = true; $("#announcementTitle").value = ""; $("#announcementContent").value = ""; $("#announcementStatus").value = "draft"; }
-  function hideAnnouncementForm() { const card = $("#announcementFormCard"); card.style.display = "none"; card.open = false; }
+  function renderAnnouncements() { const tbody = $("#announcementsTableBody"); if (!state.announcementItems.length) { tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">尚無公告</td></tr>`; return; } tbody.innerHTML = state.announcementItems.map(a => `<tr><td>${escapeHtml(textOf(a.announcement_id || a.id))}</td><td>${escapeHtml(textOf(a.title))}</td><td>${escapeHtml(textOf(a.content).substring(0, 50))}${textOf(a.content).length > 50 ? "..." : ""}</td><td><span class="badge ${textOf(a.status).toLowerCase() === 'active' ? 'badge-success' : ''}">${escapeHtml(textOf(a.status))}</span></td><td>${escapeHtml(formatValue(a.published_at || a.created_at))}</td><td><button class="btn btn-xs btn-soft btn-toggle-announcement" data-id="${escapeAttr(a.announcement_id || a.id)}" data-status="${escapeAttr(a.status)}">切換狀態</button></td></tr>`).join(""); $$(".btn-toggle-announcement").forEach(btn => btn.addEventListener("click", () => toggleAnnouncement(btn.dataset.id, btn.dataset.status))); }
+  function showAnnouncementForm() { const card = $("#announcementFormCard"); if (card) { card.style.display = "block"; if (card.open !== undefined) card.open = true; } $("#announcementTitle").value = ""; $("#announcementContent").value = ""; $("#announcementStatus").value = "draft"; }
+  function hideAnnouncementForm() { const card = $("#announcementFormCard"); if (card) { card.style.display = "none"; if (card.open !== undefined) card.open = false; } }
   async function saveAnnouncement() { const title = valueOf("#announcementTitle"); const content = valueOf("#announcementContent"); const status = valueOf("#announcementStatus"); if (!title || !content) return toast("請填寫標題和內容"); try { await apiPost("adminSaveAnnouncement", { title, content, status }); toast("✅ 公告已儲存"); hideAnnouncementForm(); await loadAnnouncements(); } catch (err) { toast(`儲存失敗：${err.message}`); } }
   async function toggleAnnouncement(id, currentStatus) { const newStatus = currentStatus === "active" ? "draft" : "active"; try { await apiPost("adminToggleAnnouncement", { announcement_id: id, status: newStatus }); toast(`✅ 公告已${newStatus === "active" ? "啟用" : "停用"}`); await loadAnnouncements(); } catch (err) { toast(`操作失敗：${err.message}`); } }
 
@@ -1180,181 +1244,20 @@ async function refreshAll() {
     const id = textOf(card.id || card.card_id);
     const meta = buildWalletModeMeta(card);
     const mode = resolveWalletModeFromMeta(meta);
-    $("#toolboxCardLink").textContent = buildCardUrlForToolbox(id);
-    $("#toolboxPosterLink").textContent = buildDeliveryLink(id);
-    $("#toolboxReferralLink").textContent = meta.referral_link || buildPreviewLink(id);
-    $("#toolboxUpdateLink").textContent = buildUpdateLink(id);
-    $("#toolboxRenewalLink").textContent = buildRenewalLink(id);
-    $("#toolboxPosterUrl").textContent = `${CONFIG.HUB_URL}poster.html?id=${encodeURIComponent(id)}`;
-    $("#trialShareText").value = buildTrialShareText(card);
-    $("#referralEntryText").value = buildReferralEntryText(card, meta);
-    $("#updateEntryText").value = buildDeliveryUpdateEntryText(card);
-    $("#renewalEntryText").value = buildDeliveryRenewalEntryText(card);
-    $("#walletModeSimulator").innerHTML = `<div class="detail-item"><div class="detail-key">判定模式</div><div class="detail-value"><span class="wallet-mode-badge wallet-mode-${mode}">${mode.toUpperCase()}</span></div></div>`;
+    const toolboxCardLink = $("#toolboxCardLink"); if (toolboxCardLink) toolboxCardLink.textContent = buildCardUrlForToolbox(id);
+    const toolboxPosterLink = $("#toolboxPosterLink"); if (toolboxPosterLink) toolboxPosterLink.textContent = buildDeliveryLink(id);
+    const toolboxReferralLink = $("#toolboxReferralLink"); if (toolboxReferralLink) toolboxReferralLink.textContent = meta.referral_link || buildPreviewLink(id);
+    const toolboxUpdateLink = $("#toolboxUpdateLink"); if (toolboxUpdateLink) toolboxUpdateLink.textContent = buildUpdateLink(id);
+    const toolboxRenewalLink = $("#toolboxRenewalLink"); if (toolboxRenewalLink) toolboxRenewalLink.textContent = buildRenewalLink(id);
+    const toolboxPosterUrl = $("#toolboxPosterUrl"); if (toolboxPosterUrl) toolboxPosterUrl.textContent = `${CONFIG.HUB_URL}poster.html?id=${encodeURIComponent(id)}`;
+    const trialShareText = $("#trialShareText"); if (trialShareText) trialShareText.value = buildTrialShareText(card);
+    const referralEntryText = $("#referralEntryText"); if (referralEntryText) referralEntryText.value = buildReferralEntryText(card, meta);
+    const updateEntryText = $("#updateEntryText"); if (updateEntryText) updateEntryText.value = buildDeliveryUpdateEntryText(card);
+    const renewalEntryText = $("#renewalEntryText"); if (renewalEntryText) renewalEntryText.value = buildDeliveryRenewalEntryText(card);
+    const walletModeSimulator = $("#walletModeSimulator"); if (walletModeSimulator) walletModeSimulator.innerHTML = `<div class="detail-item"><div class="detail-key">判定模式</div><div class="detail-value"><span class="wallet-mode-badge wallet-mode-${mode}">${mode.toUpperCase()}</span></div></div>`;
     renderWalletObserver(meta);
     renderServiceLogObserver(card, meta);
     const warnings = detectDeliveryWarnings(card, meta);
     const warningsDiv = $("#deliveryWarnings");
-    if (warnings.length) warningsDiv.innerHTML = `<div class="focus-list">${warnings.map(w => `<div class="focus-item delivery-warning">${escapeHtml(w)}</div>`).join("")}</div>`;
-    else warningsDiv.innerHTML = '<div class="empty-state">✅ 無異常</div>';
-  }
-
-  function renderCardDetail(card) {
-    const wrap = $("#cardDetailWrap");
-    if (!card || !Object.keys(card).length) { wrap.className = "detail-stack empty-state"; wrap.textContent = "查無卡片詳情"; return; }
-    const id = textOf(card.id || card.card_id);
-    const previewLink = buildPreviewLink(id);
-    const deliveryLink = buildDeliveryLink(id);
-    const canDelivery = isPaid(card);
-    wrap.className = "detail-stack";
-    wrap.innerHTML = `<div class="detail-section"><div class="detail-title">卡片基本資料</div><div class="detail-grid">${renderDetailItem("card_id", id)}${renderDetailItem("name", textOf(card.name || card.owner_name))}${renderDetailItem("phone", textOf(card.phone))}${renderDetailItem("email", textOf(card.email))}${renderDetailItem("plan", planText(card.plan))}${renderDetailItem("status", textOf(card.status))}${renderDetailItem("billing_status", billingStatusText(card.billing_status))}${renderDetailItem("expires_at", formatValue(card.expires_at))}${renderDetailItem("service_agent", textOf(card.service_agent))}${renderDetailItem("referrer", textOf(card.referrer))}</div></div><div class="detail-section"><div class="detail-title">流程總控</div><div class="detail-grid">${renderDetailItem("成品預覽", previewLink)}${renderDetailItem("交付卡", canDelivery ? deliveryLink : "尚未付款，不可交付")}${renderDetailItem("續約狀態", getRenewalStateText(card))}</div></div>`;
-    $("#previewLinkBox").value = previewLink;
-    $("#deliveryLinkBox").value = canDelivery ? deliveryLink : "";
-    syncCurrentCardBox(card);
-    syncDeliveryControlPanel(card);
-  }
-
-  // ─────────────────────────────────────────────
-  //  INIT & BIND EVENTS
-  // ─────────────────────────────────────────────
-  function bindEvents() {
-    $$(".nav-btn").forEach(btn => btn.addEventListener("click", () => { $$(".nav-btn").forEach(x => x.classList.remove("active")); btn.classList.add("active"); $("#" + btn.dataset.target)?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
-    on("#btnRefreshAll", "click", refreshAll);
-    on("#btnOpenHub", "click", () => window.open(CONFIG.HUB_URL, "_blank"));
-    on("#btnOpenForm", "click", () => window.open(CONFIG.FORM_URL, "_blank"));
-    on("#btnSaveKey", "click", () => { const key = valueOf("#adminKeyInput"); if (!key) return toast("請輸入 Key"); saveAdminKey(key); $("#adminKeyInput").value = ""; renderKeyStatus(); refreshAll(); });
-    on("#btnClearKey", "click", () => { clearAdminKey(); renderKeyStatus(); });
-    on("#btnRefreshPayments", "click", loadPaymentList);
-    on("#btnLoadPendingOffline", "click", () => { toast("功能開發中"); });
-    on("#btnBuildPaymentNotice", "click", () => buildPaymentNoticeTexts("payment"));
-    on("#btnBuildPaidNotice", "click", () => buildPaymentNoticeTexts("paid"));
-    on("#btnBuildDeliveryNotice", "click", () => buildPaymentNoticeTexts("delivery"));
-    $$(".recognition-tab").forEach(tab => tab.addEventListener("click", () => { $$(".recognition-tab").forEach(t => t.classList.remove("active")); tab.classList.add("active"); state.currentRecognitionType = tab.dataset.type; loadRecognitionQueues(); }));
-    on("#btnRefreshRenewalList", "click", loadRenewalList);
-    on("#btnConfirmRenewalPaid", "click", confirmRenewalPaid);
-    on("#btnTriggerPaymentReminder", "click", triggerPaymentReminder);
-    on("#btnCopyRenewalText", "click", () => copyFromField("#renewalTextBox", "已複製續約提醒文案"));
-    on("#btnCopyRenewalDeliveryText", "click", () => copyFromField("#renewalTextBox", "已複製續約交付文案"));
-    on("#btnSearchAddons", "click", renderAddons);
-    on("#btnReloadAddons", "click", async () => { $("#addonSearch").value = ""; await loadAddons(); });
-    on("#btnLoadAddonDetail", "click", () => loadAddonDetail(valueOf("#addonDetailId")));
-    on("#btnSubmitCreateAddon", "click", createAddonOrder);
-    on("#btnRepairAddonStatus", "click", repairAddonStatuses);
-    on("#btnBackfillDueAt", "click", () => backfillAddonDueAt(prompt("輸入 addon_order_id：")));
-    on("#btnCopyAddonReminder", "click", () => copyFromField("#addonPaymentReminderText", "已複製加購提醒文案"));
-    on("#btnSearchCards", "click", renderCards);
-    on("#btnReloadCards", "click", async () => { $("#cardSearch").value = ""; await loadCards(); });
-    on("#btnLoadCardDetail", "click", () => loadCardDetail(valueOf("#detailCardId")));
-    on("#btnCopyPreviewLink", "click", () => copyFromField("#previewLinkBox", "已複製預覽連結"));
-    on("#btnCopyDeliveryLink", "click", () => copyFromField("#deliveryLinkBox", "已複製交付連結"));
-    on("#btnCopyCardLink", "click", () => copyText($("#toolboxCardLink").textContent, "已複製名片連結"));
-    on("#btnCopyPosterLink", "click", () => copyText($("#toolboxPosterLink").textContent, "已複製交付卡連結"));
-    on("#btnCopyReferralToolLink", "click", () => copyText($("#toolboxReferralLink").textContent, "已複製推薦入口連結"));
-    on("#btnCopyUpdateToolLink", "click", () => copyText($("#toolboxUpdateLink").textContent, "已複製更新入口連結"));
-    on("#btnCopyRenewalToolLink", "click", () => copyText($("#toolboxRenewalLink").textContent, "已複製續用入口連結"));
-    on("#btnCopyPosterUrlLink", "click", () => copyText($("#toolboxPosterUrl").textContent, "已複製海報圖片連結"));
-    on("#btnCopyTrialShareText", "click", () => copyFromField("#trialShareText", "已複製 Trial 分享文案"));
-    on("#btnCopyReferralEntryText", "click", () => copyFromField("#referralEntryText", "已複製專屬入口文案"));
-    on("#btnCopyUpdateEntryText", "click", () => copyFromField("#updateEntryText", "已複製更新入口文案"));
-    on("#btnCopyRenewalEntryText", "click", () => copyFromField("#renewalEntryText", "已複製續用入口文案"));
-    on("#btnSearchAgents", "click", renderAgents);
-    on("#btnReloadAgents", "click", async () => { $("#agentSearch").value = ""; await loadAgents(); });
-    on("#btnLoadAgentDetail", "click", () => loadAgentDetail(valueOf("#detailAgentId")));
-    on("#btnUpdateAgent", "click", updateAgent);
-    on("#btnFreezeAgent", "click", freezeAgent);
-    on("#btnUnfreezeAgent", "click", unfreezeAgent);
-    on("#btnSetAgentUpgrade", "click", setAgentUpgrade);
-    on("#btnNormalizeMemberTier", "click", normalizeMemberTier);
-    on("#btnNormalizeTypeAndTier", "click", normalizeTypeAndTier);
-    on("#btnRepairAgentTypeEnum", "click", repairAgentTypeEnum);
-    on("#btnRepairMissingAgents", "click", repairMissingAgents);
-    on("#btnNormalizeAgentType", "click", normalizeTypeAndTier);
-    on("#btnAddPoints", "click", () => adjustPoints("add"));
-    on("#btnSubtractPoints", "click", () => adjustPoints("subtract"));
-    on("#btnAdjustCommission", "click", adjustCommission);
-    on("#btnLoadLogs", "click", reloadLogsForCurrentAgent);
-    on("#btnLoadCommissions", "click", loadCommissionList);
-    on("#btnLoadPendingCommissions", "click", loadPendingCommissions);
-    on("#btnRefreshAnnouncements", "click", loadAnnouncements);
-    on("#btnCreateAnnouncement", "click", showAnnouncementForm);
-    on("#btnSaveAnnouncement", "click", saveAnnouncement);
-    on("#btnCancelAnnouncement", "click", hideAnnouncementForm);
-    on("#btnRefreshTracking", "click", loadTrackingSummary);
-    on("#btnGetCardTracking", "click", getCardTrackingStats);
-    on("#btnGetAgentTracking", "click", getAgentTrackingStats);
-    on("#btnCheckSchema", "click", checkSchemaStatus);
-    on("#btnRepairDueAt", "click", () => runRepairAction("due_at"));
-    on("#btnRepairAddonStatusTool", "click", () => runRepairAction("addon_status"));
-    on("#btnRepairDataValidation", "click", () => runRepairAction("data_validation"));
-    on("#btnNormalizeCardTheme", "click", () => runRepairAction("normalize_card_theme"));
-    on("#btnAuditCardTheme", "click", () => runRepairAction("audit_card_theme"));
-    on("#btnInstallSystemTriggers", "click", () => runRepairAction("install_system_triggers"));
-    on("#btnInstallCommercialTriggers", "click", () => runRepairAction("install_commercial_triggers"));
-    on("#btnRunDailyOps", "click", runDailyOps);
-    on("#btnRefreshOpsLogs", "click", loadRecentOpsLogs);
-
-    // invite 相關按鈕（已移除手動建碼按鈕）
-    on("#btnAssignInviteToRequest", "click", assignInviteToRequestAligned);
-  on("#btnRefreshRequests", "click", loadRequests);
-
-on("#btnCopyInviteCode", "click", () => {
-  const request = state.currentSelectedRequestForInvite;
-  if (request && request.assigned_invite_code) {
-    copyText(request.assigned_invite_code, "已複製邀請碼");
-  } else {
-    toast("請先選取已派發的申請單");
-  }
-});
-
-on("#btnCopyInviteUrl", "click", () => {
-  const request = state.currentSelectedRequestForInvite;
-  if (request && request.assigned_invite_code) {
-    const url = buildInviteFormUrl(request.assigned_invite_code);
-    copyText(url, "已複製申請連結");
-  } else {
-    toast("請先選取已派發的申請單");
-  }
-});
-
-on("#btnCopyInviteText", "click", () => {
-  const request = state.currentSelectedRequestForInvite;
-  if (request && request.assigned_invite_code) {
-    copyText(buildInviteReplyText(request), "已複製客服文案");
-  } else {
-    toast("請先選取已派發的申請單");
-  }
-});
-     // ===== Invite 全域按鈕（只綁一次）=====
-if (!inviteGlobalBound) {
-  document.addEventListener("click", function (e) {
-
-    if (e.target.closest(".btn-copy-invite-code-global")) {
-      copyInviteCodeHandler();
-      return;
-    }
-
-    if (e.target.closest(".btn-copy-invite-url-global")) {
-      copyInviteUrlHandler();
-      return;
-    }
-
-    if (e.target.closest(".btn-copy-invite-text-global")) {
-      copyInviteTextHandler();
-      return;
-    }
-
-  });
-
-  inviteGlobalBound = true;
-}
-  }
-
-  function init() {
-    bindEvents();
-    renderKeyStatus();
-    if (getAdminKey()) refreshAll();
-    else toast("⚠️ 請先設定 Admin Key");
-  }
-
-  document.addEventListener("DOMContentLoaded", init);
-})();
+    if (warningsDiv) {
+      if (warnings.length) warningsDiv
