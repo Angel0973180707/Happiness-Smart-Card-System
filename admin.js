@@ -390,37 +390,35 @@ function renderRequests() {
     `;
   }).join('');
 }
-function copyInviteCode() {
-  const r = state.currentSelectedRequestForInvite;
-  if (!r || !textOf(r.assigned_invite_code)) {
-    toast("請先選取已派發申請");
+  // ===== Invite 複製功能（全域） =====
+
+function copyInviteCodeHandler() {
+  const req = state.currentSelectedRequestForInvite;
+  if (!req || !req.assigned_invite_code) {
+    toast("⚠️ 請先選取申請單");
     return;
   }
-  copyText(textOf(r.assigned_invite_code));
-  toast("已複製邀請碼");
+  copyText(req.assigned_invite_code, "✅ 邀請碼已複製");
 }
 
-function copyInviteUrl() {
-  const r = state.currentSelectedRequestForInvite;
-  if (!r || !textOf(r.assigned_invite_code)) {
-    toast("請先選取已派發申請");
+function copyInviteUrlHandler() {
+  const req = state.currentSelectedRequestForInvite;
+  if (!req || !req.assigned_invite_code) {
+    toast("⚠️ 請先選取申請單");
     return;
   }
-  const url = buildInviteFormUrl(textOf(r.assigned_invite_code));
-  copyText(url);
-  toast("已複製申請連結");
+  copyText(buildInviteFormUrl(req.assigned_invite_code), "✅ 申請連結已複製");
 }
 
-function copyInviteText() {
-  const r = state.currentSelectedRequestForInvite;
-  if (!r || !textOf(r.assigned_invite_code)) {
-    toast("請先選取已派發申請");
+function copyInviteTextHandler() {
+  const req = state.currentSelectedRequestForInvite;
+  if (!req || !req.assigned_invite_code) {
+    toast("⚠️ 請先選取申請單");
     return;
   }
-  const txt = buildInviteReplyText(r);
-  copyText(txt);
-  toast("已複製客服文案");
+  copyText(buildInviteReplyText(req), "✅ 客服文案已複製");
 }
+
 function selectRequest(requestId) {
   const request = state.requests.find(r => r.request_id === requestId);
   if (!request) {
