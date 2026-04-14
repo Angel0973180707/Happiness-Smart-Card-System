@@ -632,7 +632,9 @@ async function assignInviteToRequestAligned() {
 async function loadRequests() {
   try {
     const data = await getRequests();
-    state.requests = data.requests || [];
+
+    state.requests = normalizeList(data, ["requests", "items"]);
+
     renderRequests();
   } catch (err) {
     console.error('載入申請單失敗', err);
@@ -640,6 +642,7 @@ async function loadRequests() {
     renderRequests();
     toast('載入申請單失敗：' + err.message);
   }
+}
 }
 
 // 載入申請單追蹤 (request → invite → lead) 含 fallback
