@@ -463,19 +463,20 @@
       toast('派碼成功');
     } catch (err) { toast('派碼失敗：' + err.message); }
   }
-  async function loadRequests() {
-    try {
-      const data = await getRequests();
-      state.requests = normalizeList(data, ["requests", "items"]);
-      renderRequests();
-      bindRequestListEvents();
-    } catch (err) {
-      console.error('載入申請單失敗', err);
-      state.requests = [];
-      renderRequests();
-      toast('載入申請單失敗：' + err.message);
-    }
+async function loadRequests() {
+  try {
+    const data = await getRequests();
+    state.requests = normalizeList(data, ["requests", "items"]);
+    renderRequests();
+    bindRequestListEvents();
+  } catch (err) {
+    console.error('載入申請單失敗', err);
+    state.requests = [];
+    renderRequests();
+    bindRequestListEvents();
+    toast('載入申請單失敗：' + err.message);
   }
+}
   async function loadRequestTrace(requestId) {
     const container = $("#requestTraceWrap");
     if (!container) return;
