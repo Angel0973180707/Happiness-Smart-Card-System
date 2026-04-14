@@ -446,23 +446,53 @@
     });
     container.dataset.bound = "1";
   }
-  async function assignInviteToRequestAligned() {
-    const reqInput = $("#requestIdForAssign");
-    const codeInput = $("#inviteCodeForRequest");
-    const requestId = reqInput?.value.trim();
-    if (!requestId) { toast('請先點擊「填寫派碼」選取申請單'); return; }
-    const request = state.requests.find(r => r.request_id === requestId);
-    if (!request || request.status !== 'pending') { toast('該申請單已非 pending 狀態，無法派碼'); return; }
-    try {
-      await assignInviteToRequest(requestId, null);
-      await loadRequests();
-      const updatedRequest = state.requests.find(r => r.request_id === requestId);
-      if (updatedRequest) updateInviteResultPanel(updatedRequest);
-      if (reqInput) reqInput.value = '';
-      if (codeInput) codeInput.value = '';
-      toast('派碼成功');
-    } catch (err) { toast('派碼失敗：' + err.message); }
+async function assignInviteToRequestAligned() {
+  const reqInput = $("#requestIdForAssign") || $("#assignRequestId");
+  const codeInput = $("#inviteCodeForRequest") || $("#assignInviteCode");
+  const requestId = textOf(reqInput?.value);
+
+  if (!requestId) {
+    toast("請先點擊「填寫派碼」選取申請單");
+    return;
   }
+
+  const request = state.requests.find(r => textOf(r.request_id) === requestId);
+  if (!request) {
+    toast("找不到對應申請單");
+    return;
+  }
+
+  if (textOf(request.status).toLowerCase() !== "pending") {
+    toast("該申請單已非 pending 狀態，無法派碼");
+    return;
+  }
+
+  try {
+    await assignInviteToRequest(requestId, null);
+    await loadRequests();
+
+    const updatedRequest = state.requests.find(
+      r => textOf(r.request_id) === requestId
+    );
+
+    if (updatedRequest) {
+      state.currentSelectedRequestForInvite = updatedRequest;
+      updateInviteResultPanel(updatedRequest);
+    } else {
+      updateInviteResultPanel(null);
+    }
+
+    if (reqInput) reqInput.value = "";
+    if (codeInput) codeInput.value = "";
+
+    state.currentRequest = null;
+
+    toast("派碼成功");
+  } catch (err) {
+    console.error("assignInviteToRequestAligned 失敗", err);
+    toast("派碼失敗：" + (err?.message || "未知錯誤"));
+  }
+}
 async function loadRequests() {
   try {
     const data = await getRequests();
