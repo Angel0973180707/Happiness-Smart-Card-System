@@ -877,16 +877,38 @@ async function loadRequests() {
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">沒有分潤 Log</td></tr>'; return; }
     tbody.innerHTML = rows.map(row => `<tr><td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time"])))}</td><td>${escapeHtml(formatValue(firstValue(row, ["amount"])))}</td><td>${escapeHtml(`${formatValue(firstValue(row, ["before_total", "before"]))} → ${formatValue(firstValue(row, ["after_total", "after"]))}`)}</td><td>${escapeHtml(formatValue(firstValue(row, ["note", "memo"])))}</td></tr>`).join("");
   }
-  function renderCommissionList() {
-    const tbody = $("#commissionListTableBody");
-    if (!tbody) return;
-    if (!state.commissionItems.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">尚無分潤資料</td></tr>';
-    tbody.innerHTML = state.commissionItems.map(item => `<tr><td>${escapeHtml(textOf(item.commission_id || item.id))}</td><td>${escapeHtml(textOf(item.agent_id))}</td><td>${escapeHtml(formatValue(item.amount))}</td><td><span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'pending')}</span></td><td>${escapeHtml(formatValue(item.payment_id))}</td><td>${item.status !== 'paid' ? `<button class="btn btn-xs btn-primary btn-mark-commission-paid" data-id="${escapeAttr(item.commission_id || item.id)}">標記已付</button>` : '-'}</td></tr>`).join("");
-    $$(".btn-mark-commission-paid").forEach(btn => btn.addEventListener("click", () => markCommissionPaid(btn.dataset.id)));
+ function renderCommissionList() {
+  const tbody = $("#commissionListTableBody");
+  if (!tbody) return;
+
+  if (!state.commissionItems.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">尚無分潤資料</td></tr>';
+    return;
   }
-  async function markCommissionPaid(commissionId) { if (!confirm(`確認分潤單 ${commissionId} 已支付？`)) return; if (!doubleConfirmId(commissionId, "分潤單")) return; try { await apiPost("markCommissionPaid", { commission_id: commissionId }); toast("✅ 分潤已標記為已付"); await loadCommissionList(); } catch (err) { toast(`操作失敗：${err.message}`); } }
-  async function loadCommissionList() { try { const data = await apiGet("adminGetCommissionList"); state.commissionItems = normalizeList(data, ["commissions", "data", "items"]); renderCommissionList(); } catch (err) { console.error(err); } }
-  async function loadPendingCommissions() { try { const data = await apiGet("getPendingCommissionPayments"); const list = normalizeList(data, ["commissions", "data", "items"]); toast(list.length ? `找到 ${list.length} 筆待支付分潤` : "目前沒有待支付的分潤"); state.commissionItems = list; renderCommissionList(); } catch (err) { console.error(err); } }
+
+  tbody.innerHTML = state.commissionItems.map(item => `
+    <tr>
+      <td>${escapeHtml(textOf(item.commission_id || item.id))}</td>
+      <td>${escapeHtml(textOf(item.agent_id))}</td>
+      <td>${escapeHtml(formatValue(item.amount))}</td>
+      <td>
+        <span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">
+          ${escapeHtml(item.status || 'pending')}
+        </span>
+      </td>
+      <td>${escapeHtml(formatValue(item.payment_id))}</td>
+      <td>
+        ${item.status !== 'paid'
+          ? `<button class="btn btn-xs btn-primary btn-mark-commission-paid" data-id="${escapeAttr(item.commission_id || item.id)}">標記已付</button>`
+          : '-'}
+      </td>
+    </tr>
+  `).join("");
+
+  $$(".btn-mark-commission-paid").forEach(btn =>
+    btn.addEventListener("click", () => markCommissionPaid(btn.dataset.id))
+  );
+}
 
   function renderAnnouncements() {
     const tbody = $("#announcementsTableBody");
