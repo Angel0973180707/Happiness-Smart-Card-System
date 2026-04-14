@@ -446,67 +446,94 @@
     });
     container.dataset.bound = "1";
   }
-async function assignInviteToRequestAligned() {
-  const reqInput = $("#requestIdForAssign") || $("#assignRequestId");
-  const codeInput = $("#inviteCodeForRequest") || $("#assignInviteCode");
-  const requestId = textOf(reqInput?.value);
 
-  if (!requestId) {
-    toast("請先點擊「填寫派碼」選取申請單");
-    return;
-  }
-
-  const request = state.requests.find(r => textOf(r.request_id) === requestId);
-  if (!request) {
-    toast("找不到對應申請單");
-    return;
-  }
-
-  if (textOf(request.status).toLowerCase() !== "pending") {
-    toast("該申請單已非 pending 狀態，無法派碼");
-    return;
-  }
-
-  try {
-    await assignInviteToRequest(requestId, null);
-    await loadRequests();
-
-    const updatedRequest = state.requests.find(
-      r => textOf(r.request_id) === requestId
-    );
-
-    if (updatedRequest) {
-      state.currentSelectedRequestForInvite = updatedRequest;
-      updateInviteResultPanel(updatedRequest);
-    } else {
-      updateInviteResultPanel(null);
+  // ======================== 修正後的派發邀請碼核心函式 ========================
+  async function assignInviteToRequestAligned(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
 
-    if (reqInput) reqInput.value = "";
-    if (codeInput) codeInput.value = "";
+    const reqInput = $("#requestIdForAssign") || $("#assignRequestId");
+    const codeInput = $("#inviteCodeForRequest") || $("#assignInviteCode");
+    const noteInput = $("#assignInviteNote");
 
-    state.currentRequest = null;
+    const requestId = textOf(reqInput?.value);
 
-    toast("派碼成功");
-  } catch (err) {
-    console.error("assignInviteToRequestAligned 失敗", err);
-    toast("派碼失敗：" + (err?.message || "未知錯誤"));
+    if (!requestId) {
+      toast("請先點擊「填寫派碼」選取申請單");
+      return;
+    }
+
+    const request = state.requests.find(r => textOf(r.request_id) === requestId);
+
+    if (!request) {
+      toast("找不到對應申請單");
+      return;
+    }
+
+    if (textOf(request.status).toLowerCase() !== "pending") {
+      toast("該申請單已非 pending 狀態，無法派碼");
+      return;
+    }
+
+    const btn = $("#btnAssignInviteToRequest");
+    setBtnLoading(btn, true);
+
+    try {
+      const result = await assignInviteToRequest(requestId, null);
+      console.log("[assignInviteToRequest result]", result);
+
+      await loadRequests();
+
+      const updatedRequest = state.requests.find(
+        r => textOf(r.request_id) === requestId
+      );
+
+      if (updatedRequest) {
+        state.currentSelectedRequestForInvite = updatedRequest;
+
+        updateInviteResultPanel(updatedRequest);
+
+        if (codeInput) {
+          codeInput.value = textOf(updatedRequest.assigned_invite_code);
+        }
+
+        if (textOf(updatedRequest.assigned_invite_code)) {
+          toast("派碼成功");
+        } else {
+          toast("派碼完成，但後端未回寫 invite code");
+        }
+      } else {
+        toast("派碼後重新載入失敗");
+      }
+
+      if (reqInput) reqInput.value = "";
+      if (noteInput) noteInput.value = "";
+
+    } catch (err) {
+      console.error("assignInviteToRequestAligned error:", err);
+      toast("派碼失敗：" + err.message);
+    } finally {
+      setBtnLoading(btn, false);
+    }
   }
-}
-async function loadRequests() {
-  try {
-    const data = await getRequests();
-    state.requests = normalizeList(data, ["requests", "items"]);
-    renderRequests();
-    bindRequestListEvents();
-  } catch (err) {
-    console.error('載入申請單失敗', err);
-    state.requests = [];
-    renderRequests();
-    bindRequestListEvents();
-    toast('載入申請單失敗：' + err.message);
+
+  async function loadRequests() {
+    try {
+      const data = await getRequests();
+      state.requests = normalizeList(data, ["requests", "items"]);
+      renderRequests();
+      bindRequestListEvents();
+    } catch (err) {
+      console.error('載入申請單失敗', err);
+      state.requests = [];
+      renderRequests();
+      bindRequestListEvents();
+      toast('載入申請單失敗：' + err.message);
+    }
   }
-}
+
   async function loadRequestTrace(requestId) {
     const container = $("#requestTraceWrap");
     if (!container) return;
@@ -851,8 +878,8 @@ async function loadRequests() {
     if (!tbody) return;
     const keyword = valueOf("#agentSearch").toLowerCase();
     const rows = state.agents.filter(item => { const hay = [textOf(item.agent_id), textOf(item.owner_name), textOf(item.agent_type)].join(" ").toLowerCase(); return !keyword || hay.includes(keyword); });
-    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">查無代理資料</td></tr>'; return; }
-    tbody.innerHTML = rows.map(item => `<tr><td>${escapeHtml(textOf(item.agent_id))}</td><td>${escapeHtml(textOf(item.owner_name))}</td><td><span class="badge ${item.agent_type === 'partner' ? 'badge-success' : 'badge-info'}">${escapeHtml(textOf(item.agent_type) || '-')}</span></td><td>${escapeHtml(textOf(item.member_tier) || '-')}</td><td>${escapeHtml(formatValue(item.points_balance))}</td><td>${escapeHtml(formatValue(item.total_commission))}</td><td><span class="badge ${item.status === 'active' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'active')}</span></td><td><button class="btn btn-xs btn-soft btn-agent-detail" data-agent-id="${escapeAttr(textOf(item.agent_id))}">查看</button></td></tr>`).join("");
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">查無代理資料</div>'; return; }
+    tbody.innerHTML = rows.map(item => `<tr><td>${escapeHtml(textOf(item.agent_id))}</td><td>${escapeHtml(textOf(item.owner_name))}</td><td class="badge ${item.agent_type === 'partner' ? 'badge-success' : 'badge-info'}">${escapeHtml(textOf(item.agent_type) || '-')}</span></td><td>${escapeHtml(textOf(item.member_tier) || '-')}</td><td>${escapeHtml(formatValue(item.points_balance))}</td><td>${escapeHtml(formatValue(item.total_commission))}</td><td class="badge ${item.status === 'active' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'active')}</span></td><td><button class="btn btn-xs btn-soft btn-agent-detail" data-agent-id="${escapeAttr(textOf(item.agent_id))}">查看</button></td></tr>`).join("");
     $$(".btn-agent-detail", tbody).forEach(btn => btn.addEventListener("click", async () => loadAgentDetail(btn.dataset.agentId)));
   }
   function renderAgentDetail(agent) {
@@ -904,7 +931,7 @@ async function loadRequests() {
   function renderCommissionLog(rows) {
     const tbody = $("#commissionLogTableBody");
     if (!tbody) return;
-    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">沒有分潤 Log</td></tr>'; return; }
+    if (!rows.length) { tbody.innerHTML = '<td><td colspan="4" class="empty-cell">沒有分潤 Log</td></tr>'; return; }
     tbody.innerHTML = rows.map(row => `<tr><td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time"])))}</td><td>${escapeHtml(formatValue(firstValue(row, ["amount"])))}</td><td>${escapeHtml(`${formatValue(firstValue(row, ["before_total", "before"]))} → ${formatValue(firstValue(row, ["after_total", "after"]))}`)}</td><td>${escapeHtml(formatValue(firstValue(row, ["note", "memo"])))}</td></tr>`).join("");
   }
  function renderCommissionList() {
@@ -925,13 +952,13 @@ async function loadRequests() {
         <span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">
           ${escapeHtml(item.status || 'pending')}
         </span>
-      </td>
+       </td>
       <td>${escapeHtml(formatValue(item.payment_id))}</td>
       <td>
         ${item.status !== 'paid'
           ? `<button class="btn btn-xs btn-primary btn-mark-commission-paid" data-id="${escapeAttr(item.commission_id || item.id)}">標記已付</button>`
           : '-'}
-      </td>
+       </td>
     </tr>
   `).join("");
 
@@ -1244,7 +1271,12 @@ async function loadRequests() {
     on("#btnInstallCommercialTriggers", "click", () => runRepairAction("install_commercial_triggers"));
     on("#btnRunDailyOps", "click", runDailyOps);
     on("#btnRefreshOpsLogs", "click", loadRecentOpsLogs);
-    on("#btnAssignInviteToRequest", "click", assignInviteToRequestAligned);
+    
+    // ======================== 修正後的按鈕事件綁定 ========================
+    // 原本: on("#btnAssignInviteToRequest", "click", assignInviteToRequestAligned);
+    // 修正為包裝箭頭函式以確保傳入 event 物件
+    on("#btnAssignInviteToRequest", "click", (e) => assignInviteToRequestAligned(e));
+    
     on("#btnRefreshRequests", "click", loadRequests);
     on("#btnCopyInviteCode", "click", () => {
       const request = state.currentSelectedRequestForInvite;
