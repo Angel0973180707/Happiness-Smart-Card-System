@@ -181,19 +181,29 @@
     finally { ta.remove(); }
   }
   function copyFromField(selector, msg) { const text = valueOf(selector); if (!text) return alert("目前沒有可複製內容"); copyText(text, msg); }
+// ======================== 核心：邀請碼相關函式 ========================
 
-  // ======================== 核心：邀請碼相關函式 ========================
-  function buildInviteFormUrl(inviteCode) {
-    if (!inviteCode) return "";
-    return `${CONFIG.FORM_URL}?invite=${encodeURIComponent(inviteCode)}`;
-  }
+function buildInviteFormUrl(inviteCode) {
+  const code = String(inviteCode || "").trim();
+  if (!code) return "";
 
-  function buildInviteReplyText(request) {
-    const code = request?.assigned_invite_code;
-    if (!code) return "";
-    return `您好，這是您的申請入口。\n申請編號：${request.request_id}\n邀請碼：${code}\n${buildInviteFormUrl(code)}`;
-  }
+  return `${CONFIG.FORM_URL}?invite_code=${encodeURIComponent(code)}`;
+}
 
+function buildInviteReplyText(request) {
+  const code = String(request?.assigned_invite_code || "").trim();
+  const requestId = String(request?.request_id || "").trim();
+
+  if (!code) return "";
+
+  return `您好，這是您的申請入口
+
+申請編號：${requestId}
+邀請碼：${code}
+
+👉 點擊填寫：
+${buildInviteFormUrl(code)}`;
+}
   // ─────────────────────────────────────────────
   //  API LAYER
   // ─────────────────────────────────────────────
