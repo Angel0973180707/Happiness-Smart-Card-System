@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Happiness Smart Card 管理後台 v6.5.0</title>
+  <title>Happiness Smart Card 管理後台 v6.5.1-stable-buttons-fix</title>
   <style>
     * {
       margin: 0;
@@ -572,7 +572,8 @@
               <thead>
                 <tr><th>申請單 ID</th><th>建立時間</th><th>來源 ref</th><th>狀態</th><th>邀請碼</th><th>派發者</th><th>備註</th><th>操作</th></tr>
               </thead>
-              <tbody id="requestListContainer"><tr><td colspan="8" class="empty-cell">載入中…</td></tr></tbody>
+              <tbody id="requestListContainer"><tr><td colspan="8" class="empty-cell">載入中…</td></tr>
+              </tbody>
             </table>
           </div>
           <div class="action-row"><button id="btnRefreshRequests" class="btn btn-soft">🔄 重新整理申請單</button></div>
@@ -602,11 +603,10 @@
     </div>
   </section>
 
- <!-- 載入遮罩 & Toast -->
-<div id="loadingMask" class="hidden"><div class="spinner"></div></div>
-<div id="toast" class="hidden"></div>
-
-<script src="admin.js"></script>
+  <!-- 載入遮罩 & Toast -->
+  <div id="loadingMask" class="hidden"><div class="spinner"></div></div>
+  <div id="toast" class="hidden"></div>
 </div>
+<script src="admin.js"></script>
 </body>
 </html>
