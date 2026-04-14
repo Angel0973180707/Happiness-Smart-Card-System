@@ -602,106 +602,11 @@
     </div>
   </section>
 
-  <!-- 載入遮罩 & Toast -->
-  <div id="loadingMask" class="hidden"><div class="spinner"></div></div>
-  <div id="toast" class="hidden"></div>
+ <!-- 載入遮罩 & Toast -->
+<div id="loadingMask" class="hidden"><div class="spinner"></div></div>
+<div id="toast" class="hidden"></div>
 
-  <!-- 保留原始 admin.js 載入（由外部系統提供，此處不修改其內容） -->
-  <script src="admin.js"></script>
-
-  <!-- 補強事件委派：支援 inviteSection 新複製按鈕，不破壞任何現有邏輯 -->
-  <script>
-    (function() {
-      // Toast 輔助（與原 admin.js 可能的重複但不影響）
-      function showMessage(msg, duration = 2000) {
-        const toastEl = document.getElementById('toast');
-        if (!toastEl) return;
-        toastEl.textContent = msg;
-        toastEl.classList.remove('hidden');
-        setTimeout(() => {
-          toastEl.classList.add('hidden');
-        }, duration);
-      }
-
-      // 從 inviteCreateResult pre 標籤中擷取純邀請碼（若無法解析則複製完整文字）
-      function getInviteCodeFromPre() {
-        const pre = document.getElementById('inviteCreateResult');
-        if (!pre) return '';
-        let raw = pre.innerText.trim();
-        if (raw === '尚未選取任何已派發申請') return '';
-        // 嘗試匹配常見邀請碼格式 (英數字底線短橫，長度6~20)
-        const match = raw.match(/[A-Z0-9]{6,20}/i);
-        if (match) return match[0];
-        return raw;
-      }
-
-      // 複製邀請碼
-      function copyInviteCodeHandler() {
-        const code = getInviteCodeFromPre();
-        if (!code) {
-          showMessage('⚠️ 沒有可複製的邀請碼，請先選取已派發申請', 1500);
-          return;
-        }
-        navigator.clipboard.writeText(code).then(() => {
-          showMessage('✅ 邀請碼已複製', 1000);
-        }).catch(() => {
-          showMessage('❌ 複製失敗', 1000);
-        });
-      }
-
-      // 複製申請連結
-      function copyInviteUrlHandler() {
-        const urlBox = document.getElementById('inviteFormUrlBox');
-        if (!urlBox) return;
-        const url = urlBox.value.trim();
-        if (!url) {
-          showMessage('⚠️ 申請連結為空，請先選取已派發申請', 1500);
-          return;
-        }
-        navigator.clipboard.writeText(url).then(() => {
-          showMessage('✅ 申請連結已複製', 1000);
-        }).catch(() => {
-          showMessage('❌ 複製失敗', 1000);
-        });
-      }
-
-      // 複製客服文案
-      function copyInviteTextHandler() {
-        const textBox = document.getElementById('inviteReplyTextBox');
-        if (!textBox) return;
-        const replyText = textBox.value.trim();
-        if (!replyText) {
-          showMessage('⚠️ 客服文案為空，請先選取已派發申請', 1500);
-          return;
-        }
-        navigator.clipboard.writeText(replyText).then(() => {
-          showMessage('✅ 客服文案已複製', 1000);
-        }).catch(() => {
-          showMessage('❌ 複製失敗', 1000);
-        });
-      }
-
-      // 全域事件委派 (符合 admin.js 事件模型，不依賴 window.xxx)
-      document.addEventListener('click', function(e) {
-        const target = e.target;
-        // 複製邀請碼按鈕
-        if (target.closest('.btn-copy-invite-code-global')) {
-          e.preventDefault();
-          copyInviteCodeHandler();
-        }
-        // 複製申請連結按鈕
-        else if (target.closest('.btn-copy-invite-url-global')) {
-          e.preventDefault();
-          copyInviteUrlHandler();
-        }
-        // 複製客服文案按鈕
-        else if (target.closest('.btn-copy-invite-text-global')) {
-          e.preventDefault();
-          copyInviteTextHandler();
-        }
-      });
-    })();
-  </script>
+<script src="admin.js"></script>
 </div>
 </body>
 </html>
