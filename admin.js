@@ -879,7 +879,7 @@
   function renderCommissionList() {
     const tbody = $("#commissionListTableBody");
     if (!tbody) return;
-    if (!state.commissionItems.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">尚無分潤資料</td></table>'; return; }
+    if (!state.commissionItems.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">尚無分潤資料</td></tr>';
     tbody.innerHTML = state.commissionItems.map(item => `<tr><td>${escapeHtml(textOf(item.commission_id || item.id))}</td><td>${escapeHtml(textOf(item.agent_id))}</td><td>${escapeHtml(formatValue(item.amount))}</td><td><span class="badge ${item.status === 'paid' ? 'badge-success' : 'badge-warn'}">${escapeHtml(item.status || 'pending')}</span></td><td>${escapeHtml(formatValue(item.payment_id))}</td><td>${item.status !== 'paid' ? `<button class="btn btn-xs btn-primary btn-mark-commission-paid" data-id="${escapeAttr(item.commission_id || item.id)}">標記已付</button>` : '-'}</td></tr>`).join("");
     $$(".btn-mark-commission-paid").forEach(btn => btn.addEventListener("click", () => markCommissionPaid(btn.dataset.id)));
   }
