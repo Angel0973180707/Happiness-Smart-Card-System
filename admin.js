@@ -482,31 +482,46 @@
 
     try {
       const result = await assignInviteToRequest(requestId, null);
-      console.log("[assignInviteToRequest result]", result);
+console.log("[assignInviteToRequest result]", result);
 
-      await loadRequests();
+const immediateRequest =
+  result?.request ||
+  result?.data?.request ||
+  null;
 
-      const updatedRequest = state.requests.find(
-        r => textOf(r.request_id) === requestId
-      );
+if (immediateRequest) {
+  state.currentSelectedRequestForInvite = immediateRequest;
 
-      if (updatedRequest) {
-        state.currentSelectedRequestForInvite = updatedRequest;
+  updateInviteResultPanel(immediateRequest);
 
-        updateInviteResultPanel(updatedRequest);
+  if (codeInput) {
+    codeInput.value = textOf(immediateRequest.assigned_invite_code);
+  }
 
-        if (codeInput) {
-          codeInput.value = textOf(updatedRequest.assigned_invite_code);
-        }
+  if (textOf(immediateRequest.assigned_invite_code)) {
+    toast("派碼成功");
+  } else {
+    toast("派碼完成，但後端未回寫 invite code");
+  }
 
-        if (textOf(updatedRequest.assigned_invite_code)) {
-          toast("派碼成功");
-        } else {
-          toast("派碼完成，但後端未回寫 invite code");
-        }
-      } else {
-        toast("派碼後重新載入失敗");
-      }
+  const idx = state.requests.findIndex(
+    r => textOf(r.request_id) === requestId
+  );
+  if (idx >= 0) {
+    state.requests[idx] = {
+      ...state.requests[idx],
+      ...immediateRequest
+    };
+    renderRequests();
+    bindRequestListEvents();
+  }
+} else {
+  toast("派碼成功，正在同步列表…");
+}
+
+loadRequests().catch(err => {
+  console.warn("loadRequests after assign failed:", err);
+});
 
       if (reqInput) reqInput.value = "";
       if (noteInput) noteInput.value = "";
