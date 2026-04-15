@@ -1318,14 +1318,17 @@
     const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
     const totalAmount = limits.planPrice + addonAmount;
     const shared = buildSharedCardData();
+    const refValue = valueOf("ref");
+
     const payload = {
       action: CONFIG.CREATE_ACTION,
       tenant: "angel",
       invite_code: valueOf("invite_code"),
-      referrer: valueOf("ref"),
-      service_agent: valueOf("ref"),
-      agent_type: valueOf("ref") ? "referral" : "customer",
-      share_source: "form",
+      referrer: refValue || "",
+      service_agent: refValue || "SELF",
+      agent_type: refValue ? "service" : "self",
+      source: refValue ? "agent_form" : "form",
+      share_source: refValue ? "agent_form" : "form",
       share_channel: "direct",
       ...shared,
       plan: theme.plan,
@@ -1417,29 +1420,15 @@
   }
 
   function buildCreatePrimaryNoticeText(result) {
-    return `您好，我是 ${result.customerName}，已完成天使幸福智慧名片申請
-
-📋 名片序號：${result.cardId}
-💳 方案：${result.planLabel}，${money(result.totalAmount)}
-${result.paymentId ? `🧾 付款單號：${result.paymentId}\n` : ""}🔗 成品連結：${result.previewUrl}
-
-⏰ 付款期限：${result.dueDateStr}
-
-📌 請協助確認付款並開通名片，謝謝！`;
+    return `您好，我是 ${result.customerName}，已完成天使幸福智慧名片申請！\n📋 名片序號：${result.cardId}\n💳 方案：${result.planLabel}，總金額 ${money(result.totalAmount)}\n🔗 成品預覽：${result.previewUrl}\n⏰ 付款期限：${result.dueDateStr} 前，請協助確認並開通名片，謝謝！`;
   }
 
  function buildCreateSecondaryNoticeText(result) {
-  return `【天使幸福智慧名片｜報價與付款摘要】
+  return `【天使幸福智慧名片 報價摘要】
 名片序號：${result.cardId}
-申請人：${result.customerName}
-方案：${result.planLabel}
-應付總額：${money(result.totalAmount)}
-${result.paymentId ? `付款單號：${result.paymentId}\n` : ""}付款期限：${result.dueDateStr}
-成品連結：${result.previewUrl}
-
-開通流程：
-1️⃣ 客服提供付款資訊
-2️⃣ 完成付款後開通名片
+方案：${result.planLabel} ${money(result.totalAmount)}
+付款期限：${result.dueDateStr}
+預覽連結：${result.previewUrl}
 
 付款與開通請以官方通知流程為準
 本系統不會透過私訊更改收款帳號`;
@@ -1802,20 +1791,27 @@ function renderCreateSuccessFooterNote(els) {
       flex-direction:column;
       gap:14px;
     ">
+
       <div style="text-align:center;">
-        <div style="font-size:22px;">🔒</div>
+        <div style="font-size:22px;">✅</div>
         <div style="font-size:15px;font-weight:900;">
-          安全提醒與客服入口
+          已收到你的申請，我們會協助你完成開通
         </div>
       </div>
 
-      <div style="padding:12px;border-radius:12px;background:#fff8ec;border:1px solid #f0a04b;line-height:1.8;">
-        付款與開通請以官方通知流程為準，避免被詐騙。<br>
-        若需確認，請直接使用本頁提供的客服入口聯繫。
+      <div style="padding:12px;border-radius:12px;background:#fff;">
+        <b>接下來的流程</b><br>
+        1️⃣ 客服會提供付款資訊給你<br>
+        2️⃣ 完成付款後開通名片
+      </div>
+
+      <div style="padding:12px;border-radius:12px;background:#fff8ec;border:1px solid #f0a04b;">
+        🔒 <b>付款安全提醒</b><br>
+        付款與開通請以官方通知流程為準，避免被詐騙
       </div>
 
       <button onclick="window.open('https://lin.ee/G3VJoRm')"
-        style="background:#1ac964;color:#fff;border:none;padding:12px;border-radius:12px;font-weight:900;cursor:pointer;">
+        style="background:#1ac964;color:#fff;border:none;padding:12px;border-radius:12px;font-weight:900;">
         💬 聯繫客服
       </button>
     </div>
@@ -1847,55 +1843,18 @@ function renderSafeLinkNotice(els) {
   els["success-footer-note"].appendChild(box);
 }
 
-function renderCreateSuccessFlowBox() {
-  return `
-    <div style="
-      margin-top:12px;
-      padding:14px;
-      border-radius:14px;
-      background:linear-gradient(180deg,#fffdf9,#fff7ec);
-      border:1px solid rgba(240,160,75,.22);
-      line-height:1.9;
-    ">
-      <div style="font-size:12px;font-weight:900;color:rgba(42,36,30,.52);margin-bottom:6px;letter-spacing:.08em;">
-        開通流程
-      </div>
-      <div style="font-size:14px;font-weight:800;color:#6f4c20;">
-        1️⃣ 客服提供付款資訊<br>
-        2️⃣ 完成付款後開通名片
-      </div>
-    </div>
-  `;
-}
-
-function ensureCreateSuccessPreviewButton(result) {
-  const actions = els["success-actions"];
-  if (!actions || !result?.previewUrl) return;
-  let btn = document.getElementById("btn-open-preview");
-  if (!btn) {
-    btn = document.createElement("button");
-    btn.type = "button";
-    btn.id = "btn-open-preview";
-    btn.className = "ghost-btn mini";
-    btn.textContent = "🔗 查看成品";
-    actions.insertBefore(btn, actions.firstChild);
-  }
-  btn.onclick = () => window.open(result.previewUrl, "_blank", "noopener");
-}
-
-
 function showCreateSuccessPanel(result) {
   resetSuccessPanel();
   if (els["success-header-icon"]) els["success-header-icon"].textContent = "🎉";
   if (els["success-header-title"]) els["success-header-title"].textContent = "名片申請成功！";
-  if (els["success-header-sub"]) els["success-header-sub"].textContent = "請先查看成品，再複製客服完整文案回覆客服。";
+  if (els["success-header-sub"]) els["success-header-sub"].textContent = "請複製以下資訊並回覆客服，協助確認付款與開通名片。";
   if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
   if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
   if (els["success-info-rows"]) {
     els["success-info-rows"].innerHTML = `
       <div class="success-info-row"><span class="label">申請人</span><span class="value">${escapeHtml(result.customerName)}</span></div>
       <div class="success-info-row"><span class="label">方案</span><span class="value">${escapeHtml(result.planLabel)}</span></div>
-      <div class="success-info-row"><span class="label">應付總額</span><span class="value">${money(result.totalAmount)}</span></div>
+      <div class="success-info-row"><span class="label">總金額</span><span class="value">${money(result.totalAmount)}</span></div>
       ${result.paymentId ? `<div class="success-info-row"><span class="label">付款單號</span><span class="value">${escapeHtml(result.paymentId)}</span></div>` : ""}
     `;
   }
@@ -1905,7 +1864,6 @@ function showCreateSuccessPanel(result) {
   }
   if (els["success-preview-row"]) {
     els["success-preview-row"].classList.remove("hidden");
-    if (els["success-preview-label"]) els["success-preview-label"].textContent = "🔗 成品連結";
     if (els["progress-preview-link"]) {
       els["progress-preview-link"].href = result.previewUrl || "";
       els["progress-preview-link"].textContent = result.previewUrl || "（建立後顯示）";
@@ -1921,16 +1879,8 @@ function showCreateSuccessPanel(result) {
       `;
     }
   }
-  if (els["success-info-rows"]) {
-    els["success-info-rows"].insertAdjacentHTML("beforeend", `
-      <div class="success-info-row" style="display:block;border-bottom:none;padding-top:10px;">
-        ${renderCreateSuccessFlowBox()}
-      </div>
-    `);
-  }
   renderCreateSuccessFooterNote(els);
   renderSafeLinkNotice(els);
-  ensureCreateSuccessPreviewButton(result);
   setSuccessActionLabels("create", result);
 }
   function showUpdateSuccessPanel(result) {
@@ -2023,11 +1973,11 @@ function showCreateSuccessPanel(result) {
     if (!primaryBtn) return;
 
     if (mode === "create") {
-      primaryBtn.textContent = "📋 複製客服完整文案";
+      primaryBtn.textContent = "📋 複製預覽＋付款通知";
       primaryBtn.onclick = async () => { await copyText(buildCreatePrimaryNoticeText(result)); setStatus("已複製通知。", "success"); };
       if (secondaryBtn) {
         secondaryBtn.classList.remove("hidden");
-        secondaryBtn.textContent = "📄 複製交付說明＋付款摘要";
+        secondaryBtn.textContent = "📄 複製報價＋付款資訊";
         secondaryBtn.onclick = async () => { await copyText(buildCreateSecondaryNoticeText(result)); setStatus("已複製摘要。", "success"); };
       }
     } else if (mode === "update_done") {
