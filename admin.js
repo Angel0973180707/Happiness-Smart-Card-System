@@ -294,29 +294,31 @@ ${formUrl}`;
   }
 
   function copyInviteUrlByRequest(requestId) {
-    const r = state.requests.find(x => x.request_id === requestId);
-    if (!r || !r.assigned_invite_code) return toast("尚未派發");
-    copyText(buildInviteFormUrl(r.assigned_invite_code), "已複製申請連結");
-  }
+  const r = state.requests.find(x => x.request_id === requestId);
+  if (!r || !r.assigned_invite_code) return toast("尚未派發");
+  copyText(
+    buildInviteFormUrl(r.assigned_invite_code, r.form_url),
+    "已複製申請連結"
+  );
+}
 
-  function copyInviteReplyByRequest(requestId) {
-    const r = state.requests.find(x => x.request_id === requestId);
-    if (!r || !r.assigned_invite_code) return toast("尚未派發");
-    copyText(buildInviteReplyText(r), "已複製客服文案");
-  }
+function copyInviteReplyByRequest(requestId) {
+  const r = state.requests.find(x => x.request_id === requestId);
+  if (!r || !r.assigned_invite_code) return toast("尚未派發");
+  copyText(buildInviteReplyText(r), "已複製客服文案");
+}
 
-  async function reassignInvite(requestId) {
-    if (!confirm("重新派發會產生新邀請碼，確定？")) return;
-    if (!doubleConfirmId(requestId, "申請單")) return;
-    try {
-      await apiPost("assignInviteToRequest", { request_id: requestId, force: true });
-      toast("已重新派發");
-      await loadRequests();
-    } catch (e) {
-      toast("後端尚未支援重新派發");
-    }
+async function reassignInvite(requestId) {
+  if (!confirm("重新派發會產生新邀請碼，確定？")) return;
+  if (!doubleConfirmId(requestId, "申請單")) return;
+  try {
+    await apiPost("assignInviteToRequest", { request_id: requestId, force: true });
+    toast("已重新派發");
+    await loadRequests();
+  } catch (e) {
+    toast("後端尚未支援重新派發");
   }
-
+}
   // 申請單列表渲染（事件代理版）
   function renderRequests() {
     const tbody = $("#requestListContainer");
