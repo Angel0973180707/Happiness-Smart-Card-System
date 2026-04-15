@@ -622,7 +622,7 @@
 
   async function loadPaymentList() {
     try {
-      const data = await apiGet("getPaymentList");
+      const data = await apiGet("adminGetPaymentList");
       state.paymentList = normalizeList(data, ["payments", "items"]);
       renderPayments();
     } catch (err) {
@@ -646,7 +646,7 @@
 
   async function loadAgents() {
     try {
-      const data = await apiGet("getAgents");
+      const data = await apiGet("adminListAgents");
       state.agents = normalizeList(data, ["agents", "items"]);
       renderAgents();
     } catch (err) {
@@ -659,7 +659,8 @@
   async function loadRecognitionQueues() {
     try {
       const type = state.currentRecognitionType;
-      const data = await apiGet("getRecognitionQueue", { type });
+      const action = type === "addon" ? "getAddonRecognitionQueue" : "getRenewalRecognitionQueue";
+      const data = await apiGet(action);
       const items = normalizeList(data, ["items", "queue"]);
       if (type === "renewal") state.recognitionRenewalItems = items;
       else state.recognitionAddonItems = items;
@@ -667,6 +668,9 @@
       updateDashboardPendingRecognition();
     } catch (err) {
       console.error("loadRecognitionQueues failed:", err);
+      if (state.currentRecognitionType === "renewal") state.recognitionRenewalItems = [];
+      else state.recognitionAddonItems = [];
+      renderRecognitionQueue([]);
     }
   }
 
@@ -682,7 +686,7 @@
 
   async function loadRenewalList() {
     try {
-      const data = await apiGet("getRenewalList");
+      const data = await apiGet("adminGetRenewalList");
       state.renewalItems = normalizeList(data, ["renewals", "items"]);
       renderRenewalList();
       updateRenewalStats();
@@ -696,7 +700,7 @@
   async function loadRenewalByCardId(cardId) {
     if (!cardId) return;
     try {
-      const data = await apiGet("getRenewalByCardId", { card_id: cardId });
+      const data = await apiGet("adminGetRenewalByCardId", { card_id: cardId });
       const item = data.renewal || data || {};
       state.currentRenewalDetail = item;
       renderRenewalDetail(item);
@@ -707,7 +711,7 @@
 
   async function loadRenewalDetail(renewalId) {
     try {
-      const data = await apiGet("getRenewalDetail", { renewal_id: renewalId });
+      const data = await apiGet("adminGetRenewalDetail", { renewal_id: renewalId });
       state.currentRenewalDetail = data.renewal || data || {};
       renderRenewalDetail(state.currentRenewalDetail);
     } catch (err) {
@@ -718,7 +722,7 @@
   async function loadAddonDetail(addonOrderId) {
     if (!addonOrderId) return toast("請輸入加購單 ID");
     try {
-      const data = await apiGet("getAddonOrderDetail", { addon_order_id: addonOrderId });
+      const data = await apiGet("adminGetOrderDetail", { addon_order_id: addonOrderId });
       state.currentAddon = data.addon || data || {};
       renderAddonDetail(state.currentAddon);
     } catch (err) {
@@ -729,7 +733,7 @@
   async function loadAgentDetail(agentId) {
     if (!agentId) return toast("請輸入代理 ID");
     try {
-      const data = await apiGet("getAgentDetail", { agent_id: agentId });
+      const data = await apiGet("adminGetAgent", { agent_id: agentId });
       state.currentAgent = data.agent || data || {};
       renderAgentDetail(state.currentAgent);
       syncCurrentAgentBox(state.currentAgent);
@@ -815,7 +819,7 @@
 
   async function checkSchemaStatus() {
     try {
-      const data = await apiGet("checkSchemaStatus");
+      const data = await apiGet("adminCheckSchemaStatus");
       state.schemaStatus = data.schema || data || {};
       renderSchemaStatus();
       updateDashboardSystemIssues();
@@ -831,7 +835,9 @@
     try {
       setLoading(true);
       const results = await Promise.allSettled([
+        loadRequests(),
         loadCards(),
+        loadPayments(),
         loadPaymentList(),
         loadAddons(),
         loadAgents()
