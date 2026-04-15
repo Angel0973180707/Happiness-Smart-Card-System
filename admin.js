@@ -676,32 +676,33 @@ async function refreshAll() {
   setLoading(true);
 
   try {
-    // 先載入申請單，讓這區最快出來
-    await loadRequests();
-  } catch (err) {
-    console.warn("[refreshAll] loadRequests failed:", err);
+    try {
+      await loadRequests();
+    } catch (err) {
+      console.warn("[refreshAll] loadRequests failed:", err);
+    }
+
+    const results = await Promise.allSettled([
+      loadCards(),
+      loadPayments(),
+      loadAddons(),
+      loadAgents(),
+      loadPaymentList(),
+      loadRecognitionQueues(),
+      loadRenewalList(),
+      loadAnnouncements(),
+      loadTrackingSummary(),
+      loadRecentOpsLogs(),
+      checkSchemaStatus()
+    ]);
+
+    const failed = results.filter(r => r.status === "rejected");
+    if (failed.length) console.warn("[refreshAll] 部分載入失敗:", failed.length);
+
+    renderDashboard();
+  } finally {
+    setLoading(false);
   }
-
-  const results = await Promise.allSettled([
-    loadCards(),
-    loadPayments(),
-    loadAddons(),
-    loadAgents(),
-    loadPaymentList(),
-    loadRecognitionQueues(),
-    loadRenewalList(),
-    loadAnnouncements(),
-    loadTrackingSummary(),
-    loadRecentOpsLogs(),
-    checkSchemaStatus()
-  ]);
-
-  setLoading(false);
-
-  const failed = results.filter(r => r.status === "rejected");
-  if (failed.length) console.warn("[refreshAll] 部分載入失敗:", failed.length);
-
-  renderDashboard();
 }
 
   // ─────────────────────────────────────────────
