@@ -1056,6 +1056,39 @@
       border: 1px solid rgba(6,166,106,.12);
     }
 
+
+
+    .success-countdown-box {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #fffaf2;
+      border: 1px solid rgba(240,160,75,.24);
+    }
+
+    .success-countdown-title {
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .success-countdown-value {
+      font-size: 20px;
+      font-weight: 900;
+      color: #8b5b16;
+      letter-spacing: .02em;
+    }
+
+    .success-countdown-note {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.6;
+    }
+
     .hidden { display: none !important; }
 
     .link-group-title {
@@ -1592,6 +1625,12 @@
           ⏰&nbsp;<strong id="success-due-text">付款期限：—</strong>
         </div>
 
+        <div class="success-countdown-box hidden" id="success-countdown-box">
+          <p class="success-countdown-title">付款倒數</p>
+          <div class="success-countdown-value" id="success-countdown-value">—</div>
+          <p class="success-countdown-note" id="success-countdown-note">完成付款後才會正式啟用名片。</p>
+        </div>
+
         <div class="success-preview-row hidden" id="success-preview-row">
           <p class="success-preview-label" id="success-preview-label">🔗 成品預覽連結</p>
           <a id="progress-preview-link" href="#" target="_blank" rel="noopener">（建立後顯示）</a>
@@ -1660,6 +1699,92 @@
   </template>
 
   <script src="./card-renderer.js"></script>
+
+  <script>
+    (function () {
+      "use strict";
+
+      function pad(n) { return String(n).padStart(2, "0"); }
+
+      function parseDueText(raw) {
+        var s = String(raw || "").replace(/^付款期限：?\s*/, "").trim();
+        if (!s || s === "—") return null;
+
+        var normalized = s.replace(/年/g, "/").replace(/月/g, "/").replace(/日/g, "")
+                          .replace(/-/g, "/").replace(/\./g, "/");
+
+        var m = normalized.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})(?:\s+(\d{1,2}):(\d{1,2}))?/);
+        if (m) {
+          var year = Number(m[1]);
+          var month = Number(m[2]) - 1;
+          var day = Number(m[3]);
+          var hour = Number(m[4] || 23);
+          var minute = Number(m[5] || 59);
+          var d = new Date(year, month, day, hour, minute, 59);
+          return isNaN(d.getTime()) ? null : d;
+        }
+
+        var d2 = new Date(s);
+        return isNaN(d2.getTime()) ? null : d2;
+      }
+
+      function formatRemain(ms) {
+        if (ms <= 0) return "付款已截止";
+        var totalMinutes = Math.floor(ms / 60000);
+        var days = Math.floor(totalMinutes / (60 * 24));
+        var hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+        var minutes = totalMinutes % 60;
+        return "剩 " + days + " 天 " + pad(hours) + " 小時 " + pad(minutes) + " 分";
+      }
+
+      function renderCountdown() {
+        var dueTextEl = document.getElementById("success-due-text");
+        var box = document.getElementById("success-countdown-box");
+        var valueEl = document.getElementById("success-countdown-value");
+        var noteEl = document.getElementById("success-countdown-note");
+        if (!dueTextEl || !box || !valueEl || !noteEl) return;
+
+        var due = parseDueText(dueTextEl.textContent || "");
+        if (!due) {
+          box.classList.add("hidden");
+          valueEl.textContent = "—";
+          noteEl.textContent = "完成付款後才會正式啟用名片。";
+          return;
+        }
+
+        box.classList.remove("hidden");
+        var remain = due.getTime() - Date.now();
+        valueEl.textContent = formatRemain(remain);
+        noteEl.textContent = remain <= 0
+          ? "付款期限已截止，請聯繫客服。"
+          : "完成付款後才會正式啟用名片。";
+      }
+
+      window.HSCFormCountdownBridge = {
+        refresh: renderCountdown
+      };
+
+      var timer = null;
+      function boot() {
+        renderCountdown();
+        if (timer) clearInterval(timer);
+        timer = setInterval(renderCountdown, 60000);
+
+        var target = document.getElementById("success-due-text");
+        if (target && window.MutationObserver) {
+          var observer = new MutationObserver(renderCountdown);
+          observer.observe(target, { childList: true, characterData: true, subtree: true });
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+      } else {
+        boot();
+      }
+    })();
+  </script>
+
   <script type="module" src="./form.js"></script>
 </body>
 </html>
