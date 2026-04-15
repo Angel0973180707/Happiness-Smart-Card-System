@@ -1300,11 +1300,17 @@ loadRequests().catch(err => {
       if (request && request.assigned_invite_code) copyText(request.assigned_invite_code, "已複製邀請碼");
       else toast("請先選取已派發的申請單");
     });
-    on("#btnCopyInviteUrl", "click", () => {
-      const request = state.currentSelectedRequestForInvite;
-      if (request && request.assigned_invite_code) copyText(buildInviteFormUrl(request.assigned_invite_code), "已複製申請連結");
-      else toast("請先選取已派發的申請單");
-    });
+   on("#btnCopyInviteUrl", "click", () => {
+  const request = state.currentSelectedRequestForInvite;
+  if (request && request.assigned_invite_code) {
+    copyText(
+      buildInviteFormUrl(request.assigned_invite_code, request.form_url),
+      "已複製申請連結"
+    );
+  } else {
+    toast("請先選取已派發的申請單");
+  }
+});
     on("#btnCopyInviteText", "click", () => {
       const request = state.currentSelectedRequestForInvite;
       if (request && request.assigned_invite_code) copyText(buildInviteReplyText(request), "已複製客服文案");
