@@ -377,24 +377,36 @@ ${formUrl}`;
     state.currentSelectedRequestForInvite = request;
     updateInviteResultPanel(request);
   }
-  function updateInviteResultPanel(request) {
-    const resultPre = $("#inviteCreateResult");
-    const urlBox = $("#inviteFormUrlBox");
-    const textBox = $("#inviteReplyTextBox");
-    if (!resultPre) return;
-    if (!request || !textOf(request.assigned_invite_code)) {
-      resultPre.innerText = "尚未選取任何已派發申請";
-      if (urlBox) urlBox.value = "";
-      if (textBox) textBox.value = "";
-      return;
-    }
-    const inviteCode = textOf(request.assigned_invite_code);
-    const formUrl = buildInviteFormUrl(inviteCode);
-    const replyText = buildInviteReplyText(request);
-    resultPre.innerText = `【已派發申請單】\n申請單 ID: ${textOf(request.request_id)}\n邀請碼: ${inviteCode}\n派發時間: ${textOf(request.assigned_at) || textOf(request.updated_at) || textOf(request.created_at) || "未知"}`;
-    if (urlBox) urlBox.value = formUrl;
-    if (textBox) textBox.value = replyText;
+function updateInviteResultPanel(request) {
+  const resultPre = $("#inviteCreateResult");
+  const urlBox = $("#inviteFormUrlBox");
+  const textBox = $("#inviteReplyTextBox");
+
+  if (!resultPre) return;
+
+  if (!request || !textOf(request.assigned_invite_code)) {
+    resultPre.innerText = "尚未選取任何已派發申請";
+    if (urlBox) urlBox.value = "";
+    if (textBox) textBox.value = "";
+    return;
   }
+
+  const inviteCode = textOf(request.assigned_invite_code);
+  const formUrl = buildInviteFormUrl(inviteCode, request.form_url);
+  const replyText = buildInviteReplyText({
+    ...request,
+    form_url: formUrl
+  });
+
+  resultPre.innerText =
+    `【已派發申請單】\n` +
+    `申請單 ID: ${textOf(request.request_id)}\n` +
+    `邀請碼: ${inviteCode}\n` +
+    `派發時間: ${textOf(request.assigned_at) || textOf(request.updated_at) || textOf(request.created_at) || "未知"}`;
+
+  if (urlBox) urlBox.value = formUrl;
+  if (textBox) textBox.value = replyText;
+}
   function fillRequestToAssignForm(requestId) {
     const request = state.requests.find(r => textOf(r.request_id) === textOf(requestId));
     if (!request) { toast("找不到該申請單"); return; }
