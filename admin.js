@@ -676,35 +676,46 @@ async function refreshAll() {
   setLoading(true);
 
   try {
+    // 申請單保留首屏，客服最常用
     try {
       await loadRequests();
     } catch (err) {
       console.warn("[refreshAll] loadRequests failed:", err);
     }
 
+    // 首屏只載核心資料，先讓畫面快出來
     const results = await Promise.allSettled([
       loadCards(),
-      loadPayments(),
+      loadPaymentList(),   // 保留這支，移除重複的 loadPayments()
       loadAddons(),
-      loadAgents(),
-      loadPaymentList(),
-      loadRecognitionQueues(),
-      loadRenewalList(),
-      loadAnnouncements(),
-      loadTrackingSummary(),
-      loadRecentOpsLogs(),
-      checkSchemaStatus()
+      loadAgents()
     ]);
 
     const failed = results.filter(r => r.status === "rejected");
-    if (failed.length) console.warn("[refreshAll] 部分載入失敗:", failed.length);
+    if (failed.length) {
+      console.warn("[refreshAll] 部分載入失敗:", failed.length, failed);
+    }
 
     renderDashboard();
+
+    // 次要資料延後背景補載，不阻塞首頁
+    setTimeout(async () => {
+      try { await loadRecognitionQueues(); } catch (err) { console.warn("[deferred] loadRecognitionQueues failed:", err); }
+      try { await loadRenewalList(); } catch (err) { console.warn("[deferred] loadRenewalList failed:", err); }
+      try { await loadAnnouncements(); } catch (err) { console.warn("[deferred] loadAnnouncements failed:", err); }
+      try { await loadTrackingSummary(); } catch (err) { console.warn("[deferred] loadTrackingSummary failed:", err); }
+      try { await loadRecentOpsLogs(); } catch (err) { console.warn("[deferred] loadRecentOpsLogs failed:", err); }
+
+      // schema 檢查最重，改成最後補
+      try { await checkSchemaStatus(); } catch (err) { console.warn("[deferred] checkSchemaStatus failed:", err); }
+
+      renderDashboard();
+    }, 50);
+
   } finally {
     setLoading(false);
   }
 }
-
   // ─────────────────────────────────────────────
   //  RENDER FUNCTIONS (all with DOM existence checks)
   // ─────────────────────────────────────────────
