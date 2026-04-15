@@ -510,10 +510,21 @@ function updateInviteResultPanel(request) {
       const result = await assignInviteToRequest(requestId, null);
 console.log("[assignInviteToRequest result]", result);
 
-const immediateRequest =
+const immediateRequestRaw =
   result?.request ||
   result?.data?.request ||
   null;
+
+const immediateRequest = immediateRequestRaw
+  ? {
+      ...immediateRequestRaw,
+      form_url:
+        result?.form_url ||
+        result?.data?.form_url ||
+        immediateRequestRaw.form_url ||
+        ""
+    }
+  : null;
 
 if (immediateRequest) {
   state.currentSelectedRequestForInvite = immediateRequest;
