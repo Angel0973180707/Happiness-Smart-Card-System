@@ -411,8 +411,31 @@
 
   async function loadCreateBootstrap() {
     state.runtime.createMeta = { mode: "create" };
-    if (els["invite_code"] && !els["invite_code"].value && state.modeContext.inviteCode) {
-      els["invite_code"].value = state.modeContext.inviteCode;
+
+    const params = new URLSearchParams(window.location.search || "");
+    const inviteFromUrl = (params.get("invite_code") || params.get("invite") || "").trim();
+
+    if (inviteFromUrl) {
+      state.modeContext.inviteCode = inviteFromUrl;
+      sessionStorage.setItem("hsc_last_invite_code", inviteFromUrl);
+    }
+
+    if (els["invite_code"]) {
+      if (inviteFromUrl) {
+        els["invite_code"].value = inviteFromUrl;
+      } else if (!els["invite_code"].value && state.modeContext.inviteCode) {
+        els["invite_code"].value = state.modeContext.inviteCode;
+      } else if (!els["invite_code"].value) {
+        const cachedInvite = sessionStorage.getItem("hsc_last_invite_code") || "";
+        if (cachedInvite) {
+          els["invite_code"].value = cachedInvite;
+          state.modeContext.inviteCode = cachedInvite;
+        }
+      }
+    }
+
+    if (!getInviteCodeFromPage()) {
+      setStatus("缺少邀請資訊，請重新從邀請連結進入。", "error");
     }
   }
 
@@ -497,6 +520,16 @@
 
   function extractPaymentId(data) {
     return data?.payment?.payment_id || data?.payment_id || data?.data?.payment_id || "";
+  }
+
+  function getInviteCodeFromPage() {
+    const params = new URLSearchParams(window.location.search || "");
+    return (
+      (document.getElementById("invite_code")?.value || "").trim() ||
+      (state.modeContext.inviteCode || "").trim() ||
+      (params.get("invite_code") || "").trim() ||
+      (params.get("invite") || "").trim()
+    );
   }
 
   function buildSharedCardData() {
@@ -1263,8 +1296,8 @@
   }
 
   function validateCreateBeforeSubmit() {
-    if (!valueOf("invite_code")) {
-      setStatus("缺少邀請資訊，請確認是從正確的連結進入。", "error");
+    if (!getInviteCodeFromPage()) {
+      setStatus("缺少邀請資訊，請確認是從正確的邀請連結進入。", "error");
       return false;
     }
     if (!valueOf("display_name")) { setStatus("請填寫姓名／品牌名稱。", "error"); return false; }
@@ -1319,11 +1352,11 @@
     const totalAmount = limits.planPrice + addonAmount;
     const shared = buildSharedCardData();
     const refValue = valueOf("ref");
-
+    const inviteCode = getInviteCodeFromPage();
     const payload = {
       action: CONFIG.CREATE_ACTION,
       tenant: "angel",
-      invite_code: valueOf("invite_code"),
+      invite_code: inviteCode,
       referrer: refValue || "",
       service_agent: refValue || "SELF",
       agent_type: refValue ? "service" : "self",
@@ -1420,15 +1453,20 @@
   }
 
   function buildCreatePrimaryNoticeText(result) {
-    return `您好，我是 ${result.customerName}，已完成天使幸福智慧名片申請！\n📋 名片序號：${result.cardId}\n💳 方案：${result.planLabel}，總金額 ${money(result.totalAmount)}\n🔗 成品預覽：${result.previewUrl}\n⏰ 付款期限：${result.dueDateStr} 前，請協助確認並開通名片，謝謝！`;
+    return `您好，我是 ${result.customerName}，已完成天使幸福智慧名片申請\n\n📋 名片序號：${result.cardId}\n💳 方案：${result.planLabel}，${money(result.totalAmount)}\n🔗 成品連結：${result.previewUrl}\n\n⏰ 付款期限：${result.dueDateStr}\n\n📌 請協助確認付款並開通名片，謝謝！`;
   }
 
  function buildCreateSecondaryNoticeText(result) {
-  return `【天使幸福智慧名片 報價摘要】
+  return `【天使幸福智慧名片｜客服回覆摘要】
 名片序號：${result.cardId}
-方案：${result.planLabel} ${money(result.totalAmount)}
+方案：${result.planLabel}
+應付總額：${money(result.totalAmount)}
 付款期限：${result.dueDateStr}
-預覽連結：${result.previewUrl}
+成品連結：${result.previewUrl}
+
+【開通流程】
+1. 客服提供付款資訊
+2. 完成付款後開通名片
 
 付款與開通請以官方通知流程為準
 本系統不會透過私訊更改收款帳號`;
@@ -1767,7 +1805,23 @@
     if (els["success-footer-note"]) els["success-footer-note"].innerHTML = "";
     if (els["btn-copy-secondary-notice"]) els["btn-copy-secondary-notice"].classList.add("hidden");
     if (els["btn-copy-primary-notice"]) els["btn-copy-primary-notice"].textContent = "📋 複製通知";
+    const previewBtn = document.getElementById("btn-open-preview");
+    if (previewBtn) previewBtn.classList.add("hidden");
     if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
+  }
+
+  function ensurePreviewActionButton() {
+    const wrap = els["success-actions"];
+    if (!wrap) return;
+    let btn = document.getElementById("btn-open-preview");
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.id = "btn-open-preview";
+      btn.className = "ghost-btn mini hidden";
+      btn.textContent = "🔗 查看成品";
+      wrap.insertBefore(btn, wrap.firstChild);
+    }
   }
 
   function showSuccessPanel(result) {
@@ -1783,35 +1837,40 @@ function renderCreateSuccessFooterNote(els) {
   els["success-footer-note"].innerHTML = `
     <div style="
       margin-top:14px;
-      padding:16px;
-      border-radius:16px;
-      background:linear-gradient(135deg,#fffdf9,#fff7ec);
-      border:1.5px solid rgba(240,160,75,.28);
       display:flex;
       flex-direction:column;
-      gap:14px;
+      gap:12px;
     ">
-
-      <div style="text-align:center;">
-        <div style="font-size:22px;">✅</div>
-        <div style="font-size:15px;font-weight:900;">
-          已收到你的申請，我們會協助你完成開通
+      <div style="
+        padding:14px;
+        border-radius:14px;
+        background:#ffffff;
+        border:1px solid rgba(42,36,30,.10);
+        text-align:left;
+      ">
+        <div style="font-size:13px;font-weight:900;margin-bottom:8px;">📦 開通流程</div>
+        <div style="font-size:13px;line-height:1.8;color:#4b5563;font-weight:700;">
+          1️⃣ 客服會提供付款資訊給你<br>
+          2️⃣ 完成付款後開通名片<br>
+          3️⃣ 開通後即可正式分享使用
         </div>
       </div>
 
-      <div style="padding:12px;border-radius:12px;background:#fff;">
-        <b>接下來的流程</b><br>
-        1️⃣ 客服會提供付款資訊給你<br>
-        2️⃣ 完成付款後開通名片
-      </div>
-
-      <div style="padding:12px;border-radius:12px;background:#fff8ec;border:1px solid #f0a04b;">
-        🔒 <b>付款安全提醒</b><br>
-        付款與開通請以官方通知流程為準，避免被詐騙
+      <div style="
+        padding:14px;
+        border-radius:14px;
+        background:#fff8ec;
+        border:1px solid rgba(240,160,75,.35);
+        text-align:left;
+      ">
+        <div style="font-size:13px;font-weight:900;margin-bottom:6px;color:#8b5b16;">🔒 付款安全提醒</div>
+        <div style="font-size:12px;line-height:1.8;color:#8b5b16;font-weight:700;">
+          付款與開通請以官方通知流程為準，避免被詐騙。若有疑問，請直接用下方客服按鈕聯繫。
+        </div>
       </div>
 
       <button onclick="window.open('https://lin.ee/G3VJoRm')"
-        style="background:#1ac964;color:#fff;border:none;padding:12px;border-radius:12px;font-weight:900;">
+        style="background:#1ac964;color:#fff;border:none;padding:12px;border-radius:12px;font-weight:900;cursor:pointer;">
         💬 聯繫客服
       </button>
     </div>
@@ -1845,6 +1904,7 @@ function renderSafeLinkNotice(els) {
 
 function showCreateSuccessPanel(result) {
   resetSuccessPanel();
+  ensurePreviewActionButton();
   if (els["success-header-icon"]) els["success-header-icon"].textContent = "🎉";
   if (els["success-header-title"]) els["success-header-title"].textContent = "名片申請成功！";
   if (els["success-header-sub"]) els["success-header-sub"].textContent = "請複製以下資訊並回覆客服，協助確認付款與開通名片。";
@@ -1973,12 +2033,17 @@ function showCreateSuccessPanel(result) {
     if (!primaryBtn) return;
 
     if (mode === "create") {
-      primaryBtn.textContent = "📋 複製預覽＋付款通知";
-      primaryBtn.onclick = async () => { await copyText(buildCreatePrimaryNoticeText(result)); setStatus("已複製通知。", "success"); };
+      primaryBtn.textContent = "📋 複製客服完整文案";
+      primaryBtn.onclick = async () => { await copyText(buildCreatePrimaryNoticeText(result)); setStatus("已複製客服完整文案。", "success"); };
       if (secondaryBtn) {
         secondaryBtn.classList.remove("hidden");
-        secondaryBtn.textContent = "📄 複製報價＋付款資訊";
-        secondaryBtn.onclick = async () => { await copyText(buildCreateSecondaryNoticeText(result)); setStatus("已複製摘要。", "success"); };
+        secondaryBtn.textContent = "📄 複製客服摘要";
+        secondaryBtn.onclick = async () => { await copyText(buildCreateSecondaryNoticeText(result)); setStatus("已複製客服摘要。", "success"); };
+      }
+      const previewBtn = document.getElementById("btn-open-preview");
+      if (previewBtn && result?.previewUrl) {
+        previewBtn.classList.remove("hidden");
+        previewBtn.onclick = () => window.open(result.previewUrl, "_blank", "noopener");
       }
     } else if (mode === "update_done") {
       primaryBtn.textContent = "📋 複製更新完成通知";
@@ -2061,11 +2126,23 @@ function showCreateSuccessPanel(result) {
   function restoreDraft() {
     let draft = null;
     try { draft = JSON.parse(localStorage.getItem(CONFIG.DRAFT_KEY) || "null"); } catch (_) {}
-    if (!draft || typeof draft !== "object") return;
+    if (!draft || typeof draft !== "object") {
+      const inviteOnly = getInviteCodeFromPage();
+      if (inviteOnly && document.getElementById("invite_code")) {
+        document.getElementById("invite_code").value = inviteOnly;
+        state.modeContext.inviteCode = inviteOnly;
+      }
+      return;
+    }
+
     const values = draft.values || {};
+    const params = new URLSearchParams(window.location.search || "");
+    const inviteFromUrl = (params.get("invite_code") || params.get("invite") || "").trim();
+
     state.draftValues = { ...values };
     Object.keys(values).forEach(key => {
       if (/^cta_(text|link)_\d+$/.test(key)) return;
+      if (key === "invite_code" && inviteFromUrl) return;
       const el = document.getElementById(key);
       if (el) {
         if (el.type === "checkbox") el.checked = !!values[key];
@@ -2077,6 +2154,14 @@ function showCreateSuccessPanel(result) {
         if (r) r.checked = true;
       }
     });
+
+    const finalInvite = inviteFromUrl || state.modeContext.inviteCode || sessionStorage.getItem("hsc_last_invite_code") || "";
+    if (finalInvite && document.getElementById("invite_code")) {
+      document.getElementById("invite_code").value = finalInvite;
+      state.modeContext.inviteCode = finalInvite;
+      sessionStorage.setItem("hsc_last_invite_code", finalInvite);
+    }
+
     if (draft.photoMeta && typeof draft.photoMeta === "object") state.photoMeta = draft.photoMeta;
     ensurePhotoMetaKey("avatar");
     ensurePhotoMetaKey("logo");
