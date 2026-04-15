@@ -672,19 +672,37 @@ loadRequests().catch(err => {
     try { const data = await apiGet("getRecognitionDetail", { recognition_id: recognitionId }); state.currentRecognitionDetail = data.recognition || data || {}; renderRecognitionDetail(state.currentRecognitionDetail); } catch (err) { console.error(err); }
   }
 
-  async function refreshAll() {
-    setLoading(true);
-    const results = await Promise.allSettled([
-      loadCards(), loadPayments(), loadAddons(), loadAgents(),
-      loadPaymentList(), loadRecognitionQueues(), loadRenewalList(),
-      loadAnnouncements(), loadTrackingSummary(), loadRecentOpsLogs(), checkSchemaStatus(),
-      loadRequests()
-    ]);
-    setLoading(false);
-    const failed = results.filter(r => r.status === "rejected");
-    if (failed.length) console.warn("[refreshAll] 部分載入失敗:", failed.length);
-    renderDashboard();
+async function refreshAll() {
+  setLoading(true);
+
+  try {
+    // 先載入申請單，讓這區最快出來
+    await loadRequests();
+  } catch (err) {
+    console.warn("[refreshAll] loadRequests failed:", err);
   }
+
+  const results = await Promise.allSettled([
+    loadCards(),
+    loadPayments(),
+    loadAddons(),
+    loadAgents(),
+    loadPaymentList(),
+    loadRecognitionQueues(),
+    loadRenewalList(),
+    loadAnnouncements(),
+    loadTrackingSummary(),
+    loadRecentOpsLogs(),
+    checkSchemaStatus()
+  ]);
+
+  setLoading(false);
+
+  const failed = results.filter(r => r.status === "rejected");
+  if (failed.length) console.warn("[refreshAll] 部分載入失敗:", failed.length);
+
+  renderDashboard();
+}
 
   // ─────────────────────────────────────────────
   //  RENDER FUNCTIONS (all with DOM existence checks)
