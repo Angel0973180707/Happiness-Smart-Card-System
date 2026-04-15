@@ -293,7 +293,7 @@ ${formUrl}`;
     copyText(r.assigned_invite_code, "已複製邀請碼");
   }
 
-  function copyInviteUrlByRequest(requestId) {
+function copyInviteUrlByRequest(requestId) {
   const r = state.requests.find(x => x.request_id === requestId);
   if (!r || !r.assigned_invite_code) return toast("尚未派發");
   copyText(
@@ -319,55 +319,18 @@ async function reassignInvite(requestId) {
     toast("後端尚未支援重新派發");
   }
 }
-  // 申請單列表渲染（事件代理版）
-  function renderRequests() {
-    const tbody = $("#requestListContainer");
-    if (!tbody) return;
-    if (!state.requests.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">尚無申請資料</td></tr>';
-      return;
-    }
-    tbody.innerHTML = state.requests.map(req => {
-      const id = escapeHtml(req.request_id);
-      const status = req.status;
-      const inviteCode = req.assigned_invite_code || '';
-      return `
-        <tr data-request-id="${id}">
-          <td>${id}</td>
-          <td>${escapeHtml(req.created_at || '')}</td>
-          <td>${escapeHtml(req.ref || '')}</td>
-          <td><span class="status-badge ${status === 'pending' ? 'status-warning' : 'status-success'}">${escapeHtml(status)}</span></td>
-          <td>${escapeHtml(inviteCode)}</td>
-          <td>${escapeHtml(req.assigned_by || '')}</td>
-          <td>${escapeHtml(req.note || '')}</td>
-          <td class="action-buttons"><button class="btn btn-xs btn-soft" data-action="toggle" data-request-id="${id}">查看</button></td>
-        </tr>
-        <tr class="request-actions-row hidden" id="req-${id}">
-          <td colspan="8">
-            <div class="request-actions-panel">
-              <button class="btn btn-sm btn-soft" data-action="copyInviteCode" data-request-id="${id}">複製邀請碼</button>
-              <button class="btn btn-sm btn-primary" data-action="copyInviteUrl" data-request-id="${id}">複製申請連結</button>
-              <button class="btn btn-sm btn-primary" data-action="copyInviteReply" data-request-id="${id}">複製客服文案</button>
-              <button class="btn btn-sm btn-danger" data-action="reassignInvite" data-request-id="${id}">重新派發</button>
-              <button class="btn btn-sm btn-soft" data-action="fillAssign" data-request-id="${id}">填寫派碼</button>
-              <button class="btn btn-sm btn-soft" data-action="trace" data-request-id="${id}">追蹤</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
-  }
 
-  function copyInviteCodeHandler() {
-    const req = state.currentSelectedRequestForInvite;
-    if (!req || !req.assigned_invite_code) { toast("⚠️ 請先選取申請單"); return; }
-    copyText(req.assigned_invite_code, "✅ 邀請碼已複製");
+function copyInviteUrlHandler() {
+  const req = state.currentSelectedRequestForInvite;
+  if (!req || !req.assigned_invite_code) {
+    toast("⚠️ 請先選取申請單");
+    return;
   }
-  function copyInviteUrlHandler() {
-    const req = state.currentSelectedRequestForInvite;
-    if (!req || !req.assigned_invite_code) { toast("⚠️ 請先選取申請單"); return; }
-    copyText(buildInviteFormUrl(req.assigned_invite_code), "✅ 申請連結已複製");
-  }
+  copyText(
+    buildInviteFormUrl(req.assigned_invite_code, req.form_url),
+    "✅ 申請連結已複製"
+  );
+}
   function copyInviteTextHandler() {
     const req = state.currentSelectedRequestForInvite;
     if (!req || !req.assigned_invite_code) { toast("⚠️ 請先選取申請單"); return; }
