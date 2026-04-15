@@ -610,78 +610,9 @@ loadRequests().catch(err => {
     } catch (err) { console.error(err); toast(`載入卡片失敗：${err.message}`); }
     finally { setLoading(false); }
   }
-
-  // ─────────────────────────────────────────────
-  //  LOAD DATA
-  // ─────────────────────────────────────────────
-  async function loadCards() { const data = await apiGet("getCards"); state.cards = normalizeList(data, ["cards"]); renderCards(); renderDashboard(); }
-  async function loadPayments() { const data = await apiGet("getPayments"); state.payments = normalizeList(data, ["payments"]); }
-  async function loadAddons() { const data = await apiGet("adminListOrders"); state.addons = normalizeList(data, ["addon_orders", "orders", "addons", "data"]); renderAddons(); renderDashboard(); }
-  async function loadAgents() { const data = await apiGet("adminListAgents"); state.agents = normalizeList(data, ["agents"]); renderAgents(); renderDashboard(); }
-  async function loadPaymentList() { try { const data = await apiGet("getPayments"); state.paymentList = normalizeList(data, ["payments", "data"]); renderPayments(); } catch (err) { console.error(err); } }
-  async function loadRenewalList() { try { const data = await apiGet("adminGetRenewalList"); state.renewalItems = normalizeList(data, ["renewals", "data", "items"]); renderRenewalList(); updateRenewalStats(); } catch (err) { console.error(err); } }
-  async function loadAnnouncements() { try { const data = await apiGet("adminGetAnnouncements"); state.announcementItems = normalizeList(data, ["announcements", "data", "items"]); renderAnnouncements(); updateDashboardAnnouncementCount(); } catch (err) { console.error(err); } }
-  async function loadTrackingSummary() { try { const data = await apiGet("getTrackingSummary"); state.trackingSummary = data.summary || data || {}; renderTrackingSummary(); } catch (err) { console.error(err); } }
-  async function loadRecentOpsLogs() { try { const data = await apiGet("getRecentOpsLogs", { limit: 20 }); state.opsLogs = normalizeList(data, ["logs", "data", "items"]); renderOpsLogs(); updateDashboardOpsLogs(); } catch (err) { console.error(err); } }
-  async function checkSchemaStatus() { try { const data = await apiGet("adminCheckSchemaStatus"); state.schemaStatus = data.status || data || {}; renderSchemaStatus(); updateDashboardSystemIssues(); } catch (err) { console.error(err); } }
-  async function loadRenewalByCardId(cardId) {
-    try { const data = await apiGet("adminGetRenewalByCardId", { card_id: cardId }); const items = normalizeList(data, ["renewals", "data", "items"]); if (items.length) { state.currentRenewalDetail = items[0]; renderRenewalDetail(state.currentRenewalDetail); } } catch (err) { console.error(err); }
-  }
-  async function loadRenewalDetail(renewalId) {
-    try { const data = await apiGet("adminGetRenewalDetail", { renewal_id: renewalId }); state.currentRenewalDetail = data.renewal || data || {}; renderRenewalDetail(state.currentRenewalDetail); } catch (err) { console.error(err); }
-  }
-  async function loadAddonDetail(addonOrderId) {
-    const data = await apiGet("adminGetOrderDetail", { addon_order_id: addonOrderId });
-    const detail = data.addon_order || data.order || data.addon || data || {};
-    state.currentAddon = detail;
-    const idInput = $("#addonDetailId");
-    if (idInput) idInput.value = addonOrderId;
-    renderAddonDetail(detail);
-  }
-  async function loadAgentDetail(agentId) {
-    const data = await apiGet("adminGetAgent", { agent_id: agentId });
-    const detail = data.agent || data || {};
-    state.currentAgent = detail;
-    const idInput = $("#detailAgentId");
-    if (idInput) idInput.value = agentId;
-    const pointsInput = $("#pointsAgentId");
-    if (pointsInput) pointsInput.value = agentId;
-    const commissionInput = $("#commissionAgentId");
-    if (commissionInput) commissionInput.value = agentId;
-    renderAgentDetail(detail);
-    syncCurrentAgentBox(detail);
-    renderAgentUpgradeCard(detail);
-    populateAgentEditForm(detail);
-    await renderAgentRecentLogs(agentId);
-  }
-  async function loadRecognitionQueues() {
-    try {
-      if (state.currentRecognitionType === "renewal") {
-        const data = await apiGet("getRenewalRecognitionQueue");
-        state.recognitionRenewalItems = normalizeList(data, ["recognitions", "data", "items"]);
-        renderRecognitionQueue(state.recognitionRenewalItems);
-      } else {
-        const data = await apiGet("getAddonRecognitionQueue");
-        state.recognitionAddonItems = normalizeList(data, ["recognitions", "data", "items"]);
-        renderRecognitionQueue(state.recognitionAddonItems);
-      }
-      updateDashboardPendingRecognition();
-    } catch (err) { console.error(err); }
-  }
-  async function loadRecognitionDetail(recognitionId) {
-    try { const data = await apiGet("getRecognitionDetail", { recognition_id: recognitionId }); state.currentRecognitionDetail = data.recognition || data || {}; renderRecognitionDetail(state.currentRecognitionDetail); } catch (err) { console.error(err); }
-  }
-
-async function refreshAll() {
-  setLoading(true);
-
-  try {
-    // 申請單保留首屏，客服最常用
-    try {
-      await loadRequests();
-    } catch (err) {
-      console.warn("[refreshAll] loadRequests failed:", err);
-    }
+// ─────────────────────────────────────────────
+//  LOAD DATA
+// ─────────────────────────────────────────────
 
     // 首屏只載核心資料，先讓畫面快出來
     const results = await Promise.allSettled([
