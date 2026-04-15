@@ -1425,15 +1425,28 @@
         paymentNotice = noticeRes?.copy_text || noticeRes?.payment_notice?.copy_text || "";
       } catch (e) { console.warn(e); }
 
-      const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`;
-      const dueIso = new Date();
-      dueIso.setDate(dueIso.getDate() + 3);
-      const dueDateStr = formatDateYMD(dueIso);
+      const previewUrl = createRes?.card?.url || `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`;
+      const dueAtRaw = createRes?.payment?.due_at || createRes?.card?.payment_due_at || fallback3Days();
+      const dueAtObj = parseDateSafe(dueAtRaw) || parseDateSafe(fallback3Days());
+      const dueDateStr = formatDateTime(dueAtObj);
 
       const result = {
-        cardId, paymentId, previewUrl, paymentDueAt: dueIso.toISOString(), dueDateStr,
-        totalAmount: payload.total_amount, planLabel: CONFIG.BASE_LIMITS[payload.plan]?.label || payload.plan,
-        customerName: payload.name, paymentNotice, addonAmount: payload.addon_amount
+        cardId,
+        card_id: cardId,
+        paymentId,
+        previewUrl,
+        url: previewUrl,
+        paymentDueAt: dueAtObj.toISOString(),
+        payment_due_at: dueAtObj.toISOString(),
+        dueDateStr,
+        totalAmount: payload.total_amount,
+        price: payload.total_amount,
+        plan: payload.plan,
+        planLabel: CONFIG.BASE_LIMITS[payload.plan]?.label || payload.plan,
+        customerName: payload.name,
+        name: payload.name,
+        paymentNotice,
+        addonAmount: payload.addon_amount
       };
       state.lastSubmitResult = result;
 
@@ -1933,6 +1946,20 @@ function showCreateSuccessPanel(result) {
     els["success-summary-box"].classList.remove("hidden");
     if (els["success-summary-content"]) {
       els["success-summary-content"].innerHTML = `
+        ${renderSuccessPage({
+          card_id: result.cardId,
+          cardId: result.cardId,
+          name: result.customerName,
+          customerName: result.customerName,
+          plan: result.planLabel,
+          planLabel: result.planLabel,
+          price: result.totalAmount,
+          totalAmount: result.totalAmount,
+          payment_due_at: result.paymentDueAt,
+          paymentDueAt: result.paymentDueAt,
+          url: result.previewUrl,
+          previewUrl: result.previewUrl
+        })}
         <div class="quote-breakdown-row"><span>主方案</span><strong>${money(result.totalAmount - (result.addonAmount || 0))}</strong></div>
         <div class="quote-breakdown-row"><span>加購小計</span><strong>${money(result.addonAmount || 0)}</strong></div>
         <div class="quote-breakdown-row"><span>應付總額</span><strong>${money(result.totalAmount)}</strong></div>
