@@ -156,17 +156,31 @@
   function copyFromField(selector, msg) { const text = valueOf(selector); if (!text) return alert("目前沒有可複製內容"); copyText(text, msg); }
 
   // ======================== 邀請碼相關函式 ========================
-  function buildInviteFormUrl(inviteCode) {
-    const code = String(inviteCode || "").trim();
-    if (!code) return "";
-    return `${CONFIG.FORM_URL}?invite_code=${encodeURIComponent(code)}`;
-  }
-  function buildInviteReplyText(request) {
-    const code = String(request?.assigned_invite_code || "").trim();
-    const requestId = String(request?.request_id || "").trim();
-    if (!code) return "";
-    return `您好，這是您的申請入口\n\n申請編號：${requestId}\n邀請碼：${code}\n\n👉 點擊填寫：\n${buildInviteFormUrl(code)}`;
-  }
+ function buildInviteFormUrl(inviteCode, backendFormUrl = "") {
+  const directUrl = String(backendFormUrl || "").trim();
+  if (directUrl) return directUrl;
+
+  const code = String(inviteCode || "").trim();
+  if (!code) return "";
+
+  return `${CONFIG.FORM_URL}?invite=${encodeURIComponent(code)}`;
+}
+
+function buildInviteReplyText(request) {
+  const code = String(request?.assigned_invite_code || "").trim();
+  const requestId = String(request?.request_id || "").trim();
+  const formUrl = buildInviteFormUrl(code, request?.form_url);
+
+  if (!code) return "";
+
+  return `您好，這是您的申請入口
+
+申請編號：${requestId}
+邀請碼：${code}
+
+👉 點擊填寫：
+${formUrl}`;
+}
 
   // ─────────────────────────────────────────────
   //  API LAYER
