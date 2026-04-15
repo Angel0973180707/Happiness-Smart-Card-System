@@ -767,7 +767,7 @@ loadRequests().catch(err => {
     if (!summary || !Object.keys(summary).length) { wrap.innerHTML = '<div class="empty-state">無摘要資料</div>'; return; }
     wrap.innerHTML = `<div class="detail-section"><div class="detail-title">付款卡摘要</div><div class="detail-grid">${Object.entries(summary).map(([k, v]) => renderDetailItem(k, formatValue(v))).join("")}</div></div>`;
   }
-  async function confirmPaymentFromUi(paymentId) { if (!confirm(`確認付款單 ${paymentId} 已付款？`)) return; if (!doubleConfirmId(paymentId, "付款單")) return; try { await apiPost("confirmPayment", { payment_id: paymentId }); toast("✅ 付款已確認"); await loadPaymentList(); await loadPayments(); renderDashboard(); } catch (err) { toast(`確認失敗：${err.message}`); } }
+  async function confirmPaymentFromUi(paymentId) { if (!confirm(`確認付款單 ${paymentId} 已付款？`)) return; if (!doubleConfirmId(paymentId, "付款單")) return; try {   await apiPost("confirmPayment", { payment_id: paymentId }); toast("✅ 付款已確認");await loadPayments();  renderPayments();} catch (err) {   toast(`確認失敗：${err.message}`); }
   async function markPaymentRefundedFromUi(paymentId) { if (!confirm("⚠️ 退款操作無法自動撤銷，確定要退款嗎？")) return; if (!doubleConfirmId(paymentId, "付款單")) return; try { await apiPost("markPaymentRefunded", { payment_id: paymentId }); toast("✅ 已標記退款"); await loadPaymentList(); } catch (err) { toast(`退款失敗：${err.message}`); } }
   async function buildPaymentNoticeTexts(type) {
     const paymentId = state.currentPaymentDetail?.payment_id || state.paymentList[0]?.payment_id;
