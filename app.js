@@ -480,6 +480,7 @@ function normalizeForRenderer_(row){
 
   return out;
 }
+
 function getPreviewMeta_(p){
   const features = p?.features || {};
   return normalizePreviewMeta_(features.preview_meta);
