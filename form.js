@@ -12,6 +12,8 @@
 (() => {
   "use strict";
 
+  // v8.4.0-speed-v1
+
   const CONFIG = {
     GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     SERVICE_URL: "https://lin.ee/G3VJoRm",
@@ -448,11 +450,13 @@
     }
 
     try {
-      const cardRes = await postToGas({ action: CONFIG.UPDATE_LOAD_ACTION, card_id: cardId, update_token: token });
+      const [cardRes, eligRes] = await Promise.all([
+        postToGas({ action: CONFIG.UPDATE_LOAD_ACTION, card_id: cardId, update_token: token }),
+        postToGas({ action: CONFIG.UPDATE_ELIGIBILITY_ACTION, card_id: cardId })
+      ]);
       if (!cardRes.ok) throw new Error(cardRes.error || "取得資料失敗");
       state.runtime.updateCard = cardRes.card || cardRes.data || cardRes;
 
-      const eligRes = await postToGas({ action: CONFIG.UPDATE_ELIGIBILITY_ACTION, card_id: cardId });
       state.runtime.updateEligibilityRaw = eligRes;
       resolveUpdateEligibilityState(eligRes);
       state.runtime.updateEligibility = { ...state.updateFlow };
@@ -475,14 +479,16 @@
     }
 
     try {
-      const cardRes = await postToGas({ action: CONFIG.RENEW_LOAD_CARD_ACTION, card_id: cardId, renew_token: token });
+      const [cardRes, paymentRes, addonRes] = await Promise.all([
+        postToGas({ action: CONFIG.RENEW_LOAD_CARD_ACTION, card_id: cardId, renew_token: token, track_view: false, with_tracked_cta: false }),
+        postToGas({ action: CONFIG.RENEW_PAYMENT_SUMMARY_ACTION, card_id: cardId, light: true, limit: 20 }),
+        postToGas({ action: CONFIG.RENEW_ADDON_SUMMARY_ACTION, card_id: cardId, light: true, limit: 20 })
+      ]);
       if (!cardRes.ok) throw new Error(cardRes.error || "取得資料失敗");
       state.runtime.renewCard = cardRes.card || cardRes.data || cardRes;
 
-      const paymentRes = await postToGas({ action: CONFIG.RENEW_PAYMENT_SUMMARY_ACTION, card_id: cardId });
       state.runtime.renewPaymentSummary = paymentRes;
 
-      const addonRes = await postToGas({ action: CONFIG.RENEW_ADDON_SUMMARY_ACTION, card_id: cardId });
       state.runtime.renewAddonSummary = addonRes;
 
       hydrateFormFromCard(state.runtime.renewCard);
