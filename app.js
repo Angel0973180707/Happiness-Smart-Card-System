@@ -997,7 +997,7 @@ async function renderPersonalCard_(cardId){
   const avatarInfo = pickAvatarInfo_(normalizedShell);
   currentAvatarUrlCache = avatarInfo.url || "";
   currentAvatarSourceKeyCache = avatarInfo.key || "";
-  renderPostRendererUi_(normalizedShell, root);
+  renderShellUiFriendly_(normalizedShell, root);
 
   Promise.resolve().then(async ()=>{
     try{
@@ -2092,6 +2092,41 @@ function renderInstallDock_(){
   if(!dock) return;
   dock.style.display = cleanMode ? "" : "none";
 }
+
+
+function renderShellUiFriendly_(row, rootEl){
+  const root = (rootEl instanceof HTMLElement) ? rootEl : (qs("livePreviewCard") || document.body);
+
+  const unitVal = normalizeLongText_(pick(row, ["unit","單位","公司"]));
+  const sloganVal = normalizeLongText_(pick(row, ["slogan","一句話","簡介"]));
+
+  const unitEl = root.querySelector("#u-unit") || qs("u-unit");
+  const unitToggle = root.querySelector("#u-unit-toggle") || qs("u-unit-toggle");
+  const sloganEl = root.querySelector("#u-slogan") || qs("u-slogan");
+  const sloganToggle = root.querySelector("#u-slogan-toggle") || qs("u-slogan-toggle");
+
+  if(unitEl) setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
+  if(sloganEl) setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
+
+  const vt = root.querySelector("#versionTag") || qs("versionTag");
+  if(vt) vt.textContent = CONFIG.VERSION;
+
+  renderCardExpiry_(row, root);
+  renderInstallDock_();
+  renderBottomQr_(row);
+  renderBottomHubShareBtn_();
+  renderFeatureQrFromCurrent_();
+  renderFacadeQrFromCurrent_();
+  applySmartBalanceAll_();
+  updateQrCenterSizes_();
+
+  requestAnimationFrame(() => {
+    refreshAllExpandable_();
+    ensureBottomQrVisible_();
+    reRenderAllQrStable();
+  });
+}
+
 
 /* ============================================================
    renderPostRendererUi_
