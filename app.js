@@ -439,14 +439,18 @@ function normalizeForRenderer_(row){
   // 基本文字
   if (!out.services && out.service) out.services = out.service;
   if (!out.slogan && out.subtitle) out.slogan = out.subtitle;
+  if (!out.intro && out.subtitle) out.intro = out.subtitle;
 
-  // ⭐ 品牌故事 / 經歷（你現在缺這段）
+  // 品牌故事 / 經歷
   if (!out.about && out.bio) out.about = out.bio;
   if (!out.about && out.intro) out.about = out.intro;
   if (!out.experience && out.about) out.experience = out.about;
+  if (!out.experience && out.bio) out.experience = out.bio;
+  if (!out.experience && out.intro) out.experience = out.intro;
 
-  // ⭐ 聯繫區（你現在缺這段）
-  if (!out.line && out.line_id) out.line = out.line_id;
+  // 聯繫區
+  if (!out.line_url && out.line_id) out.line_url = out.line_id;
+  if (!out.line_oa && out.line_id) out.line_oa = out.line_id;
 
   // 照片
   if (Array.isArray(out.photos)) {
@@ -476,7 +480,6 @@ function normalizeForRenderer_(row){
 
   return out;
 }
-
 function getPreviewMeta_(p){
   const features = p?.features || {};
   return normalizePreviewMeta_(features.preview_meta);
