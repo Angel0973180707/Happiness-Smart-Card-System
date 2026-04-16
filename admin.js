@@ -5,7 +5,7 @@
   //  CONFIG
   // ─────────────────────────────────────────────
   const CONFIG = {
-    VERSION: "v6.6.0-bootstrap-speed-v1",
+    VERSION: "v6.5.4-fixed-v1.5.1",
     GAS_BASE_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
@@ -18,7 +18,6 @@
   //  ADMIN KEY 管理
   // ─────────────────────────────────────────────
   const KEY_STORAGE = "hsc_admin_key";
-const BOOTSTRAP_CACHE_KEY = "hsc_admin_bootstrap_v15";
 
   function getAdminKey() { return localStorage.getItem(KEY_STORAGE) || ""; }
   function saveAdminKey(key) { if (!key || !key.trim()) return false; localStorage.setItem(KEY_STORAGE, key.trim()); return true; }
@@ -37,40 +36,6 @@ const BOOTSTRAP_CACHE_KEY = "hsc_admin_bootstrap_v15";
     }
   }
 
-
-
-  function readBootstrapCache() {
-    try {
-      const raw = sessionStorage.getItem(BOOTSTRAP_CACHE_KEY) || localStorage.getItem(BOOTSTRAP_CACHE_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (!parsed || !parsed.saved_at || !parsed.data) return null;
-      if (Date.now() - Number(parsed.saved_at) > 120000) return null;
-      return parsed.data;
-    } catch (_) { return null; }
-  }
-
-  function writeBootstrapCache(data) {
-    try {
-      const raw = JSON.stringify({ saved_at: Date.now(), data: data || {} });
-      sessionStorage.setItem(BOOTSTRAP_CACHE_KEY, raw);
-      localStorage.setItem(BOOTSTRAP_CACHE_KEY, raw);
-    } catch (_) {}
-  }
-
-  function applyBootstrapData(boot) {
-    state.requests = normalizeList(boot, ["requests"]);
-    state.cards = normalizeList(boot, ["cards"]);
-    state.payments = normalizeList(boot, ["payments"]);
-    state.announcementItems = normalizeList(boot, ["announcements", "items"]);
-    state.opsLogs = normalizeList(boot, ["ops_logs", "items"]);
-    renderRequests();
-    bindRequestListEvents();
-    renderCards();
-    renderAnnouncements();
-    renderRecentOpsLogs();
-    renderDashboard();
-  }
   // ─────────────────────────────────────────────
   //  STATE
   // ─────────────────────────────────────────────
@@ -577,7 +542,7 @@ const BOOTSTRAP_CACHE_KEY = "hsc_admin_bootstrap_v15";
 
   async function loadRequests() {
     try {
-      const data = await getRequests();
+      const data = await apiGet("getRequests", { limit: 50, offset: 0 });
       state.requests = normalizeList(data, ["requests", "items"]);
       renderRequests();
       bindRequestListEvents();
@@ -635,7 +600,7 @@ const BOOTSTRAP_CACHE_KEY = "hsc_admin_bootstrap_v15";
   // ─────────────────────────────────────────────
   async function loadCards() {
     try {
-      const data = await apiGet("getCards", { light: true, limit: 100 });
+      const data = await apiGet("getCards", { limit: 100, offset: 0, light: true });
       state.cards = normalizeList(data, ["cards", "items"]);
       renderCards();
     } catch (err) {
@@ -647,7 +612,7 @@ const BOOTSTRAP_CACHE_KEY = "hsc_admin_bootstrap_v15";
 
   async function loadPayments() {
     try {
-      const data = await apiGet("getPayments", { light: true, limit: 100 });
+      const data = await apiGet("getPayments", { limit: 100, offset: 0, light: true });
       state.payments = normalizeList(data, ["payments", "items"]);
     } catch (err) {
       console.error("loadPayments failed:", err);
@@ -869,16 +834,19 @@ const BOOTSTRAP_CACHE_KEY = "hsc_admin_bootstrap_v15";
   async function refreshAll() {
     try {
       setLoading(true);
-      const cached = readBootstrapCache();
-      if (cached) {
-        applyBootstrapData(cached);
-      }
       try {
-        const boot = await apiGet("getAdminBootstrap");
-        writeBootstrapCache(boot);
-        applyBootstrapData(boot);
+        const boot = await apiGet("getAdminBootstrap", { requests_limit: 50, cards_limit: 100, payments_limit: 100, ops_limit: 20 });
+        state.requests = normalizeList(boot.requests || boot, ["requests", "items"]);
+        state.cards = normalizeList(boot.cards || boot, ["cards", "items"]);
+        state.payments = normalizeList(boot.payments || boot, ["payments", "items"]);
+        state.announcementItems = normalizeList(boot.announcements || boot, ["announcements", "items"]);
+        state.opsLogs = normalizeList(boot.ops_logs || boot, ["ops_logs", "items"]);
+        renderRequests();
+        bindRequestListEvents();
+        renderCards();
+        renderDashboard();
       } catch (bootErr) {
-        console.warn("[refreshAll] getAdminBootstrap failed, fallback to granular loads:", bootErr);
+        console.warn("[refreshAll] bootstrap failed, fallback to legacy flow:", bootErr);
         const results = await Promise.allSettled([
           loadRequests(),
           loadCards(),
@@ -889,11 +857,12 @@ const BOOTSTRAP_CACHE_KEY = "hsc_admin_bootstrap_v15";
         ]);
         const failed = results.filter(r => r.status === "rejected");
         if (failed.length) console.warn("[refreshAll] 部分載入失敗:", failed.length, failed);
+        renderDashboard();
       }
       setTimeout(async () => {
         try { await loadRecognitionQueues(); } catch (err) { console.warn("[deferred] loadRecognitionQueues failed:", err); }
         try { await loadRenewalList(); } catch (err) { console.warn("[deferred] loadRenewalList failed:", err); }
-        try { if (!state.announcementItems?.length) await loadAnnouncements(); } catch (err) { console.warn("[deferred] loadAnnouncements failed:", err); }
+        try { await loadAnnouncements(); } catch (err) { console.warn("[deferred] loadAnnouncements failed:", err); }
         try { await loadTrackingSummary(); } catch (err) { console.warn("[deferred] loadTrackingSummary failed:", err); }
         try { if (!state.opsLogs?.length) await loadRecentOpsLogs(); } catch (err) { console.warn("[deferred] loadRecentOpsLogs failed:", err); }
         try { await checkSchemaStatus(); } catch (err) { console.warn("[deferred] checkSchemaStatus failed:", err); }
