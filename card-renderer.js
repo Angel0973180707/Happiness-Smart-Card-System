@@ -1,1789 +1,1503 @@
-(() => {
+/* ============================================================
+   card-renderer.js
+   HSC 唯一渲染模組
+   v8.4.2-photo-wall-carousel-ratio-fix + v1.5.1-compat-bridge
+
+   修正與升級項目：
+   - v7.7.7: 修正 base64 DataURL 圖片無法顯示的問題
+   - v8.4.1: applyThemeClasses 同步更新 document.body，
+             修正預覽成品吃不到 style.css 主程式樣式顏色的問題
+   - v8.4.1: 照片牆智慧排版升級
+     * shouldUsePhotoCarousel_(photoCount, plan) 決策函式
+     * buildPhotoCarousel_(photos, p, preview, allowActions) carousel HTML
+     * initPhotoCarousel_(wall, options) 自動播放 + dots + touch + hover
+     * free 5+ 張 → carousel；premium 4+ 張 → carousel
+     * 1~4 張（free）/ 1~3 張（premium）維持原本 grid
+     * 不影響既有 CTA / QR / 公告 / 跑馬燈 / grid 樣式
+   - v8.4.2: 修正 premium / carousel 照片牆撐爆預覽高度問題
+     * 新增 applyCarouselRatioStyles_()
+     * carousel 視窗鎖定 1:1 / 16:9 比例
+     * 每張 slide 固定為 100% viewport，不再被原圖尺寸撐開
+     * 保留 cover / contain 與 photo_meta 裁切定位
+   - v1.5.1: 相容橋接層
+     * 新增 renderShell(root, shellData, options)
+     * 新增 mergeLite(root, liteData, options)
+     * 新增 mergeCardData(root, fullData, options)
+     * 不破壞原本 renderCard(data, options) 用法
+     * 讓新 app.js 可直接對接舊完整 renderer
+
+   設計原則
+   - 不依賴 form.js
+   - 不依賴 app.js
+   - 可直接給 index / form 共用
+   - 支援 useExistingDom = true / false
+   - 支援 photo_meta / preview_meta / QR / CTA / Dock / 跑馬燈
+============================================================ */
+
+(function (global) {
   "use strict";
 
-  // ─────────────────────────────────────────────
-  //  CONFIG
-  // ─────────────────────────────────────────────
-  const CONFIG = {
-    VERSION: "v6.3.0",
-    GAS_BASE_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-    // ⚠️ ADMIN_KEY 已移除，改由操作台輸入後存入 localStorage
-    HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
-    FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
-    DEFAULT_RENEW_DAYS: 365,
-    API_TIMEOUT_MS: 10000,
-    API_RETRY: 1
+  var DEFAULTS = {
+    mode: "index",
+    root: null,
+    useExistingDom: true,
+    qrMode: "card",
+    allowActions: true
   };
 
-  // ─────────────────────────────────────────────
-  //  ADMIN KEY 管理（localStorage 永久保存）
-  // ─────────────────────────────────────────────
-  const KEY_STORAGE = "hsc_admin_key";
-
-  function getAdminKey() {
-    return localStorage.getItem(KEY_STORAGE) || "";
-  }
-
-  function saveAdminKey(key) {
-    if (!key || !key.trim()) return false;
-    localStorage.setItem(KEY_STORAGE, key.trim());
-    return true;
-  }
-
-  function clearAdminKey() {
-    localStorage.removeItem(KEY_STORAGE);
-  }
-
-  function renderKeyStatus() {
-    const key = getAdminKey();
-    const statusEl = $("#keyStatus");
-    if (!statusEl) return;
-    if (key) {
-      // 只顯示末 4 碼，其餘遮蔽
-      const masked = "•".repeat(Math.max(0, key.length - 4)) + key.slice(-4);
-      statusEl.textContent = `✅ 已設定（${masked}）`;
-      statusEl.className = "key-status ok";
-    } else {
-      statusEl.textContent = "⚠️ 尚未設定，API 無法呼叫";
-      statusEl.className = "key-status warn";
-    }
-  }
-
-  // ─────────────────────────────────────────────
-  //  STATE
-  // ─────────────────────────────────────────────
-  const state = {
-    cards: [],
-    payments: [],
-    addons: [],
-    agents: [],
-    currentCard: null,
-    currentAgent: null,
-    currentAddon: null,
-    updateLinks: {},
-    lastInviteCreated: null,
-    adminUsers: [
-      { admin_id: "AD001", name: "主管理員", role: "super_admin", permissions: "all", status: "active" },
-      { admin_id: "AD002", name: "客服管理", role: "service", permissions: "cards, invites, renewals", status: "active" }
-    ]
+  var PLAN_LIMITS = {
+    free: { maxPhotos: 2, maxCtas: 1 },
+    premium: { maxPhotos: 5, maxCtas: 3 }
   };
 
-  // ─────────────────────────────────────────────
-  //  SAFE EVENT HELPER（找不到元素不會 throw）
-  // ─────────────────────────────────────────────
-  function on(selector, event, handler) {
-    const el = typeof selector === "string" ? document.querySelector(selector) : selector;
-    if (el) el.addEventListener(event, handler);
+  var DEFAULT_PREVIEW_META = {
+    theme: "",
+    layout: "grid",
+    aspect_ratio: "1:1",
+    fit_mode: "cover"
+  };
+
+  var DEFAULT_PHOTO_META = {
+    x: 0.5,
+    y: 0.5,
+    scale: 1,
+    rotate: 0
+  };
+
+  var BODY_MODE_CLASSES     = ["mode-free", "mode-premium"];
+  var FREE_THEME_CLASSES    = ["color-1", "color-2", "color-3", "color-4", "color-5"];
+  var PREMIUM_THEME_CLASSES = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"];
+  var STYLE_CLASSES         = ["style-arch", "style-flat", "style-spot"];
+  var PAPER_CLASSES         = ["paper-1", "paper-2", "paper-3"];
+  var CARD_LAYOUT_CLASSES   = ["layout-grid", "layout-single"];
+  var CARD_ASPECT_CLASSES   = ["ratio-1-1", "ratio-16-9"];
+  var CARD_FIT_CLASSES      = ["fit-cover", "fit-contain"];
+
+  function text(v) {
+    return v == null ? "" : String(v).trim();
   }
 
-  // ─────────────────────────────────────────────
-  //  INIT
-  // ─────────────────────────────────────────────
-  document.addEventListener("DOMContentLoaded", init);
+  function clampNumber(value, min, max, fallback) {
+    var n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    if (Number.isFinite(min) && n < min) return min;
+    if (Number.isFinite(max) && n > max) return max;
+    return n;
+  }
 
-  function init() {
-    bindEvents();
-    setDefaultSettlementMonth();
-    renderMockAdmins();
-    renderKeyStatus();
-    // 若已有 key 才自動載入；否則提示先設定
-    if (getAdminKey()) {
-      refreshAll();
+  function safeJsonParse(raw) {
+    var s = String(raw || "").trim();
+    if (!s) return null;
+    s = s.replace(/^\)\]\}'\s*\n?/, "").trim();
+    try { return JSON.parse(s); } catch (_) {}
+    var m = s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (m) {
+      try { return JSON.parse(m[0]); } catch (_) {}
+    }
+    return null;
+  }
+
+  function escapeHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function normalizeLongText(raw) {
+    return String(raw || "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n[ \t]+/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  function normalizeUrl(raw) {
+    var v = String(raw || "").trim();
+    if (!v) return "";
+    if (/^(tel:|mailto:|sms:|line:|https?:\/\/|data:)/i.test(v)) return v;
+    if (/^www\./i.test(v)) return "https://" + v;
+    if (/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(v)) return "https://" + v;
+    return v;
+  }
+
+  function isDataUrl(url) {
+    return typeof url === "string" && url.startsWith("data:");
+  }
+
+  function isBlobUrl(url) {
+    return typeof url === "string" && url.startsWith("blob:");
+  }
+
+  function isLocalUrl(url) {
+    return isDataUrl(url) || isBlobUrl(url);
+  }
+
+  function normalizeImageUrl(raw) {
+    var url = normalizeUrl(raw);
+    if (!url) return "";
+    if (isLocalUrl(url)) return url;
+
+    if (url.includes("dropbox.com")) {
+      url = url.replace("dl=0", "raw=1");
+      if (!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
+      return url;
+    }
+
+    if (url.includes("drive.google.com") && url.includes("/file/d/")) {
+      var m = url.match(/\/file\/d\/([^/]+)/i);
+      if (m && m[1]) {
+        return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(m[1]);
+      }
+    }
+
+    return url;
+  }
+
+  function buildImgCandidates(raw) {
+    var s = text(raw);
+    if (!s) return [];
+    var url = normalizeImageUrl(s);
+    if (!url) return [];
+    if (isLocalUrl(url)) return [url];
+
+    var out = [url];
+    if (url.includes("drive.google.com/uc?export=view&id=")) {
+      var m = url.match(/id=([^&]+)/i);
+      if (m && m[1]) {
+        var id = decodeURIComponent(m[1]);
+        out.push("https://drive.google.com/thumbnail?id=" + id + "&sz=w1200");
+        out.push("https://drive.google.com/uc?export=download&id=" + id);
+      }
+    }
+    return out.filter(Boolean).filter(function (v, i, a) { return a.indexOf(v) === i; });
+  }
+
+  function setImgWithFallback(imgEl, candidates, options) {
+    var opts = options || {};
+    var list = (candidates || []).filter(Boolean);
+
+    if (!imgEl) { if (typeof opts.onFail === "function") opts.onFail(); return; }
+    if (!list.length) { if (typeof opts.onFail === "function") opts.onFail(); return; }
+
+    var idx = 0;
+    var done = false;
+
+    if (!isLocalUrl(list[0])) {
+      imgEl.referrerPolicy = opts.referrerPolicy || "no-referrer";
+      try { imgEl.crossOrigin = opts.crossOrigin || "anonymous"; } catch (_) {}
+    }
+
+    function buildSrc(src) {
+      if (isLocalUrl(src)) return src;
+      var sep = src.includes("?") ? "&" : "?";
+      return src + sep + "t=" + Date.now();
+    }
+
+    function cleanup() { imgEl.onerror = null; imgEl.onload = null; }
+    function failAll() {
+      if (done) return;
+      done = true;
+      cleanup();
+      if (typeof opts.onFail === "function") opts.onFail();
+    }
+
+    function tryNext() {
+      if (done) return;
+      idx += 1;
+      if (idx >= list.length) { failAll(); return; }
+      imgEl.src = buildSrc(list[idx]);
+    }
+
+    imgEl.onload = function () {
+      if (done) return;
+      done = true;
+      cleanup();
+      if (typeof opts.onLoad === "function") opts.onLoad();
+    };
+    imgEl.onerror = function () { tryNext(); };
+    imgEl.src = buildSrc(list[0]);
+  }
+
+  function openUrl(url) {
+    var u = normalizeUrl(url);
+    if (!u) return;
+    window.open(u, "_blank", "noopener");
+  }
+
+  function openMapByAddress(addr) {
+    var a = text(addr);
+    if (!a) return;
+    var q = encodeURIComponent(a);
+    window.open("https://www.google.com/maps/search/?api=1&query=" + q, "_blank", "noopener");
+  }
+
+  function normalizeSinglePhotoMeta(raw) {
+    var meta = raw && typeof raw === "object" ? raw : {};
+    return {
+      x:      clampNumber(meta.x,      0,    1,    DEFAULT_PHOTO_META.x),
+      y:      clampNumber(meta.y,      0,    1,    DEFAULT_PHOTO_META.y),
+      scale:  clampNumber(meta.scale,  0.5,  3,    DEFAULT_PHOTO_META.scale),
+      rotate: clampNumber(meta.rotate, -180, 180,  DEFAULT_PHOTO_META.rotate)
+    };
+  }
+
+  function normalizePhotoMetaMap(raw) {
+    var src = raw && typeof raw === "object" ? raw : {};
+    var out = {};
+    for (var i = 1; i <= 10; i++) {
+      out["photo" + i] = normalizeSinglePhotoMeta(src["photo" + i]);
+    }
+    return out;
+  }
+
+  function normalizePreviewMeta(raw) {
+    var meta   = raw && typeof raw === "object" ? raw : {};
+    var theme  = text(meta.theme).toLowerCase();
+    var layout = text(meta.layout).toLowerCase();
+    var aspect = text(meta.aspect_ratio || meta.aspectRatio).trim();
+    var fit    = text(meta.fit_mode || meta.fitMode).toLowerCase();
+    return {
+      theme:        theme === "premium" || theme === "free" ? theme : DEFAULT_PREVIEW_META.theme,
+      layout:       layout === "single" ? "single" : DEFAULT_PREVIEW_META.layout,
+      aspect_ratio: aspect === "16:9" ? "16:9" : DEFAULT_PREVIEW_META.aspect_ratio,
+      fit_mode:     fit === "contain" ? "contain" : DEFAULT_PREVIEW_META.fit_mode
+    };
+  }
+
+  function normalizeFeatures(card) {
+    var src = card && typeof card === "object" ? card : {};
+    var parsed = {};
+
+    if (src.features && typeof src.features === "object") {
+      parsed = src.features;
     } else {
-      toast("⚠️ 請先在左側「Admin Key」區設定金鑰");
-    }
-  }
-
-  // ─────────────────────────────────────────────
-  //  BIND EVENTS
-  // ─────────────────────────────────────────────
-  function bindEvents() {
-    $$(".nav-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        $$(".nav-btn").forEach(x => x.classList.remove("active"));
-        btn.classList.add("active");
-        const target = btn.dataset.target;
-        const el = $("#" + target);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    });
-
-    $("#btnRefreshAll").addEventListener("click", refreshAll);
-    $("#btnOpenHub").addEventListener("click", () => window.open(CONFIG.HUB_URL, "_blank"));
-    $("#btnOpenForm").addEventListener("click", () => window.open(CONFIG.FORM_URL, "_blank"));
-
-    $("#btnCreateInviteCode").addEventListener("click", createInviteCodeAligned);
-
-    on("#btnCopyInviteCode", "click", () => {
-      const code = textOf(state.lastInviteCreated?.invite_code);
-      if (!code) return toast("⚠️ 請先建立邀請碼");
-      copyText(code, "✅ 已複製邀請碼");
-    });
-    on("#btnCopyInviteUrl", "click", () => copyFromField("#inviteFormUrlBox", "✅ 已複製申請連結"));
-    on("#btnCopyInviteText", "click", () => copyFromField("#inviteReplyTextBox", "✅ 已複製客服文案"));
-
-    $("#btnSearchCards").addEventListener("click", renderCards);
-    $("#btnReloadCards").addEventListener("click", async () => {
-      $("#cardSearch").value = "";
-      await loadCards();
-    });
-    $("#btnLoadCardDetail").addEventListener("click", async () => {
-      const id = valueOf("#detailCardId");
-      if (!id) return alert("請輸入 card_id");
-      await loadCardDetail(id);
-    });
-
-    $("#btnOpenPreviewLink").addEventListener("click", () => openTextLink("#previewLinkBox"));
-    $("#btnCopyPreviewLink").addEventListener("click", () => copyFromField("#previewLinkBox", "已複製預覽連結"));
-    $("#btnCopyPreviewText").addEventListener("click", () => copyFromField("#previewTextBox", "已複製預覽文案"));
-
-    $("#btnOpenDeliveryLink").addEventListener("click", () => openTextLink("#deliveryLinkBox"));
-    $("#btnCopyDeliveryLink").addEventListener("click", () => copyFromField("#deliveryLinkBox", "已複製交付卡連結"));
-    $("#btnCopyDeliveryText").addEventListener("click", () => copyFromField("#deliveryTextBox", "已複製交付文案"));
-
-    $("#btnGenerateUpdateLink").addEventListener("click", generateUpdateLinkForCurrentCard);
-    $("#btnCopyUpdateLink").addEventListener("click", () => copyFromField("#updateLinkBox", "已複製更新連結"));
-    $("#btnCopyUpdateText").addEventListener("click", () => copyFromField("#updateTextBox", "已複製更新文案"));
-
-    $("#btnSearchAddons").addEventListener("click", renderAddons);
-    $("#btnReloadAddons").addEventListener("click", async () => {
-      $("#addonSearch").value = "";
-      await loadAddons();
-    });
-    $("#btnLoadAddonDetail").addEventListener("click", async () => {
-      const id = valueOf("#addonDetailId");
-      if (!id) return alert("請輸入 addon_order_id");
-      await loadAddonDetail(id);
-    });
-
-    // v6.3：續約改用 renewCard
-    $("#btnConfirmRenewalPaid").addEventListener("click", async () => {
-      if (!state.currentCard) return alert("請先選取卡片");
-      const id = textOf(state.currentCard.id || state.currentCard.card_id);
-      await renewCard(id);
-    });
-    $("#btnCopyRenewalText").addEventListener("click", copyRenewalReminderText);
-    $("#btnCopyRenewalDeliveryText").addEventListener("click", copyRenewalDeliveryText);
-
-    $("#btnSearchAgents").addEventListener("click", renderAgents);
-    $("#btnReloadAgents").addEventListener("click", async () => {
-      $("#agentSearch").value = "";
-      await loadAgents();
-    });
-    $("#btnLoadAgentDetail").addEventListener("click", async () => {
-      const id = valueOf("#detailAgentId");
-      if (!id) return alert("請輸入 agent_id");
-      await loadAgentDetail(id);
-    });
-
-    $("#btnAddPoints").addEventListener("click", () => adjustPoints("add"));
-    $("#btnSubtractPoints").addEventListener("click", () => adjustPoints("subtract"));
-    $("#btnAdjustCommission").addEventListener("click", adjustCommission);
-    $("#btnLoadLogs").addEventListener("click", reloadLogsForCurrentAgent);
-
-    $("#btnBuildSettlement").addEventListener("click", buildSettlement);
-    $("#btnAddMockAdmin").addEventListener("click", addMockAdmin);
-
-    // ── Admin Key 管理 ──
-    on("#btnSaveKey", "click", () => {
-      const input = valueOf("#adminKeyInput");
-      if (!input) return toast("⚠️ 請輸入 Key");
-      const ok = saveAdminKey(input);
-      if (ok) {
-        $("#adminKeyInput").value = "";
-        renderKeyStatus();
-        toast("✅ Key 已儲存，重新載入資料中…");
-        refreshAll();
-      }
-    });
-
-    on("#btnClearKey", "click", () => {
-      const ok = confirm("確定清除已儲存的 Admin Key？");
-      if (!ok) return;
-      clearAdminKey();
-      renderKeyStatus();
-      toast("🗑️ Key 已清除");
-    });
-
-    on("#adminKeyInput", "keydown", (e) => {
-      if (e.key === "Enter") $("#btnSaveKey")?.click();
-    });
-  } // ← bindEvents 結尾
-
-  // ─────────────────────────────────────────────
-  //  REFRESH ALL
-  // ─────────────────────────────────────────────
-  async function refreshAll() {
-    await Promise.allSettled([
-      loadCards(),
-      loadPayments(),
-      loadAddons(),
-      loadAgents()
-    ]);
-    renderDashboard();
-  }
-
-  // ─────────────────────────────────────────────
-  //  API LAYER  （v6.3 標準化：apiGet / apiPost）
-  // ─────────────────────────────────────────────
-
-  /**
-   * 帶 timeout + retry 的底層 fetch
-   */
-  async function fetchWithTimeout(url, options = {}, timeoutMs = CONFIG.API_TIMEOUT_MS) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-    try {
-      return await fetch(url, { ...options, signal: ctrl.signal });
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  /**
-   * 查詢用 GET（不改資料）
-   */
-  async function apiGet(action, params = {}) {
-    const key = getAdminKey();
-    if (!key) {
-      toast("⚠️ 請先在左側「Admin Key」區設定金鑰");
-      throw new Error("Admin Key 未設定");
-    }
-    const url = new URL(CONFIG.GAS_BASE_URL);
-    url.searchParams.set("action", action);
-    url.searchParams.set("admin_key", key);
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && String(v).trim() !== "") {
-        url.searchParams.set(k, v);
-      }
-    });
-
-    return _apiCall("GET", url.toString(), null, action);
-  }
-
-  /**
-   * 寫入用 POST（會改資料）
-   */
-  async function apiPost(action, params = {}) {
-    const key = getAdminKey();
-    if (!key) {
-      toast("⚠️ 請先在左側「Admin Key」區設定金鑰");
-      throw new Error("Admin Key 未設定");
-    }
-    return _apiCall(
-      "POST",
-      CONFIG.GAS_BASE_URL,
-      JSON.stringify({ action, admin_key: key, ...params }),
-      action
-    );
-  }
-
-  /**
-   * 內部執行核心（帶 retry）
-   */
-  async function _apiCall(method, url, body, action, attempt = 0) {
-    try {
-      setLoading(true);
-
-      const options = {
-        method,
-        ...(body ? { headers: { "Content-Type": "text/plain;charset=utf-8" }, body } : {})
-      };
-
-      const res = await fetchWithTimeout(url, options, CONFIG.API_TIMEOUT_MS);
-      const text = await res.text();
-      const json = parseJsonSafe(text);
-
-      if (!res.ok) throw new Error((json && json.error) || `HTTP ${res.status}`);
-      if (json && json.ok === false) throw new Error(json.error || `${action} 執行失敗`);
-
-      setGasStatus("正常", "ok");
-
-      const result = json && json.data != null ? json.data : json;
-
-      console.info("[API]", { action, method, result });
-      return result;
-
-    } catch (err) {
-      // retry once
-      if (attempt < CONFIG.API_RETRY) {
-        console.warn(`[API] retry #${attempt + 1}`, action, err.message);
-        await new Promise(r => setTimeout(r, 600));
-        return _apiCall(method, url, body, action, attempt + 1);
-      }
-
-      console.error("[API] error:", action, err);
-      setGasStatus("異常", "bad");
-      toast(`❌ ${action}：${err.message || "系統錯誤"}`);
-      throw err;
-
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  /**
-   * 舊版相容 api()（部分地方仍保留呼叫，自動根據 action 判斷 GET/POST）
-   */
-  const WRITE_ACTIONS = new Set([
-    "confirmPayment",
-    "confirmAddonOrderPaid",
-    "adminCancelAddonOrder",
-    "markCardRenewed",
-    "adminAdjustPoints",
-    "adminAdjustCommission",
-    "adminMarkPaid",
-    "adminUpdateCard",
-    "createInviteCode",
-    "buildMonthlySettlement"
-  ]);
-
-  async function api(action, params = {}) {
-    if (WRITE_ACTIONS.has(action)) return apiPost(action, params);
-    return apiGet(action, params);
-  }
-
-  // ─────────────────────────────────────────────
-  //  PARSE HELPERS
-  // ─────────────────────────────────────────────
-  function parseJsonSafe(text) {
-    try {
-      return text ? JSON.parse(text) : {};
-    } catch {
-      throw new Error("GAS 回傳不是合法 JSON");
-    }
-  }
-
-  function normalizeList(data, preferredKeys = []) {
-    if (Array.isArray(data)) return data;
-    for (const key of preferredKeys) {
-      if (Array.isArray(data?.[key])) return data[key];
-    }
-    if (Array.isArray(data?.items)) return data.items;
-    if (Array.isArray(data?.list)) return data.list;
-    if (Array.isArray(data?.rows)) return data.rows;
-    if (Array.isArray(data?.data)) return data.data;
-    return [];
-  }
-
-  // ─────────────────────────────────────────────
-  //  LOAD DATA
-  // ─────────────────────────────────────────────
-  async function loadCards() {
-    const data = await apiGet("getCards");
-    state.cards = normalizeList(data, ["cards"]);
-    renderCards();
-    renderRenewals();
-    renderDashboard();
-  }
-
-  async function loadCardDetail(cardId) {
-    let data;
-    try {
-      data = await apiGet("getCard", { id: cardId });
-    } catch {
-      data = await apiGet("getCard", { card_id: cardId });
+      var fromJson = safeJsonParse(src.features_json);
+      if (fromJson && typeof fromJson === "object") parsed = fromJson;
     }
 
-    const card = data.card || data || {};
-    state.currentCard = card;
-    $("#detailCardId").value = textOf(card.id || card.card_id);
-
-    renderCardDetail(card);
-    syncCurrentCardBox(card);
-    syncCardWorkflowBoxes(card);
-    renderRenewalComposer(card);
-  }
-
-  async function loadPayments() {
-    const data = await apiGet("getPayments");
-    state.payments = normalizeList(data, ["payments"]);
-    renderDashboard();
-    renderRenewals();
-  }
-
-  async function loadAddons() {
-    const data = await apiGet("getAddonOrders");
-    state.addons = normalizeList(data, ["addon_orders", "orders", "addons"]);
-    renderAddons();
-    renderDashboard();
-  }
-
-  async function loadAddonDetail(addonOrderId) {
-    const data = await apiGet("getAddonOrder", {
-      addon_order_id: addonOrderId,
-      add_on_order_id: addonOrderId
-    });
-    const detail = data.addon_order || data.order || data.addon || data || {};
-    state.currentAddon = detail;
-    $("#addonDetailId").value = addonOrderId;
-    renderAddonDetail(detail);
-  }
-
-  async function loadAgents() {
-    const data = await apiGet("adminListAgents");
-    state.agents = normalizeList(data, ["agents"]);
-    renderAgents();
-    renderDashboard();
-  }
-
-  async function loadAgentDetail(agentId) {
-    const data = await apiGet("adminGetAgent", { agent_id: agentId });
-    const detail = data.agent || data || {};
-    state.currentAgent = detail;
-
-    $("#detailAgentId").value = agentId;
-    $("#pointsAgentId").value = agentId;
-    $("#commissionAgentId").value = agentId;
-
-    renderAgentDetail(detail);
-    syncCurrentAgentBox(detail);
-    await reloadLogsForCurrentAgent();
-  }
-
-  // ─────────────────────────────────────────────
-  //  v6.3：confirmPaymentAndSync
-  // ─────────────────────────────────────────────
-  /**
-   * 確認付款 → 依付款類型同步資料
-   * @param {string} paymentId
-   * @param {"first_payment"|"renewal"|"addon"} [paymentType]
-   * @param {string} [relatedCardId]
-   */
-  async function confirmPaymentAndSync(paymentId, paymentType, relatedCardId) {
-    console.info("[confirmPaymentAndSync]", { paymentId, paymentType, relatedCardId });
-
-    const result = await apiPost("confirmPayment", { payment_id: paymentId });
-
-    console.info("[confirmPaymentAndSync] result", result);
-
-    // 同步資料
-    await Promise.allSettled([loadPayments(), loadCards()]);
-    renderDashboard();
-
-    // 依類型執行後續
-    if (paymentType === "first_payment" && relatedCardId) {
-      toast("✅ 首次付款確認完成，可開放交付卡");
-      await loadCardDetail(relatedCardId);
-    } else if (paymentType === "renewal" && relatedCardId) {
-      toast("✅ 續約付款確認完成");
-      await loadCardDetail(relatedCardId);
-    } else if (paymentType === "addon" && relatedCardId) {
-      toast("✅ 加購付款確認完成");
-      await Promise.allSettled([loadAddons(), loadCardDetail(relatedCardId)]);
-    } else {
-      toast("✅ 付款確認完成");
-    }
-
-    return result;
-  }
-
-  // ─────────────────────────────────────────────
-  //  v6.3：renewCard（取代前端自算 expires_at）
-  // ─────────────────────────────────────────────
-  async function renewCard(cardId) {
-    const renewDays = Number(valueOf("#renewDays") || CONFIG.DEFAULT_RENEW_DAYS);
-    if (!Number.isFinite(renewDays) || renewDays <= 0) return alert("續約天數需大於 0");
-
-    const ok1 = confirm(`將卡片 ${cardId} 執行「付款確認＋續約 ${renewDays} 天」？\n\n⚠️ 此操作執行後無法自動撤銷。`);
-    if (!ok1) return;
-
-    // 第二層：輸入卡片 ID 確認
-    if (!doubleConfirmId(cardId, "卡片")) return;
-
-    console.info("[renewCard] start", { cardId, renewDays });
-
-    const btnEl = $("#btnConfirmRenewalPaid");
-    setBtnLoading(btnEl, true);
-
-    try {
-      // Step 1：建立並確認付款
-      let paymentResult;
-      try {
-        paymentResult = await apiPost("adminMarkPaid", {
-          id: cardId,
-          note: `renewal paid ${renewDays} days`,
-          operator: "admin-v630"
-        });
-        console.info("[renewCard] adminMarkPaid", paymentResult);
-      } catch (err) {
-        console.warn("[renewCard] adminMarkPaid skipped or failed:", err.message);
-      }
-
-      // Step 2：呼叫 markCardRenewed（後端計算新到期日）
-      const renewResult = await apiPost("markCardRenewed", {
-        card_id: cardId,
-        renew_days: renewDays,
-        operator: "admin-v630"
-      });
-      console.info("[renewCard] markCardRenewed", renewResult);
-
-      // Step 3：reload
-      await Promise.allSettled([loadCards(), loadPayments()]);
-      await loadCardDetail(cardId);
-      renderDashboard();
-
-      toast("✅ 續約完成");
-      showRevertButtonAfterPaid("卡片", cardId);
-      $("#renewalTextBox").value = buildRenewalDeliveryText(state.currentCard);
-
-    } catch (err) {
-      console.error("[renewCard] error", err);
-      toast(`❌ 續約失敗：${err.message}`);
-    } finally {
-      setBtnLoading(btnEl, false);
-    }
-  }
-
-  // ─────────────────────────────────────────────
-  //  INVITE
-  // ─────────────────────────────────────────────
-  async function createInviteCodeAligned() {
-    const params = {
-      count: valueOf("#createInviteCount") || "1",
-      days: valueOf("#createInviteDays") || "30",
-      referrer: valueOf("#createInviteReferrer"),
-      service_agent: valueOf("#createInviteServiceAgent"),
-      agent_type: valueOf("#createInviteAgentType"),
-      source: valueOf("#createInviteSource") || "admin"
+    src.features = {
+      photo_meta:         normalizePhotoMetaMap(parsed.photo_meta),
+      preview_meta:       normalizePreviewMeta(parsed.preview_meta),
+      photo_preview_urls: (parsed.photo_preview_urls && typeof parsed.photo_preview_urls === "object")
+                            ? parsed.photo_preview_urls
+                            : {}
     };
 
-    console.info("[createInviteCode] payload", params);
-
-    const btnEl = $("#btnCreateInviteCode");
-    setBtnLoading(btnEl, true);
-
-    try {
-      const data = await apiPost("createInviteCode", params);
-      const invite = data.invite || {};
-      const inviteCode = textOf(invite.invite_code);
-      const formUrl = data.form_url || buildFormUrl(inviteCode);
-      const replyText = buildInviteReplyText(inviteCode);
-
-      state.lastInviteCreated = { invite_code: inviteCode, form_url: formUrl, reply_text: replyText };
-
-      $("#inviteCreateResult").textContent = JSON.stringify({
-        invite_code: inviteCode,
-        form_url: formUrl,
-        reply_text: replyText
-      }, null, 2);
-
-      // 填入複製區
-      const urlBox = $("#inviteFormUrlBox");
-      const textBox = $("#inviteReplyTextBox");
-      if (urlBox) urlBox.value = formUrl;
-      if (textBox) textBox.value = replyText;
-
-      console.info("[createInviteCode] result", state.lastInviteCreated);
-      toast("✅ 邀請碼建立完成");
-    } catch (err) {
-      console.error("[createInviteCode] error", err);
-    } finally {
-      setBtnLoading(btnEl, false);
-    }
+    return src;
   }
 
-  // ─────────────────────────────────────────────
-  //  RENDER：CARDS
-  // ─────────────────────────────────────────────
-  function renderCards() {
-    const keyword = valueOf("#cardSearch").toLowerCase();
-    const rows = state.cards.filter(item => {
-      const hay = [
-        textOf(item.id || item.card_id),
-        textOf(item.name || item.owner_name),
-        textOf(item.phone),
-        textOf(item.email)
-      ].join(" ").toLowerCase();
-      return !keyword || hay.includes(keyword);
+  function buildNormalizedPayload(obj) {
+    if (!obj || typeof obj !== "object") return obj;
+    var out   = { __raw: obj };
+    var lower = Object.create(null);
+
+    Object.keys(obj).forEach(function (k) {
+      var nk = String(k || "").trim();
+      if (!nk) return;
+      var v = obj[k];
+      if (out[nk] == null || text(out[nk]) === "") out[nk] = v;
+      lower[nk.toLowerCase()] = v;
     });
 
-    const tbody = $("#cardsTableBody");
-    if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="10" class="empty-cell">查無卡片資料</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = rows.map(item => {
-      const id = textOf(item.id || item.card_id);
-      return `
-        <tr>
-          <td>${escapeHtml(id)}</td>
-          <td>${escapeHtml(textOf(item.name || item.owner_name))}</td>
-          <td>${escapeHtml(textOf(item.phone))}</td>
-          <td>${escapeHtml(planText(item.plan))}</td>
-          <td>${escapeHtml(cardStatusText(item.status))}</td>
-          <td>${escapeHtml(billingStatusText(item.billing_status))}</td>
-          <td>${escapeHtml(formatValue(item.expires_at))}</td>
-          <td>${escapeHtml(textOf(item.service_agent))}</td>
-          <td>${escapeHtml(textOf(item.referrer))}</td>
-          <td>
-            <div class="table-actions">
-              <button class="btn btn-xs btn-soft btn-card-detail" data-card-id="${escapeAttr(id)}">查看</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join("");
-
-    $$(".btn-card-detail", tbody).forEach(btn => {
-      btn.addEventListener("click", async () => loadCardDetail(btn.dataset.cardId));
-    });
+    out.__lower = lower;
+    return out;
   }
 
-  // ─────────────────────────────────────────────
-  //  RENDER：CARD DETAIL
-  // ─────────────────────────────────────────────
-  function renderCardDetail(card) {
-    const wrap = $("#cardDetailWrap");
-    if (!card || !Object.keys(card).length) {
-      wrap.className = "detail-stack empty-state";
-      wrap.textContent = "查無卡片詳情";
-      return;
-    }
-
-    const id = textOf(card.id || card.card_id);
-    const previewLink = buildPreviewLink(id);
-    const deliveryLink = buildDeliveryLink(id);
-    const canDelivery = isPaid(card);
-    const updateInfo = getUpdateInfo(id);
-    const addonImpact = buildAddonImpactHtml(id);
-
-    wrap.className = "detail-stack";
-    wrap.innerHTML = `
-      <div class="detail-section">
-        <div class="detail-title">卡片基本資料</div>
-        <div class="detail-grid">
-          ${renderDetailItem("card_id", id)}
-          ${renderDetailItem("name", textOf(card.name || card.owner_name))}
-          ${renderDetailItem("phone", textOf(card.phone))}
-          ${renderDetailItem("email", textOf(card.email))}
-          ${renderDetailItem("plan", planText(card.plan))}
-          ${renderDetailItem("status", cardStatusText(card.status))}
-          ${renderDetailItem("billing_status", billingStatusText(card.billing_status))}
-          ${renderDetailItem("expires_at", formatValue(card.expires_at))}
-          ${renderDetailItem("service_agent", textOf(card.service_agent))}
-          ${renderDetailItem("referrer", textOf(card.referrer))}
-          ${renderDetailItem("source", textOf(card.source))}
-          ${renderDetailItem("update_mode", getUpdateModeText(card))}
-        </div>
-      </div>
-
-      <div class="detail-section">
-        <div class="detail-title">流程總控</div>
-        <div class="detail-grid">
-          ${renderDetailItem("成品預覽", previewLink)}
-          ${renderDetailItem("交付卡", canDelivery ? deliveryLink : "尚未付款，不可交付")}
-          ${renderDetailItem("更新連結", updateInfo.link || "尚未產生")}
-          ${renderDetailItem("加購狀態", summarizeCardAddons(id))}
-          ${renderDetailItem("續約狀態", getRenewalStateText(card))}
-          ${renderDetailItem("付款資訊", summarizePaymentInfo(id))}
-        </div>
-      </div>
-
-      ${addonImpact ? `
-      <div class="detail-section">
-        <div class="detail-title">加購影響摘要</div>
-        <div class="addon-impact-grid">${addonImpact}</div>
-      </div>` : ""}
-    `;
-  }
-
-  /**
-   * v6.3：建立加購影響 HTML（CTA +X、照片 +X、更新權限、跑馬燈…）
-   */
-  function buildAddonImpactHtml(cardId) {
-    const rows = state.addons.filter(
-      item => textOf(item.card_id) === textOf(cardId) &&
-               textOf(item.status).toLowerCase() === "paid"
-    );
-    if (!rows.length) return "";
-
-    const impact = { cta: 0, photo: 0, update: false, marquee: false };
-    rows.forEach(item => {
-      const code = textOf(item.addon_type || item.item_code || item.addon_key).toLowerCase();
-      const qty = Number(item.qty || item.quantity || 1);
-      if (code.includes("cta")) impact.cta += qty;
-      else if (code.includes("photo")) impact.photo += qty;
-      else if (code.includes("update")) impact.update = true;
-      else if (code.includes("marquee")) impact.marquee = true;
-    });
-
-    const badges = [];
-    if (impact.cta > 0) badges.push(`<span class="badge badge-info">CTA +${impact.cta}</span>`);
-    if (impact.photo > 0) badges.push(`<span class="badge badge-info">照片 +${impact.photo}</span>`);
-    if (impact.update) badges.push(`<span class="badge badge-warn">更新權限 ✓</span>`);
-    if (impact.marquee) badges.push(`<span class="badge">跑馬燈 ✓</span>`);
-    return badges.join(" ");
-  }
-
-  function syncCurrentCardBox(card) {
-    $("#currentCardLabel").textContent = textOf(card.id || card.card_id) || "未選取";
-    $("#currentCardName").textContent = textOf(card.name || card.owner_name) || "-";
-    $("#currentBillingStatus").textContent = billingStatusText(card.billing_status);
-    $("#currentPlan").textContent = planText(card.plan);
-    $("#currentUpdateMode").textContent = getUpdateModeText(card);
-  }
-
-  function syncCardWorkflowBoxes(card) {
-    const id = textOf(card.id || card.card_id);
-    const previewLink = buildPreviewLink(id);
-    const deliveryLink = buildDeliveryLink(id);
-    const canDelivery = isPaid(card);
-    const updateInfo = getUpdateInfo(id);
-
-    $("#previewLinkBox").value = previewLink;
-    $("#previewTextBox").value = buildPreviewReplyText(card);
-
-    $("#deliveryLinkBox").value = canDelivery ? deliveryLink : "";
-    $("#deliveryTextBox").value = canDelivery
-      ? buildDeliveryReplyText(card)
-      : "此卡尚未付款，暫時不可提供交付卡。";
-
-    $("#updateLinkBox").value = updateInfo.link || "";
-    $("#updateTextBox").value = buildUpdateReplyText(card, updateInfo.link || "");
-    $("#updateHint").textContent = hasUnlimitedUpdate(card)
-      ? "此卡看起來已有無限更新權限，原則上不需單次更新連結。"
-      : "此卡可使用單次更新流程。";
-  }
-
-  async function generateUpdateLinkForCurrentCard() {
-    if (!state.currentCard) return alert("請先選取卡片");
-    const id = textOf(state.currentCard.id || state.currentCard.card_id);
-
-    const btnEl = $("#btnGenerateUpdateLink");
-    setBtnLoading(btnEl, true);
-    try {
-      const data = await apiGet("getCardForUpdate", { id });
-      const card = data.card || state.currentCard;
-      const token = textOf(card.update_token);
-      const link = token ? `${CONFIG.HUB_URL}update-form.html?token=${encodeURIComponent(token)}` : "";
-
-      state.updateLinks[id] = { link, expire_at: textOf(card.update_token_expire) };
-      $("#updateLinkBox").value = link;
-      $("#updateTextBox").value = buildUpdateReplyText(state.currentCard, link);
-      renderCardDetail(state.currentCard);
-      toast("✅ 已產生更新連結");
-    } catch (err) {
-      console.error("[generateUpdateLink] error", err);
-    } finally {
-      setBtnLoading(btnEl, false);
-    }
-  }
-
-  // ─────────────────────────────────────────────
-  //  RENDER：ADDONS
-  // ─────────────────────────────────────────────
-  function renderAddons() {
-    const keyword = valueOf("#addonSearch").toLowerCase();
-    const rows = state.addons.filter(item => {
-      const hay = [
-        textOf(item.addon_order_id || item.add_on_order_id),
-        textOf(item.card_id),
-        textOf(item.addon_type || item.item_code)
-      ].join(" ").toLowerCase();
-      return !keyword || hay.includes(keyword);
-    });
-
-    const tbody = $("#addonsTableBody");
-    if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">查無加購資料</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = rows.map(item => {
-      const addonOrderId = textOf(item.addon_order_id || item.add_on_order_id);
-      const status = textOf(item.status);
-      return `
-        <tr>
-          <td>${escapeHtml(addonOrderId)}</td>
-          <td>${escapeHtml(textOf(item.card_id))}</td>
-          <td>${escapeHtml(textOf(item.addon_type || item.item_code || item.addon_key))}</td>
-          <td>${escapeHtml(formatValue(item.qty || item.quantity || 1))}</td>
-          <td>${escapeHtml(status || "-")}</td>
-          <td>${escapeHtml(formatValue(item.amount || item.unit_price))}</td>
-          <td>${escapeHtml(describeAddonImpact(item))}</td>
-          <td>
-            <div class="table-actions">
-              <button class="btn btn-xs btn-soft btn-addon-detail" data-addon-id="${escapeAttr(addonOrderId)}">查看</button>
-              ${status.toLowerCase() !== "paid" ? `<button class="btn btn-xs btn-primary btn-addon-paid" data-addon-id="${escapeAttr(addonOrderId)}" data-card-id="${escapeAttr(textOf(item.card_id))}">確認付款</button>` : ""}
-              ${status.toLowerCase() !== "cancelled" ? `<button class="btn btn-xs btn-danger btn-addon-cancel" data-addon-id="${escapeAttr(addonOrderId)}">取消</button>` : ""}
-              <button class="btn btn-xs btn-soft" data-copy="${escapeAttr(buildAddonPaymentReminderText(item))}">複製付款提醒</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join("");
-
-    bindCopyButtons(tbody);
-
-    $$(".btn-addon-detail", tbody).forEach(btn => {
-      btn.addEventListener("click", async () => loadAddonDetail(btn.dataset.addonId));
-    });
-
-    $$(".btn-addon-paid", tbody).forEach(btn => {
-      btn.addEventListener("click", async () =>
-        confirmAddonPaid(btn.dataset.addonId, btn.dataset.cardId, btn)
-      );
-    });
-
-    $$(".btn-addon-cancel", tbody).forEach(btn => {
-      btn.addEventListener("click", async () => cancelAddon(btn.dataset.addonId, btn));
-    });
-  }
-
-  function renderAddonDetail(detail) {
-    const wrap = $("#addonDetailWrap");
-    if (!detail || !Object.keys(detail).length) {
-      wrap.className = "detail-stack empty-state";
-      wrap.textContent = "查無加購詳情";
-      return;
-    }
-
-    wrap.className = "detail-stack";
-    wrap.innerHTML = `
-      <div class="detail-section">
-        <div class="detail-title">加購單資料</div>
-        <div class="detail-grid">
-          ${Object.entries(detail).map(([k, v]) => renderDetailItem(k, formatValue(v))).join("")}
-        </div>
-      </div>
-    `;
-  }
-
-  // ─────────────────────────────────────────────
-  //  ADDON ACTIONS
-  // ─────────────────────────────────────────────
-
-  /**
-   * Double confirm：要求輸入 ID 才能繼續
-   * @param {string} id - 需要輸入確認的 ID
-   * @param {string} label - 顯示名稱（例如「加購單」「卡片」）
-   * @returns {boolean}
-   */
-  function doubleConfirmId(id, label = "ID") {
-    const entered = prompt(
-      `⚠️ 高風險操作：請輸入 ${label}「${id}」以確認執行\n\n（輸入錯誤或取消則中止）`
-    );
-    if (entered === null) return false; // 按取消
-    if (textOf(entered) !== textOf(id)) {
-      toast("❌ 輸入不符，操作已取消");
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * 顯示撤銷提示 + 複製指令給管理員手動處理
-   */
-  function showRevertNotice(type, id) {
-    const instructions = [
-      `【撤銷${type}付款 - 手動處理】`,
-      `操作時間：${new Date().toLocaleString("zh-TW")}`,
-      `${type} ID：${id}`,
-      ``,
-      `請至 GAS 試算表手動將以下欄位改回：`,
-      `- billing_status → unpaid`,
-      `- status → pending（或原始狀態）`,
-      `- paid_at → 清空`,
-      ``,
-      `或請工程師執行對應 script 撤銷。`
-    ].join("\n");
-
-    copyText(instructions, "✅ 撤銷指令已複製，請貼給工程師或手動至 GAS 處理");
-    alert(
-      `⚠️ 注意：系統目前無法自動撤銷付款。\n\n已複製處理指令到剪貼簿，請貼給工程師或手動至 GAS 試算表修改。\n\n${type} ID：${id}`
-    );
-  }
-
-  async function confirmAddonPaid(addonOrderId, cardId, btnEl) {
-    // 第一層：基本確認
-    const ok1 = confirm(`確認加購單 ${addonOrderId} 已付款？\n\n⚠️ 此操作執行後無法自動撤銷。`);
-    if (!ok1) return;
-
-    // 第二層：輸入 ID 確認
-    if (!doubleConfirmId(addonOrderId, "加購單")) return;
-
-    console.info("[confirmAddonPaid]", { addonOrderId, cardId });
-    setBtnLoading(btnEl, true);
-
-    try {
-      const result = await apiPost("confirmAddonOrderPaid", {
-        addon_order_id: addonOrderId,
-        add_on_order_id: addonOrderId
-      });
-
-      console.info("[confirmAddonPaid] result", result);
-      toast("✅ 加購單已確認付款");
-
-      // 顯示撤銷按鈕（前端暫存）
-      showRevertButtonAfterPaid("addon", addonOrderId);
-
-      await loadAddons();
-      renderDashboard();
-      if (cardId) {
-        await loadCardDetail(cardId);
-      } else if (state.currentCard) {
-        await loadCardDetail(textOf(state.currentCard.id || state.currentCard.card_id));
+  function pick(p, keys) {
+    if (!p) return "";
+    var lower = p.__lower || null;
+    for (var i = 0; i < keys.length; i++) {
+      var kk = String(keys[i] || "").trim();
+      var direct = p[kk];
+      if (direct != null && text(direct) !== "") return direct;
+      if (lower) {
+        var v2 = lower[kk.toLowerCase()];
+        if (v2 != null && text(v2) !== "") return v2;
       }
-    } catch (err) {
-      console.error("[confirmAddonPaid] error", err);
-    } finally {
-      setBtnLoading(btnEl, false);
-    }
-  }
-
-  /**
-   * 付款確認後，在 toast 區下方短暫顯示「我按錯了」撤銷入口
-   */
-  function showRevertButtonAfterPaid(type, id) {
-    const label = type === "addon" ? "加購單" : "卡片";
-    // 在頁面底部插入一個臨時浮動提示，30 秒後消失
-    const el = document.createElement("div");
-    el.id = "revertNotice";
-    el.className = "revert-notice";
-    el.innerHTML = `
-      <span>剛才確認了${label} <strong>${escapeHtml(id)}</strong> 的付款</span>
-      <button class="btn btn-xs btn-danger" id="btnRevertPaid">我按錯了</button>
-    `;
-    document.body.appendChild(el);
-
-    document.getElementById("btnRevertPaid")?.addEventListener("click", () => {
-      el.remove();
-      showRevertNotice(label, id);
-    });
-
-    // 30 秒後自動消失
-    setTimeout(() => el.remove(), 30000);
-  }
-
-  async function cancelAddon(addonOrderId, btnEl) {
-    const ok = confirm(`確定取消加購單 ${addonOrderId}？`);
-    if (!ok) return;
-
-    console.info("[cancelAddon]", { addonOrderId });
-    setBtnLoading(btnEl, true);
-
-    try {
-      await apiPost("adminCancelAddonOrder", {
-        addon_order_id: addonOrderId,
-        add_on_order_id: addonOrderId
-      });
-      toast("✅ 加購單已取消");
-      await loadAddons();
-    } catch (err) {
-      console.error("[cancelAddon] error", err);
-    } finally {
-      setBtnLoading(btnEl, false);
-    }
-  }
-
-  // ─────────────────────────────────────────────
-  //  RENDER：RENEWALS
-  // ─────────────────────────────────────────────
-  function renderRenewals() {
-    const rows = state.cards.filter(card => needsRenewal(card) || isExpired(card) || isExpiringSoon(card, 30));
-    const tbody = $("#renewalTableBody");
-
-    $("#renewalSoonCount").textContent = state.cards.filter(card => isExpiringSoon(card, 30) && !isExpired(card)).length;
-    $("#renewalExpiredCount").textContent = state.cards.filter(card => isExpired(card)).length;
-    $("#renewalPendingPayCount").textContent = rows.filter(card => !isPaid(card)).length;
-
-    if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">目前沒有需要續約處理的卡片</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = rows.map(card => {
-      const id = textOf(card.id || card.card_id);
-      return `
-        <tr>
-          <td>${escapeHtml(id)}</td>
-          <td>${escapeHtml(textOf(card.name || card.owner_name))}</td>
-          <td>${escapeHtml(formatValue(card.expires_at))}</td>
-          <td>${escapeHtml(billingStatusText(card.billing_status))}</td>
-          <td>${escapeHtml(needsRenewal(card) ? "是" : "否")}</td>
-          <td>${escapeHtml(getRenewalStateText(card))}</td>
-          <td>
-            <div class="table-actions">
-              <button class="btn btn-xs btn-soft btn-renewal-select" data-card-id="${escapeAttr(id)}">選取</button>
-              <button class="btn btn-xs btn-soft" data-copy="${escapeAttr(buildRenewalReminderText(card))}">複製提醒文案</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join("");
-
-    bindCopyButtons(tbody);
-
-    $$(".btn-renewal-select", tbody).forEach(btn => {
-      btn.addEventListener("click", async () => loadCardDetail(btn.dataset.cardId));
-    });
-  }
-
-  function renderRenewalComposer(card) {
-    $("#renewalTextBox").value = card ? buildRenewalReminderText(card) : "";
-  }
-
-  function copyRenewalReminderText() {
-    if (!state.currentCard) return alert("請先選取卡片");
-    const text = buildRenewalReminderText(state.currentCard);
-    copyText(text, "已複製續約提醒文案");
-    $("#renewalTextBox").value = text;
-  }
-
-  function copyRenewalDeliveryText() {
-    if (!state.currentCard) return alert("請先選取卡片");
-    const text = buildRenewalDeliveryText(state.currentCard);
-    copyText(text, "已複製續約交付文案");
-    $("#renewalTextBox").value = text;
-  }
-
-  // ─────────────────────────────────────────────
-  //  RENDER：AGENTS
-  // ─────────────────────────────────────────────
-  function renderAgents() {
-    const keyword = valueOf("#agentSearch").toLowerCase();
-    const rows = state.agents.filter(item => {
-      const hay = [
-        textOf(item.agent_id),
-        textOf(item.owner_name),
-        textOf(item.agent_type),
-        textOf(item.member_tier)
-      ].join(" ").toLowerCase();
-      return !keyword || hay.includes(keyword);
-    });
-
-    const tbody = $("#agentsTableBody");
-    if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">查無代理資料</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = rows.map(item => `
-      <tr>
-        <td>${escapeHtml(textOf(item.agent_id))}</td>
-        <td>${escapeHtml(textOf(item.owner_name))}</td>
-        <td>${escapeHtml(textOf(item.agent_type))}</td>
-        <td>${escapeHtml(textOf(item.member_tier))}</td>
-        <td>${escapeHtml(formatValue(item.points_balance))}</td>
-        <td>${escapeHtml(formatValue(item.total_commission))}</td>
-        <td>
-          <div class="table-actions">
-            <button class="btn btn-xs btn-soft btn-agent-detail" data-agent-id="${escapeAttr(textOf(item.agent_id))}">查看</button>
-          </div>
-        </td>
-      </tr>
-    `).join("");
-
-    $$(".btn-agent-detail", tbody).forEach(btn => {
-      btn.addEventListener("click", async () => loadAgentDetail(btn.dataset.agentId));
-    });
-  }
-
-  function renderAgentDetail(agent) {
-    const wrap = $("#agentDetailWrap");
-    if (!agent || !Object.keys(agent).length) {
-      wrap.className = "detail-stack empty-state";
-      wrap.textContent = "查無代理詳情";
-      return;
-    }
-
-    wrap.className = "detail-stack";
-    wrap.innerHTML = `
-      <div class="detail-section">
-        <div class="detail-title">代理資料</div>
-        <div class="detail-grid">
-          ${Object.entries(agent).map(([k, v]) => renderDetailItem(k, formatValue(v))).join("")}
-        </div>
-      </div>
-    `;
-  }
-
-  function syncCurrentAgentBox(agent) {
-    $("#currentAgentLabel").textContent = textOf(agent.agent_id) || "未選取";
-    $("#currentAgentName").textContent = textOf(agent.owner_name) || "-";
-    $("#currentAgentPoints").textContent = formatValue(agent.points_balance);
-    $("#currentAgentCommission").textContent = formatValue(agent.total_commission);
-  }
-
-  // ─────────────────────────────────────────────
-  //  POINTS / COMMISSION
-  // ─────────────────────────────────────────────
-  async function adjustPoints(mode) {
-    const agentId = valueOf("#pointsAgentId");
-    const pointsValue = Number(valueOf("#pointsValue"));
-    const note = valueOf("#pointsNote");
-
-    if (!agentId) return alert("請輸入 agent_id");
-    if (!Number.isFinite(pointsValue) || pointsValue <= 0) return alert("points 必須大於 0");
-
-    const ok = confirm(`確認對 ${agentId} 執行「${mode === "subtract" ? "扣點" : "加點"} ${pointsValue}」？`);
-    if (!ok) return;
-
-    const points = mode === "subtract" ? -Math.abs(pointsValue) : Math.abs(pointsValue);
-
-    console.info("[adjustPoints]", { agentId, points, note });
-
-    const btnEl = mode === "subtract" ? $("#btnSubtractPoints") : $("#btnAddPoints");
-    setBtnLoading(btnEl, true);
-
-    try {
-      const result = await apiPost("adminAdjustPoints", { agent_id: agentId, points, note });
-      console.info("[adjustPoints] result", result);
-      toast(mode === "subtract" ? "✅ 已扣點" : "✅ 已加點");
-      await loadAgents();
-      await loadAgentDetail(agentId);
-    } catch (err) {
-      console.error("[adjustPoints] error", err);
-    } finally {
-      setBtnLoading(btnEl, false);
-    }
-  }
-
-  async function adjustCommission() {
-    const agentId = valueOf("#commissionAgentId");
-    const amount = Number(valueOf("#commissionValue"));
-    const note = valueOf("#commissionNote");
-
-    if (!agentId) return alert("請輸入 agent_id");
-    if (!Number.isFinite(amount) || amount <= 0) return alert("amount 必須大於 0");
-
-    const ok = confirm(`確認對 ${agentId} 補分潤 ${amount}？`);
-    if (!ok) return;
-
-    console.info("[adjustCommission]", { agentId, amount, note });
-
-    const btnEl = $("#btnAdjustCommission");
-    setBtnLoading(btnEl, true);
-
-    try {
-      const result = await apiPost("adminAdjustCommission", { agent_id: agentId, amount, note });
-      console.info("[adjustCommission] result", result);
-      toast("✅ 已補分潤");
-      await loadAgents();
-      await loadAgentDetail(agentId);
-    } catch (err) {
-      console.error("[adjustCommission] error", err);
-    } finally {
-      setBtnLoading(btnEl, false);
-    }
-  }
-
-  async function reloadLogsForCurrentAgent() {
-    const agentId =
-      valueOf("#detailAgentId") ||
-      valueOf("#pointsAgentId") ||
-      valueOf("#commissionAgentId") ||
-      textOf(state.currentAgent && state.currentAgent.agent_id);
-
-    if (!agentId) return alert("請先選取代理");
-
-    console.info("[reloadLogs]", { agentId });
-
-    const [pointsLogData, commissionLogData] = await Promise.all([
-      apiGet("getAgentPointsLog", { agent_id: agentId }),
-      apiGet("getAgentCommissionLog", { agent_id: agentId })
-    ]);
-
-    renderPointsLog(normalizeList(pointsLogData, ["logs", "points_logs"]));
-    renderCommissionLog(normalizeList(commissionLogData, ["logs", "commission_logs"]));
-  }
-
-  function renderPointsLog(rows) {
-    const tbody = $("#pointsLogTableBody");
-    if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">沒有點數 Log</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = rows.map(row => `
-      <tr>
-        <td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time", "updated_at", "timestamp"])))}</td>
-        <td>${escapeHtml(formatValue(firstValue(row, ["type", "action", "log_type"])))}</td>
-        <td>${escapeHtml(`${formatValue(firstValue(row, ["before_balance", "before_points", "points_before", "before"]))} → ${formatValue(firstValue(row, ["after_balance", "after_points", "points_after", "after"]))}`)}</td>
-        <td>${escapeHtml(formatValue(firstValue(row, ["note", "memo", "remark"])))}</td>
-      </tr>
-    `).join("");
-  }
-
-  function renderCommissionLog(rows) {
-    const tbody = $("#commissionLogTableBody");
-    if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">沒有分潤 Log</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = rows.map(row => `
-      <tr>
-        <td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time", "updated_at", "timestamp"])))}</td>
-        <td>${escapeHtml(formatValue(firstValue(row, ["amount", "commission_amount", "delta"])))}</td>
-        <td>${escapeHtml(`${formatValue(firstValue(row, ["before_total", "before_commission", "commission_before", "before"]))} → ${formatValue(firstValue(row, ["after_total", "after_commission", "commission_after", "after"]))}`)}</td>
-        <td>${escapeHtml(formatValue(firstValue(row, ["note", "memo", "remark"])))}</td>
-      </tr>
-    `).join("");
-  }
-
-  // ─────────────────────────────────────────────
-  //  SETTLEMENT
-  // ─────────────────────────────────────────────
-  async function buildSettlement() {
-    const settlementMonth = valueOf("#settlementMonth");
-    if (!settlementMonth) return alert("請選擇 settlement_month");
-
-    const ok = confirm(`確認建立 ${settlementMonth} 的結算？`);
-    if (!ok) return;
-
-    const btnEl = $("#btnBuildSettlement");
-    setBtnLoading(btnEl, true);
-
-    try {
-      console.info("[buildSettlement]", { settlementMonth });
-      const data = await apiPost("buildMonthlySettlement", { settlement_month: settlementMonth });
-      console.info("[buildSettlement] result", data);
-      $("#settlementResult").textContent = JSON.stringify(data, null, 2);
-      toast("✅ 已建立結算");
-    } catch (err) {
-      console.error("[buildSettlement] error", err);
-    } finally {
-      setBtnLoading(btnEl, false);
-    }
-  }
-
-  // ─────────────────────────────────────────────
-  //  DASHBOARD  （v6.3 升級：今日 KPI + 高風險提醒）
-  // ─────────────────────────────────────────────
-  function renderDashboard() {
-    // 基礎指標（v6.2 保留）
-    const unpaid = state.cards.filter(card => !isPaid(card)).length;
-    const needDelivery = state.cards.filter(card => isPaid(card)).length;
-    const needRenewal = state.cards.filter(card => needsRenewal(card) || isExpiringSoon(card, 30)).length;
-    const addonPending = state.addons.filter(item => {
-      const s = textOf(item.status).toLowerCase();
-      return s !== "paid" && s !== "cancelled";
-    }).length;
-
-    $("#statUnpaid").textContent = unpaid;
-    $("#statNeedDelivery").textContent = needDelivery;
-    $("#statNeedRenewal").textContent = needRenewal;
-    $("#statAddonPending").textContent = addonPending;
-    $("#statAgents").textContent = state.agents.length;
-
-    // v6.3：今日 KPI
-    const todayStr = new Date().toISOString().slice(0, 10);
-
-    const todayPayments = state.payments.filter(p => {
-      const t = textOf(p.paid_at || p.created_at || "");
-      return t.startsWith(todayStr);
-    }).length;
-
-    const todayCards = state.cards.filter(c => {
-      const t = textOf(c.created_at || "");
-      return t.startsWith(todayStr);
-    }).length;
-
-    // CTA & conversion：若後端有回傳則顯示，否則顯示 N/A
-    safeSetText("#statTodayPayments", todayPayments);
-    safeSetText("#statTodayCards", todayCards);
-    safeSetText("#statTodayCta", "N/A");
-    safeSetText("#statTodayConversion", "N/A");
-
-    // v6.3：高風險提醒
-    const now = new Date();
-    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-    const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-    const risks = [];
-
-    // 未付款超過 3 天
-    const overdueUnpaid = state.cards.filter(card => {
-      if (isPaid(card)) return false;
-      const created = parseDate(card.created_at);
-      return created && created < threeDaysAgo;
-    });
-    if (overdueUnpaid.length > 0) {
-      risks.push({
-        level: "danger",
-        text: `⚠️ 未付款超過 3 天：${overdueUnpaid.length} 張（${overdueUnpaid.slice(0, 3).map(c => textOf(c.id || c.card_id)).join("、")}${overdueUnpaid.length > 3 ? "…" : ""}）`
-      });
-    }
-
-    // 已付款未交付（有付款紀錄但卡片 status 非 active）
-    const paidNotDelivered = state.cards.filter(card => {
-      return isPaid(card) && textOf(card.status).toLowerCase() !== "active";
-    });
-    if (paidNotDelivered.length > 0) {
-      risks.push({
-        level: "warn",
-        text: `📦 已付款未交付（未啟用）：${paidNotDelivered.length} 張`
-      });
-    }
-
-    // 即將到期（30 天內）
-    const expiringSoon = state.cards.filter(card => isExpiringSoon(card, 30) && !isExpired(card));
-    if (expiringSoon.length > 0) {
-      risks.push({
-        level: "info",
-        text: `⏰ 30 天內即將到期：${expiringSoon.length} 張`
-      });
-    }
-
-    // 已到期
-    const expired = state.cards.filter(card => isExpired(card));
-    if (expired.length > 0) {
-      risks.push({
-        level: "danger",
-        text: `🔴 已到期：${expired.length} 張`
-      });
-    }
-
-    // 待處理加購單
-    if (addonPending > 0) {
-      risks.push({
-        level: "warn",
-        text: `🛒 加購單待處理：${addonPending} 筆`
-      });
-    }
-
-    const riskEl = $("#dashboardRiskList");
-    if (riskEl) {
-      if (risks.length === 0) {
-        riskEl.innerHTML = `<div class="focus-item">✅ 目前無高風險項目</div>`;
-      } else {
-        riskEl.innerHTML = risks.map(r =>
-          `<div class="focus-item risk-item risk-${r.level}">${escapeHtml(r.text)}</div>`
-        ).join("");
-      }
-    }
-
-    // 原有今日重點清單
-    const focus = [];
-    if (unpaid > 0) focus.push(`待付款卡片 ${unpaid} 張。`);
-    if (needDelivery > 0) focus.push(`已付款待交付卡片 ${needDelivery} 張。`);
-    if (needRenewal > 0) focus.push(`需續約關注卡片 ${needRenewal} 張。`);
-    if (addonPending > 0) focus.push(`待處理加購單 ${addonPending} 筆。`);
-    if (!focus.length) focus.push("目前沒有高優先待辦。");
-
-    $("#dashboardFocus").innerHTML = focus.map(x => `<div class="focus-item">${escapeHtml(x)}</div>`).join("");
-  }
-
-  function safeSetText(selector, value) {
-    const el = $(selector);
-    if (el) el.textContent = value;
-  }
-
-  // ─────────────────────────────────────────────
-  //  ADMIN USERS (mock)
-  // ─────────────────────────────────────────────
-  function renderMockAdmins() {
-    const tbody = $("#adminUsersTableBody");
-    tbody.innerHTML = state.adminUsers.map(user => `
-      <tr>
-        <td>${escapeHtml(user.admin_id)}</td>
-        <td>${escapeHtml(user.name)}</td>
-        <td>${escapeHtml(user.role)}</td>
-        <td>${escapeHtml(user.permissions)}</td>
-        <td>${escapeHtml(user.status)}</td>
-        <td><button class="btn btn-xs btn-soft" disabled>編輯（待串 GAS）</button></td>
-      </tr>
-    `).join("");
-  }
-
-  function addMockAdmin() {
-    const name = valueOf("#mockAdminName");
-    const role = valueOf("#mockAdminRole");
-    const permissions = valueOf("#mockAdminPermissions");
-
-    if (!name || !role) return alert("請先輸入名稱與角色");
-
-    const next = state.adminUsers.length + 1;
-    state.adminUsers.push({
-      admin_id: `AD${String(next).padStart(3, "0")}`,
-      name,
-      role,
-      permissions: permissions || "custom",
-      status: "active"
-    });
-
-    renderMockAdmins();
-    $("#mockAdminName").value = "";
-    $("#mockAdminRole").value = "";
-    $("#mockAdminPermissions").value = "";
-    toast("✅ 已新增管理員 UI 假資料");
-  }
-
-  // ─────────────────────────────────────────────
-  //  TEXT BUILDERS
-  // ─────────────────────────────────────────────
-  function buildFormUrl(inviteCode) {
-    const url = new URL(CONFIG.FORM_URL);
-    if (inviteCode) url.searchParams.set("invite", inviteCode);
-    return url.toString();
-  }
-
-  function buildInviteReplyText(inviteCode) {
-    return [
-      "您好，這是您的智慧名片申請入口。",
-      inviteCode ? `邀請碼：${inviteCode}` : "",
-      `申請連結：${buildFormUrl(inviteCode)}`,
-      "若填寫時有問題，直接回覆客服即可。"
-    ].filter(Boolean).join("\n");
-  }
-
-  function buildPreviewLink(cardId) {
-    return `${CONFIG.HUB_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`;
-  }
-
-  function buildDeliveryLink(cardId) {
-    return `${CONFIG.HUB_URL}poster.html?id=${encodeURIComponent(cardId)}`;
-  }
-
-  function buildPreviewReplyText(card) {
-    const id = textOf(card.id || card.card_id);
-    const name = textOf(card.name || card.owner_name) || "您好";
-    return [
-      `${name}，您好～`,
-      "您的智慧名片成品預覽已完成，請先查看預覽內容：",
-      buildPreviewLink(id),
-      `名片編號：${id}`,
-      "目前為付款前預覽階段，確認完成後再進入正式交付。"
-    ].join("\n");
-  }
-
-  function buildDeliveryReplyText(card) {
-    const id = textOf(card.id || card.card_id);
-    const name = textOf(card.name || card.owner_name) || "您好";
-    return [
-      `${name}，您好～`,
-      "您的智慧名片已完成正式交付。",
-      `交付卡入口：${buildDeliveryLink(id)}`,
-      `名片編號：${id}`,
-      "開啟後即可查看名片、分享名片、下載名片海報。"
-    ].join("\n");
-  }
-
-  function buildUpdateReplyText(card, link) {
-    const id = textOf(card.id || card.card_id);
-    const name = textOf(card.name || card.owner_name) || "您好";
-    return [
-      `${name}，您好～`,
-      "這是您的單次更新入口。",
-      `名片編號：${id}`,
-      link ? `更新連結：${link}` : "目前尚未產生更新連結。",
-      "若完成更新後仍需調整，可再聯繫客服。"
-    ].join("\n");
-  }
-
-  function buildRenewalReminderText(card) {
-    const id = textOf(card.id || card.card_id);
-    const name = textOf(card.name || card.owner_name) || "您好";
-    return [
-      `${name}，您好～`,
-      "提醒您，您的智慧名片即將到期 / 已到期。",
-      `名片編號：${id}`,
-      `到期日：${formatValue(card.expires_at)}`,
-      "若要續約，請完成續約付款後通知客服。"
-    ].join("\n");
-  }
-
-  function buildRenewalDeliveryText(card) {
-    const id = textOf(card.id || card.card_id);
-    const name = textOf(card.name || card.owner_name) || "您好";
-    return [
-      `${name}，您好～`,
-      "您的智慧名片續約已完成。",
-      `交付卡入口：${buildDeliveryLink(id)}`,
-      `名片編號：${id}`,
-      "若後續仍需更新內容，可再聯繫客服。"
-    ].join("\n");
-  }
-
-  function buildAddonPaymentReminderText(addon) {
-    const orderId = textOf(addon.addon_order_id || addon.add_on_order_id);
-    return [
-      "您好～提醒您，目前有一筆智慧名片加購單待付款。",
-      `加購單號：${orderId}`,
-      `名片編號：${textOf(addon.card_id)}`,
-      `加購項目：${textOf(addon.addon_type || addon.item_code || addon.addon_key)}`,
-      `金額：${formatValue(addon.amount || addon.unit_price)}`,
-      "付款完成後請通知客服。"
-    ].join("\n");
-  }
-
-  // ─────────────────────────────────────────────
-  //  DATA HELPERS
-  // ─────────────────────────────────────────────
-  function summarizeCardAddons(cardId) {
-    const rows = state.addons.filter(item => textOf(item.card_id) === textOf(cardId));
-    if (!rows.length) return "無";
-    return rows.map(item => {
-      const code = textOf(item.addon_type || item.item_code || item.addon_key);
-      const qty = formatValue(item.qty || item.quantity || 1);
-      const status = textOf(item.status || "-");
-      return `${code} x${qty} (${status})`;
-    }).join("；");
-  }
-
-  function summarizePaymentInfo(cardId) {
-    const rows = state.payments.filter(x => textOf(x.card_id || x.id) === textOf(cardId));
-    if (!rows.length) return "無付款資料";
-    const latest = rows
-      .slice()
-      .sort((a, b) => textOf(b.created_at).localeCompare(textOf(a.created_at)))[0];
-    return `狀態：${textOf(latest.status || latest.billing_status)}；時間：${formatValue(latest.paid_at || latest.created_at)}`;
-  }
-
-  function getUpdateInfo(cardId) {
-    return state.updateLinks[textOf(cardId)] || { link: "", expire_at: "" };
-  }
-
-  function getUpdateModeText(card) {
-    return hasUnlimitedUpdate(card) ? "已具備無限更新 / 免單次連結" : "需使用單次更新連結";
-  }
-
-  function hasUnlimitedUpdate(card) {
-    const cardId = textOf(card.id || card.card_id);
-    const ownFlag = [
-      textOf(card.update_limit_override_enabled),
-      textOf(card.features_json),
-      textOf(card.note)
-    ].join(" ").toLowerCase();
-    if (ownFlag.includes("unlimited")) return true;
-
-    return state.addons.some(item => {
-      const code = textOf(item.addon_type || item.item_code || item.addon_key).toLowerCase();
-      const status = textOf(item.status).toLowerCase();
-      return textOf(item.card_id) === cardId && status === "paid" && code.includes("update");
-    });
-  }
-
-  function isPaid(card) {
-    const cardId = textOf(card.id || card.card_id);
-    if (textOf(card.billing_status).toLowerCase() === "paid") return true;
-    return state.payments.some(p =>
-      textOf(p.card_id) === cardId &&
-      textOf(p.status).toLowerCase() === "paid"
-    );
-  }
-
-  function isExpired(card) {
-    const d = parseDate(card.expires_at);
-    return !!(d && d < new Date());
-  }
-
-  function isExpiringSoon(card, days) {
-    const d = parseDate(card.expires_at);
-    if (!d) return false;
-    const now = new Date();
-    const end = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-    return d >= now && d <= end;
-  }
-
-  function needsRenewal(card) {
-    return isExpired(card) || isExpiringSoon(card, 30);
-  }
-
-  function getRenewalStateText(card) {
-    if (isExpired(card)) return "已到期";
-    if (isExpiringSoon(card, 30)) return "30天內到期";
-    return "正常";
-  }
-
-  function describeAddonImpact(item) {
-    const code = textOf(item.addon_type || item.item_code || item.addon_key).toLowerCase();
-    const qty = Number(item.qty || item.quantity || 1);
-    if (code.includes("photo")) return `照片 +${qty}`;
-    if (code.includes("cta")) return `CTA +${qty}`;
-    if (code.includes("update")) return "更新權限";
-    if (code.includes("marquee")) return "跑馬燈";
-    return textOf(item.addon_type || item.item_code || item.addon_key);
-  }
-
-  // ─────────────────────────────────────────────
-  //  RENDER HELPERS
-  // ─────────────────────────────────────────────
-  function renderDetailItem(key, value) {
-    return `
-      <div class="detail-item">
-        <div class="detail-key">${escapeHtml(key)}</div>
-        <div class="detail-value">${escapeHtml(formatValue(value))}</div>
-      </div>
-    `;
-  }
-
-  // ─────────────────────────────────────────────
-  //  UI HELPERS
-  // ─────────────────────────────────────────────
-
-  /**
-   * v6.3：按鈕 loading 狀態
-   */
-  function setBtnLoading(btnEl, isLoading) {
-    if (!btnEl) return;
-    if (isLoading) {
-      btnEl.dataset.originalText = btnEl.dataset.originalText || btnEl.textContent;
-      btnEl.textContent = "處理中…";
-      btnEl.disabled = true;
-      btnEl.classList.add("is-disabled");
-    } else {
-      btnEl.textContent = btnEl.dataset.originalText || btnEl.textContent;
-      btnEl.disabled = false;
-      btnEl.classList.remove("is-disabled");
-      delete btnEl.dataset.originalText;
-    }
-  }
-
-  function bindCopyButtons(root = document) {
-    $$("[data-copy]", root).forEach(btn => {
-      btn.addEventListener("click", () => {
-        copyText(btn.dataset.copy, "已複製");
-      });
-    });
-  }
-
-  function copyFromField(selector, msg) {
-    const text = valueOf(selector);
-    if (!text) return alert("目前沒有可複製內容");
-    copyText(text, msg);
-  }
-
-  function openTextLink(selector) {
-    const text = valueOf(selector);
-    if (!text) return alert("目前沒有可開啟連結");
-    window.open(text, "_blank");
-  }
-
-  function copyText(text, message = "已複製") {
-    const value = String(text || "");
-    if (!value) return alert("沒有可複製的內容");
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(value)
-        .then(() => toast(message))
-        .catch(() => fallbackCopy(value, message));
-      return;
-    }
-    fallbackCopy(value, message);
-  }
-
-  function fallbackCopy(value, message) {
-    const ta = document.createElement("textarea");
-    ta.value = value;
-    ta.setAttribute("readonly", "readonly");
-    ta.style.position = "fixed";
-    ta.style.top = "-9999px";
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    try {
-      document.execCommand("copy");
-      toast(message);
-    } catch {
-      alert("複製失敗，請手動複製");
-    } finally {
-      ta.remove();
-    }
-  }
-
-  function toast(message) {
-    const el = $("#toast");
-    el.textContent = message;
-    el.classList.remove("hidden");
-    clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => el.classList.add("hidden"), 2200);
-  }
-
-  function setLoading(show) {
-    $("#loadingMask").classList.toggle("hidden", !show);
-  }
-
-  function setGasStatus(text, type) {
-    const el = $("#gasStatus");
-    el.textContent = text;
-    el.className = `status-pill ${type || ""}`;
-  }
-
-  function setDefaultSettlementMonth() {
-    const now = new Date();
-    $("#settlementMonth").value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    $("#renewDays").value = CONFIG.DEFAULT_RENEW_DAYS;
-  }
-
-  // ─────────────────────────────────────────────
-  //  PURE UTILS
-  // ─────────────────────────────────────────────
-  function parseDate(value) {
-    if (!value) return null;
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-
-  function formatValue(value) {
-    if (value === undefined || value === null || value === "") return "-";
-    if (typeof value === "object") {
-      try { return JSON.stringify(value); } catch { return String(value); }
-    }
-    return String(value);
-  }
-
-  function textOf(value) {
-    return value == null ? "" : String(value).trim();
-  }
-
-  function valueOf(selector) {
-    const el = $(selector);
-    return el ? textOf(el.value) : "";
-  }
-
-  function planText(value) {
-    const v = textOf(value).toLowerCase();
-    if (v === "free" || v === "plan_free") return "自由配款";
-    if (v === "premium" || v === "plan_premium") return "精品設計款";
-    return value ? String(value) : "-";
-  }
-
-  function billingStatusText(value) {
-    const v = textOf(value).toLowerCase();
-    if (v === "paid") return "已付款";
-    if (v === "unpaid") return "未付款";
-    if (v === "locked") return "已鎖卡";
-    return value ? String(value) : "-";
-  }
-
-  function cardStatusText(value) {
-    const v = textOf(value).toLowerCase();
-    if (v === "active") return "啟用中";
-    if (v === "inactive") return "停用中";
-    if (v === "locked") return "已鎖卡";
-    if (v === "expired") return "已到期";
-    return value ? String(value) : "-";
-  }
-
-  function firstValue(obj, keys) {
-    for (const key of keys) {
-      const v = obj && obj[key];
-      if (v !== undefined && v !== null && String(v).trim() !== "") return v;
     }
     return "";
   }
 
-  function escapeHtml(str) {
-    return String(str ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
+  function getPreviewUrl(p, key) {
+    var raw = p && p.__raw;
+    if (!raw) return "";
+    var features = raw.features;
+    if (!features || typeof features !== "object") return "";
+    var ppu = features.photo_preview_urls;
+    if (!ppu || typeof ppu !== "object") return "";
+    return text(ppu[key]);
   }
 
-  function escapeAttr(str) {
-    return escapeHtml(str);
+  function normalizePlan(v) {
+    return text(v).toLowerCase() === "premium" ? "premium" : "free";
   }
 
-  function $(selector) {
-    return document.querySelector(selector);
+  function mapFreeColorToTheme(v) {
+    var raw = text(v).toLowerCase();
+    var map = {
+      c1: "color-1", c2: "color-2", c3: "color-3", c4: "color-4", c5: "color-5",
+      "color-1": "color-1", "color-2": "color-2", "color-3": "color-3",
+      "color-4": "color-4", "color-5": "color-5"
+    };
+    return map[raw] || "color-1";
   }
 
-  function $$(selector, root = document) {
-    return Array.from(root.querySelectorAll(selector));
+  function mapStyleToUi(v) {
+    var raw = text(v).toLowerCase();
+    var map = { s1: "arch", s2: "flat", s3: "spot", arch: "arch", flat: "flat", spot: "spot" };
+    return map[raw] || "arch";
   }
 
-})();
+  function mapPaperToUi(v) {
+    var raw = text(v).toLowerCase();
+    var map = {
+      f1: "paper-1", f2: "paper-2", f3: "paper-3",
+      "paper-1": "paper-1", "paper-2": "paper-2", "paper-3": "paper-3"
+    };
+    return map[raw] || "paper-1";
+  }
+
+  function mapPremiumToUi(v) {
+    var raw = text(v).toLowerCase();
+    return ["p1", "p2", "p3", "p4", "p5", "p6", "p7"].includes(raw) ? raw : "p1";
+  }
+
+  function getPreviewMeta(p) {
+    return normalizePreviewMeta(
+      p && p.__raw && p.__raw.features ? p.__raw.features.preview_meta : null
+    );
+  }
+
+  function getPhotoMeta(p, key) {
+    var map = normalizePhotoMetaMap(
+      p && p.__raw && p.__raw.features ? p.__raw.features.photo_meta : null
+    );
+    return map[key] || Object.assign({}, DEFAULT_PHOTO_META);
+  }
+
+  function getEffectiveTheme(p) {
+    var preview = getPreviewMeta(p);
+    if (preview.theme === "premium" || preview.theme === "free") return preview.theme;
+    return normalizePlan(pick(p, ["plan"]));
+  }
+
+  function getPhotoLimitFromPayload(p) {
+    var limit = Number(pick(p, ["photo_limit"]));
+    if (Number.isFinite(limit) && limit > 0 && limit <= 10) return limit;
+    var theme = getEffectiveTheme(p);
+    return PLAN_LIMITS[theme] ? PLAN_LIMITS[theme].maxPhotos : PLAN_LIMITS.free.maxPhotos;
+  }
+
+  function getCtaLimitFromPayload(p) {
+    var limit = Number(pick(p, ["cta_limit"]));
+    if (Number.isFinite(limit) && limit > 0 && limit <= 10) return limit;
+    var theme = getEffectiveTheme(p);
+    return PLAN_LIMITS[theme] ? PLAN_LIMITS[theme].maxCtas : PLAN_LIMITS.free.maxCtas;
+  }
+
+  function getMarqueeText(p) {
+    return text(pick(p, ["marquee_text"]));
+  }
+
+  function isMarqueeEnabled(p) {
+    var v = text(pick(p, ["marquee_enabled"])).toLowerCase();
+    if (["1", "true", "yes", "y"].includes(v)) return true;
+    return !!getMarqueeText(p);
+  }
+
+  function pickAvatarInfo(p) {
+    var url = pick(p, ["avatar_url"]);
+    if (text(url)) return { key: "avatar_url", raw: url, url: normalizeImageUrl(url) };
+
+    var b64 = getPreviewUrl(p, "avatar");
+    if (b64) return { key: "avatar_preview", raw: b64, url: b64 };
+
+    var uimg = pick(p, ["u-img"]);
+    if (text(uimg)) return { key: "u-img", raw: uimg, url: normalizeImageUrl(uimg) };
+
+    var fallback = pick(p, ["photo1_url"]);
+    if (text(fallback)) return { key: "photo1_url", raw: fallback, url: normalizeImageUrl(fallback) };
+
+    return { key: "", raw: "", url: "" };
+  }
+
+  function pickLogoInfo(p) {
+    var url = pick(p, ["logo_url"]);
+    if (text(url)) return { key: "logo_url", raw: url, url: normalizeImageUrl(url) };
+
+    var b64 = getPreviewUrl(p, "logo");
+    if (b64) return { key: "logo_preview", raw: b64, url: b64 };
+
+    return { key: "", raw: "", url: "" };
+  }
+
+  function buildCtaItems(p) {
+    var limit = getCtaLimitFromPayload(p);
+    var items = [];
+    for (var i = 1; i <= 3; i++) {
+      var label = text(pick(p, ["cta_text_" + i, "ctaText" + i, "CTA文字" + i]));
+      var link  = normalizeUrl(pick(p, ["cta_link_" + i, "ctaLink" + i, "CTA連結" + i]));
+      if (!label || !link) continue;
+      if (items.length >= limit) break;
+      items.push({ label: label, link: link });
+    }
+    return items;
+  }
+
+  function buildMediaItems(p) {
+    var items = [];
+    ["video1", "video2", "video3"].forEach(function (k, i) {
+      var u = normalizeUrl(pick(p, [k, "影音連結" + (i + 1)]));
+      if (u) items.push({ kind: "video", idx: i + 1, url: u });
+    });
+    ["social1", "social2", "social3"].forEach(function (k, i) {
+      var u = normalizeUrl(pick(p, [k, "社群連結" + (i + 1)]));
+      if (u) items.push({ kind: "social", idx: i + 1, url: u });
+    });
+    return items;
+  }
+
+  function inferLinkMeta(url, kind, idx) {
+    var u = String(url || "").toLowerCase();
+    if (u.includes("youtube.com") || u.includes("youtu.be"))
+      return { label: "YouTube",   icon: "fa-brands fa-youtube",   cls: "dock-yt" };
+    if (u.includes("facebook.com") || u.includes("fb.com"))
+      return { label: "FB",        icon: "fa-brands fa-facebook",  cls: "dock-fb" };
+    if (u.includes("instagram.com"))
+      return { label: "Instagram", icon: "fa-brands fa-instagram", cls: "dock-ig" };
+    if (u.includes("threads.net"))
+      return { label: "Threads",   icon: "fa-solid fa-at",         cls: "dock-web" };
+    if (kind === "video") return { label: "影音 " + idx, icon: "fa-solid fa-play",  cls: "dock-web" };
+    return { label: "社群 " + idx, icon: "fa-solid fa-link", cls: "dock-web" };
+  }
+
+  function createDockBtn(label, icon, extraClass, onClick) {
+    var btn = document.createElement("button");
+    btn.className = "dock-btn" + (extraClass ? " " + extraClass : "");
+    btn.type = "button";
+    btn.innerHTML = "<i class=\"" + icon + "\"></i><span>" + escapeHtml(label) + "</span>";
+    if (typeof onClick === "function") btn.addEventListener("click", onClick);
+    return btn;
+  }
+
+  function applyWideRule(container) {
+    if (!container) return;
+    var btns = Array.from(container.querySelectorAll(".dock-btn"));
+    btns.forEach(function (b) { b.classList.remove("wide"); });
+    if (btns.length % 2 === 1 && btns.length > 0) {
+      btns[btns.length - 1].classList.add("wide");
+    }
+  }
+
+  function getQrCenterRatio(baseRatio) {
+    var vw = window.innerWidth || 390;
+    if (vw <= 360) return Math.max(0.06, baseRatio - 0.02);
+    if (vw <= 520) return Math.max(0.07, baseRatio - 0.01);
+    return baseRatio;
+  }
+
+  function buildQrImageUrl(url, size) {
+    var s = Number(size) || 220;
+    return "https://api.qrserver.com/v1/create-qr-code/"
+      + "?size=" + encodeURIComponent(s + "x" + s)
+      + "&data=" + encodeURIComponent(String(url))
+      + "&ecc=H&margin=2";
+  }
+
+  function hideCenterImg(imgEl) {
+    if (!imgEl) return;
+    imgEl.removeAttribute("src");
+    imgEl.style.display    = "none";
+    imgEl.style.background = "transparent";
+    imgEl.style.padding    = "0";
+    imgEl.style.boxShadow  = "none";
+  }
+
+  function setCenterImg(imgEl, centerImgUrl, sizeRatio) {
+    if (!imgEl) return;
+    var u = normalizeImageUrl(centerImgUrl);
+    if (!u) { hideCenterImg(imgEl); return; }
+
+    var ratio = getQrCenterRatio(sizeRatio || 0.09);
+    imgEl.dataset.baseRatio  = String(sizeRatio || 0.09);
+    imgEl.dataset.centerUrl  = u;
+    imgEl.style.position     = "absolute";
+    imgEl.style.left         = "50%";
+    imgEl.style.top          = "50%";
+    imgEl.style.width        = Math.round(ratio * 100) + "%";
+    imgEl.style.height       = Math.round(ratio * 100) + "%";
+    imgEl.style.transform    = "translate(-50%, -50%)";
+    imgEl.style.borderRadius = "999px";
+    imgEl.style.objectFit    = "cover";
+    imgEl.style.zIndex       = "3";
+    imgEl.style.background   = "transparent";
+    imgEl.style.padding      = "0";
+    imgEl.style.boxShadow    = "none";
+    imgEl.style.display      = "block";
+    imgEl.style.pointerEvents = "none";
+
+    var loadOpts = isLocalUrl(u)
+      ? {
+          onLoad: function () { imgEl.style.display = "block"; },
+          onFail: function () { hideCenterImg(imgEl); }
+        }
+      : {
+          crossOrigin:    "anonymous",
+          referrerPolicy: "no-referrer",
+          onLoad: function () { imgEl.style.display = "block"; },
+          onFail: function () { hideCenterImg(imgEl); }
+        };
+
+    setImgWithFallback(imgEl, buildImgCandidates(u), loadOpts);
+  }
+
+  function renderQr(options) {
+    var opts          = options || {};
+    var container     = opts.container;
+    var url           = opts.url;
+    var size          = opts.size || 160;
+    var centerImgEl   = opts.centerImgEl || null;
+    var centerImgUrl  = opts.centerImgUrl || "";
+    var centerSizeRatio = opts.centerSizeRatio || 0.09;
+
+    if (!container || !url) return false;
+
+    var key = url + "|" + size + "|" + normalizeImageUrl(centerImgUrl) + "|" + centerSizeRatio;
+    if (container.dataset.renderKey === key) {
+      if (centerImgEl) setCenterImg(centerImgEl, centerImgUrl, centerSizeRatio);
+      return true;
+    }
+
+    container.dataset.renderKey = key;
+    container.innerHTML = "";
+
+    var img = document.createElement("img");
+    img.alt           = "QR Code";
+    img.loading       = "eager";
+    img.decoding      = "sync";
+    img.referrerPolicy = "no-referrer";
+    try { img.crossOrigin = "anonymous"; } catch (_) {}
+    img.src = buildQrImageUrl(url, size) + "&t=" + Date.now();
+    img.style.cssText = "width:100%;height:100%;display:block;object-fit:contain;";
+    container.appendChild(img);
+
+    if (centerImgEl) setCenterImg(centerImgEl, centerImgUrl, centerSizeRatio);
+    return true;
+  }
+
+  function buildGeneratedTemplate(root, mode) {
+    root.innerHTML = [
+      '<div class="hsc-render-root ' + (mode === "form" ? "hsc-render-form" : "hsc-render-index") + '">',
+      '  <section class="card" data-card-root>',
+      '    <div class="premium-fx-layer"></div>',
+      '    <div class="banner"><div class="dynamic-mask"></div></div>',
+      '    <div class="paper-overlay"></div>',
+      '    <div class="avatar-wrap">',
+      '      <div class="avatar-circle">',
+      '        <img class="avatar" data-u-img alt="個人照" />',
+      '      </div>',
+      '    </div>',
+      '    <div class="premium-badge" data-premium-badge style="display:none;">',
+      '      <span class="badge-dot"></span><span class="badge-text">精品設計</span>',
+      '    </div>',
+      '    <div class="logo-wrap" data-logo-wrap style="display:none;">',
+      '      <img class="logo-img" data-u-logo alt="Logo" />',
+      '    </div>',
+      '    <div class="info-scroll">',
+      '      <div class="name" data-u-name></div>',
+      '      <div class="text-toggle-wrap unit-wrap" data-u-unit-wrap style="display:none;">',
+      '        <div class="unit" data-u-unit></div>',
+      '      </div>',
+      '      <div class="title" data-u-title></div>',
+      '      <div class="text-toggle-wrap slogan-wrap" data-u-slogan-wrap style="display:none;">',
+      '        <div class="slogan preline" data-u-slogan></div>',
+      '      </div>',
+      '      <div class="info-block" data-block-service style="display:none;"></div>',
+      '      <div class="info-block" data-block-exp style="display:none;"></div>',
+      '      <div class="contact-dock" data-contact-dock style="display:none;">',
+      '        <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>',
+      '        <div class="dock-buttons" data-contact-buttons></div>',
+      '      </div>',
+      '      <div class="contact-dock marquee-dock" data-marquee-dock style="display:none;">',
+      '        <div class="dock-title"><i class="fa-solid fa-bullhorn"></i> 重要訊息</div>',
+      '        <div class="marquee-shell" data-marquee-shell>',
+      '          <div class="marquee-track" data-marquee-track>',
+      '            <span class="marquee-text" data-marquee-text></span>',
+      '          </div>',
+      '        </div>',
+      '      </div>',
+      '      <div class="contact-dock primary-link-dock" data-primary-link-dock style="display:none;">',
+      '        <div class="dock-title"><i class="fa-solid fa-globe"></i> 主網站</div>',
+      '        <div class="dock-buttons" data-primary-link-buttons></div>',
+      '      </div>',
+      '      <div class="contact-dock" data-media-dock style="display:none;">',
+      '        <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／社群</div>',
+      '        <div class="dock-buttons" data-media-buttons></div>',
+      '      </div>',
+      '      <div class="contact-dock cta-dock" data-cta-dock style="display:none;">',
+      '        <div class="dock-title"><i class="fa-solid fa-bolt"></i> 立即行動</div>',
+      '        <div class="dock-buttons" data-cta-buttons></div>',
+      '      </div>',
+      '      <div class="photo-wall" data-photo-wall style="display:none;">',
+      '        <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>',
+      '        <div class="photo-grid" data-photo-grid></div>',
+      '      </div>',
+      '      <div class="card-expiry" id="cardExpiry" style="display:none;"></div>',
+      '      <div class="qr-bottom" data-bottom-qr-section style="display:none;">',
+      '        <div class="qr-bottom-head">',
+      '          <div class="qr-bottom-title">掃描 QRcode｜開啟我的智慧名片</div>',
+      '          <div class="qr-bottom-sub">可收藏・可分享・可快速回看</div>',
+      '        </div>',
+      '        <div class="qr-bottom-wrap">',
+      '          <div class="qr-bottom-canvas" style="position:relative;">',
+      '            <div class="qr-bottom-grid" data-bottom-qr-grid></div>',
+      '            <img data-bottom-qr-avatar alt="QR 頭像" />',
+      '          </div>',
+      '        </div>',
+      '      </div>',
+      '    </div>',
+      '  </section>',
+      '</div>'
+    ].join("\n");
+
+    return getScope(root, false);
+  }
+
+  function getScope(root, useExistingDom) {
+    var q = function (sel) { return root.querySelector(sel); };
+
+    if (useExistingDom) {
+      return {
+        root:               root,
+        cardRoot:           q("#card") || q(".card"),
+        banner:             q("#banner") || q(".banner"),
+        paperOverlay:       q("#paperOverlay") || q(".paper-overlay"),
+        premiumBadge:       q("#premiumBadge") || q(".premium-badge"),
+        avatar:             q("#u-img"),
+        logoWrap:           q("#logoWrap"),
+        logo:               q("#u-logo"),
+        name:               q("#u-name"),
+        unitWrap:           q("#u-unit-wrap"),
+        unit:               q("#u-unit"),
+        title:              q("#u-title"),
+        sloganWrap:         q("#u-slogan-wrap"),
+        slogan:             q("#u-slogan"),
+        blockService:       q("#block-service"),
+        blockExp:           q("#block-exp"),
+        contactDock:        q("#contactDock"),
+        contactButtons:     q("#contactButtons"),
+        marqueeDock:        q("#marqueeDock"),
+        marqueeShell:       q("#marqueeShell"),
+        marqueeTrack:       q("#marqueeTrack"),
+        marqueeText:        q("#marqueeText"),
+        primaryLinkDock:    q("#primaryLinkDock"),
+        primaryLinkButtons: q("#primaryLinkButtons"),
+        mediaDock:          q("#mediaDock"),
+        mediaButtons:       q("#mediaButtons"),
+        ctaDock:            q("#ctaDock"),
+        ctaButtons:         q("#ctaButtons"),
+        photoWall:          q("#photoWall"),
+        photoGrid:          q("#photoGrid"),
+        cardExpiry:         q("#cardExpiry"),
+        bottomQrSection:    q("#bottomQrSection"),
+        bottomQrGrid:       q("#bottomQrGrid"),
+        bottomQrAvatar:     q("#bottomQrAvatar")
+      };
+    }
+
+    return {
+      root:               root,
+      cardRoot:           q("[data-card-root]"),
+      banner:             q(".banner"),
+      paperOverlay:       q(".paper-overlay"),
+      premiumBadge:       q("[data-premium-badge]"),
+      avatar:             q("[data-u-img]"),
+      logoWrap:           q("[data-logo-wrap]"),
+      logo:               q("[data-u-logo]"),
+      name:               q("[data-u-name]"),
+      unitWrap:           q("[data-u-unit-wrap]"),
+      unit:               q("[data-u-unit]"),
+      title:              q("[data-u-title]"),
+      sloganWrap:         q("[data-u-slogan-wrap]"),
+      slogan:             q("[data-u-slogan]"),
+      blockService:       q("[data-block-service]"),
+      blockExp:           q("[data-block-exp]"),
+      contactDock:        q("[data-contact-dock]"),
+      contactButtons:     q("[data-contact-buttons]"),
+      marqueeDock:        q("[data-marquee-dock]"),
+      marqueeShell:       q("[data-marquee-shell]"),
+      marqueeTrack:       q("[data-marquee-track]"),
+      marqueeText:        q("[data-marquee-text]"),
+      primaryLinkDock:    q("[data-primary-link-dock]"),
+      primaryLinkButtons: q("[data-primary-link-buttons]"),
+      mediaDock:          q("[data-media-dock]"),
+      mediaButtons:       q("[data-media-buttons]"),
+      ctaDock:            q("[data-cta-dock]"),
+      ctaButtons:         q("[data-cta-buttons]"),
+      photoWall:          q("[data-photo-wall]"),
+      photoGrid:          q("[data-photo-grid]"),
+      cardExpiry:         q("#cardExpiry"),
+      bottomQrSection:    q("[data-bottom-qr-section]"),
+      bottomQrGrid:       q("[data-bottom-qr-grid]"),
+      bottomQrAvatar:     q("[data-bottom-qr-avatar]")
+    };
+  }
+
+  function applyThemeClasses(p, scope, options) {
+    var root     = scope.root;
+    var cardRoot = scope.cardRoot;
+    var preview  = getPreviewMeta(p);
+    var effectivePlan = preview.theme || normalizePlan(pick(p, ["plan"]));
+
+    var classTargets = [document.body];
+    if (root && root !== document.body) classTargets.push(root);
+    if (cardRoot && cardRoot !== root && cardRoot !== document.body) classTargets.push(cardRoot);
+
+    classTargets.forEach(function (el) {
+      if (!el) return;
+      BODY_MODE_CLASSES.forEach(function (c)     { el.classList.remove(c); });
+      FREE_THEME_CLASSES.forEach(function (c)    { el.classList.remove(c); });
+      PREMIUM_THEME_CLASSES.forEach(function (c) { el.classList.remove(c); });
+      STYLE_CLASSES.forEach(function (c)         { el.classList.remove(c); });
+      PAPER_CLASSES.forEach(function (c)         { el.classList.remove(c); });
+    });
+
+    var modeClass = effectivePlan === "premium" ? "mode-premium" : "mode-free";
+    classTargets.forEach(function (el) { if (el) el.classList.add(modeClass); });
+
+    if (effectivePlan === "premium") {
+      var premiumClass = mapPremiumToUi(pick(p, ["color"]) || "p1");
+      classTargets.forEach(function (el) { if (el) el.classList.add(premiumClass); });
+    } else {
+      var freeColor = mapFreeColorToTheme(pick(p, ["color"]) || "c1");
+      var styleClass = "style-" + mapStyleToUi(pick(p, ["style"]) || "s1");
+      var paperClass = mapPaperToUi(pick(p, ["paper"]) || "f1");
+      classTargets.forEach(function (el) {
+        if (!el) return;
+        el.classList.add(freeColor);
+        el.classList.add(styleClass);
+        el.classList.add(paperClass);
+      });
+    }
+
+    if (scope.premiumBadge) {
+      scope.premiumBadge.style.display = effectivePlan === "premium" ? "" : "none";
+    }
+
+    if (cardRoot) {
+      CARD_LAYOUT_CLASSES.forEach(function (c) { cardRoot.classList.remove(c); });
+      CARD_ASPECT_CLASSES.forEach(function (c) { cardRoot.classList.remove(c); });
+      CARD_FIT_CLASSES.forEach(function (c)    { cardRoot.classList.remove(c); });
+      cardRoot.classList.add(preview.layout === "single"      ? "layout-single" : "layout-grid");
+      cardRoot.classList.add(preview.aspect_ratio === "16:9"  ? "ratio-16-9"    : "ratio-1-1");
+      cardRoot.classList.add(preview.fit_mode === "contain"   ? "fit-contain"   : "fit-cover");
+    }
+  }
+
+  function renderAvatar(p, scope) {
+    var img = scope.avatar;
+    if (!img) return;
+    var info = pickAvatarInfo(p);
+    var u = info.url;
+    if (!u) { img.removeAttribute("src"); img.style.display = "none"; return; }
+    img.style.display = "block";
+    if (isLocalUrl(u)) { img.src = u; return; }
+    setImgWithFallback(img, buildImgCandidates(u), {
+      onLoad: function () { img.style.display = "block"; },
+      onFail: function () { img.removeAttribute("src"); img.style.display = "none"; }
+    });
+  }
+
+  function renderLogo(p, scope) {
+    var wrap = scope.logoWrap;
+    var img  = scope.logo;
+    if (!wrap || !img) return;
+    var info = pickLogoInfo(p);
+    var u = info.url;
+    if (!u) { wrap.style.display = "none"; img.removeAttribute("src"); return; }
+    wrap.style.display = "flex";
+    img.style.display  = "block";
+    if (isLocalUrl(u)) { img.src = u; return; }
+    setImgWithFallback(img, buildImgCandidates(u), {
+      onLoad:  function () { wrap.style.display = "flex"; img.style.display = "block"; },
+      onFail:  function () { wrap.style.display = "none"; img.removeAttribute("src"); img.style.display = "none"; }
+    });
+  }
+
+  function renderTexts(p, scope) {
+    var nameVal   = text(pick(p, ["name", "display_name", "姓名"])) || "未命名";
+    var unitVal   = normalizeLongText(pick(p, ["unit", "單位", "公司"]));
+    var titleVal  = text(pick(p, ["title", "職稱"])) || "";
+    var sloganVal = normalizeLongText(pick(p, ["slogan", "intro", "一句話", "簡介"]));
+
+    if (scope.name)   scope.name.textContent   = nameVal;
+    if (scope.unit)   scope.unit.textContent   = unitVal;
+    if (scope.title)  scope.title.textContent  = titleVal;
+    if (scope.slogan) scope.slogan.textContent = sloganVal;
+
+    if (scope.unitWrap)   scope.unitWrap.style.display   = unitVal   ? "" : "none";
+    if (scope.sloganWrap) scope.sloganWrap.style.display = sloganVal ? "" : "none";
+  }
+
+  function renderInfoBlock(blockEl, title, body) {
+    if (!blockEl) return;
+    var value = normalizeLongText(body);
+    if (!value) { blockEl.style.display = "none"; blockEl.innerHTML = ""; return; }
+    blockEl.style.display = "";
+    blockEl.innerHTML =
+      '<div class="block-title">' + escapeHtml(title) + '</div>' +
+      '<div class="block-body preline">' + escapeHtml(value) + '</div>';
+  }
+
+  function renderBlocks(p, scope) {
+    renderInfoBlock(scope.blockService, "服務項目",
+      pick(p, ["services", "服務項目", "service"]));
+    renderInfoBlock(scope.blockExp, "經歷 / 品牌故事",
+      pick(p, ["experience", "經歷", "exp"]));
+  }
+
+  function renderMarquee(p, scope) {
+    var dock   = scope.marqueeDock;
+    var shell  = scope.marqueeShell;
+    var track  = scope.marqueeTrack;
+    var textEl = scope.marqueeText;
+    if (!dock || !shell || !track || !textEl) return;
+
+    var marqueeText = getMarqueeText(p);
+    var enabled = isMarqueeEnabled(p);
+
+    if (!enabled || !marqueeText) {
+      dock.style.display = "none";
+      textEl.textContent = "";
+      track.style.removeProperty("--marquee-duration");
+      dock.classList.remove("is-static");
+      return;
+    }
+
+    var parts = marqueeText.split("｜").map(function (s) { return s.trim(); }).filter(Boolean);
+    var joined = (parts.length ? parts : [marqueeText]).join("　｜　");
+    textEl.textContent = joined + "　｜　" + joined + "　｜　";
+    dock.style.display = "";
+
+    requestAnimationFrame(function () {
+      var shellWidth = shell.clientWidth || 280;
+      var textWidth  = textEl.scrollWidth || shellWidth;
+      var distance   = Math.max(textWidth, shellWidth);
+      var duration   = Math.max(10, Math.round(distance / 36));
+      track.style.setProperty("--marquee-duration", duration + "s");
+      if (textWidth <= shellWidth + 20) dock.classList.add("is-static");
+      else dock.classList.remove("is-static");
+    });
+  }
+
+  function renderContactDock(p, scope, options) {
+    var dock = scope.contactDock;
+    var btns = scope.contactButtons;
+    if (!dock || !btns) return;
+    btns.innerHTML = "";
+
+    var phone    = pick(p, ["phone", "電話"]);
+    var email    = pick(p, ["email", "Email"]);
+    var address  = pick(p, ["address", "地址"]);
+    var lineUrl  = normalizeUrl(pick(p, ["line_url", "line_oa", "LINE連結"]));
+    var wechatId = text(pick(p, ["wechat_id", "wechat", "微信ID", "微信"]));
+    var allowActions = options.allowActions !== false;
+    var list = [];
+
+    if (lineUrl) {
+      list.push(createDockBtn("私訊 LINE", "fa-brands fa-line", "dock-line", function () {
+        if (allowActions) openUrl(lineUrl);
+      }));
+    }
+    if (wechatId) {
+      list.push(createDockBtn("微信ID", "fa-brands fa-weixin", "dock-web", function () {
+        if (!allowActions) return;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText)
+            navigator.clipboard.writeText(wechatId);
+        } catch (_) {}
+      }));
+    }
+    if (phone) {
+      list.push(createDockBtn("電話", "fa-solid fa-phone", "dock-web", function () {
+        if (!allowActions) return;
+        location.href = "tel:" + text(phone);
+      }));
+    }
+    if (email) {
+      list.push(createDockBtn("Email", "fa-solid fa-envelope", "dock-web", function () {
+        if (!allowActions) return;
+        location.href = "mailto:" + text(email);
+      }));
+    }
+    if (address) {
+      list.push(createDockBtn("地址導航", "fa-solid fa-location-dot", "dock-map", function () {
+        if (!allowActions) return;
+        openMapByAddress(address);
+      }));
+    }
+
+    if (!list.length) { dock.style.display = "none"; return; }
+    list.forEach(function (btn) { btns.appendChild(btn); });
+    dock.style.display = "";
+    applyWideRule(btns);
+  }
+
+  function renderPrimaryLinkDock(p, scope, options) {
+    var dock = scope.primaryLinkDock;
+    var btns = scope.primaryLinkButtons;
+    if (!dock || !btns) return;
+    btns.innerHTML = "";
+    var website = normalizeUrl(pick(p, ["website", "網站", "web", "homepage"]));
+    if (!website) { dock.style.display = "none"; return; }
+    var allowActions = options.allowActions !== false;
+    btns.appendChild(createDockBtn("官方網站", "fa-solid fa-globe", "dock-web wide", function () {
+      if (allowActions) openUrl(website);
+    }));
+    dock.style.display = "";
+  }
+
+  function renderMediaDock(p, scope, options) {
+    var dock = scope.mediaDock;
+    var btns = scope.mediaButtons;
+    if (!dock || !btns) return;
+    btns.innerHTML = "";
+    var items = buildMediaItems(p);
+    var allowActions = options.allowActions !== false;
+    if (!items.length) { dock.style.display = "none"; return; }
+    items.forEach(function (item) {
+      var meta = inferLinkMeta(item.url, item.kind, item.idx);
+      btns.appendChild(createDockBtn(meta.label, meta.icon, meta.cls, function () {
+        if (allowActions) openUrl(item.url);
+      }));
+    });
+    dock.style.display = "";
+    applyWideRule(btns);
+  }
+
+  function renderCtaDock(p, scope, options) {
+    var dock = scope.ctaDock;
+    var btns = scope.ctaButtons;
+    if (!dock || !btns) return;
+    btns.innerHTML = "";
+    var items = buildCtaItems(p);
+    var allowActions = options.allowActions !== false;
+    if (!items.length) { dock.style.display = "none"; return; }
+    items.forEach(function (item, idx) {
+      btns.appendChild(createDockBtn(
+        item.label,
+        idx === 0 ? "fa-solid fa-bolt" : "fa-solid fa-arrow-up-right-from-square",
+        items.length === 1 ? "dock-web wide" : "dock-web",
+        function () { if (allowActions) openUrl(item.link); }
+      ));
+    });
+    dock.style.display = "";
+    applyWideRule(btns);
+  }
+
+  function collectPhotos(p) {
+    var photos = [];
+    var limit  = getPhotoLimitFromPayload(p);
+
+    for (var i = 1; i <= limit; i++) {
+      var raw = pick(p, ["photo" + i + "_url", "photo_url_" + i]);
+      var url = raw ? normalizeImageUrl(raw) : "";
+
+      if (url) {
+        photos.push({ key: "photo" + i, url: url });
+        continue;
+      }
+
+      var b64 = getPreviewUrl(p, "photo" + i);
+      if (b64) photos.push({ key: "photo" + i, url: b64 });
+    }
+
+    return photos;
+  }
+
+  function applyPhotoMetaToImg(img, meta, fitMode) {
+    if (!img) return;
+    var x      = clampNumber(meta && meta.x,      0,    1,   DEFAULT_PHOTO_META.x);
+    var y      = clampNumber(meta && meta.y,      0,    1,   DEFAULT_PHOTO_META.y);
+    var scale  = clampNumber(meta && meta.scale,  0.5,  3,   DEFAULT_PHOTO_META.scale);
+    var rotate = clampNumber(meta && meta.rotate, -180, 180, DEFAULT_PHOTO_META.rotate);
+    img.style.objectPosition = (x * 100).toFixed(2) + "% " + (y * 100).toFixed(2) + "%";
+    img.style.objectFit      = fitMode === "contain" ? "contain" : "cover";
+    img.style.transformOrigin = "center center";
+    img.style.transform       = "scale(" + scale + ") rotate(" + rotate + "deg)";
+  }
+
+  function shouldUsePhotoCarousel_(photoCount, plan) {
+    var normalizedPlan = String(plan || "").toLowerCase() === "premium" ? "premium" : "free";
+    if (normalizedPlan === "premium") return photoCount >= 4;
+    return photoCount >= 5;
+  }
+
+  function buildPhotoCarousel_(photos, p, preview, allowActions) {
+    var carousel = document.createElement("div");
+    carousel.className = "photo-carousel";
+    carousel.setAttribute("data-photo-carousel", "");
+
+    var track = document.createElement("div");
+    track.className = "carousel-track";
+    track.setAttribute("data-carousel-track", "");
+
+    photos.forEach(function (item, idx) {
+      var tile = document.createElement("div");
+      tile.className = "photo-tile";
+      tile.setAttribute("data-carousel-index", String(idx));
+      tile.setAttribute("data-photo-key", item.key);
+
+      var img = document.createElement("img");
+      img.className  = "wall-img";
+      img.alt        = "照片 " + (idx + 1);
+      img.loading    = idx === 0 ? "eager" : "lazy";
+      img.decoding   = "async";
+
+      var meta = getPhotoMeta(p, item.key);
+      applyPhotoMetaToImg(img, meta, preview.fit_mode);
+
+      if (isLocalUrl(item.url)) {
+        img.src = item.url;
+      } else {
+        setImgWithFallback(img, buildImgCandidates(item.url), {
+          onFail: function () { tile.style.display = "none"; }
+        });
+      }
+
+      if (allowActions && !isLocalUrl(item.url)) {
+        img.style.cursor = "pointer";
+        img.addEventListener("click", function () { openUrl(item.url); });
+      }
+
+      tile.appendChild(img);
+      track.appendChild(tile);
+    });
+
+    carousel.appendChild(track);
+    applyCarouselRatioStyles_(carousel, track, preview);
+
+    var dotsWrap = document.createElement("div");
+    dotsWrap.className = "carousel-dots";
+    dotsWrap.setAttribute("data-carousel-dots", "");
+
+    photos.forEach(function (_, idx) {
+      var dot = document.createElement("button");
+      dot.type      = "button";
+      dot.className = "carousel-dot" + (idx === 0 ? " active" : "");
+      dot.setAttribute("data-dot-index", String(idx));
+      dot.setAttribute("aria-label", "照片 " + (idx + 1));
+      dotsWrap.appendChild(dot);
+    });
+
+    return { carousel: carousel, dotsWrap: dotsWrap };
+  }
+
+  function initPhotoCarousel_(wall, options) {
+    var opts     = options || {};
+    var interval = opts.interval || 3200;
+
+    var carousel = wall.querySelector("[data-photo-carousel]");
+    var track    = wall.querySelector("[data-carousel-track]");
+    var dotsWrap = wall.querySelector("[data-carousel-dots]");
+    if (!carousel || !track || !dotsWrap) return;
+
+    var tiles   = Array.from(track.querySelectorAll(".photo-tile"));
+    var dots    = Array.from(dotsWrap.querySelectorAll(".carousel-dot"));
+    if (!tiles.length) return;
+
+    var total   = tiles.length;
+    var current = 0;
+    var timer   = null;
+    var paused  = false;
+
+    function syncDots(idx) {
+      dots.forEach(function (d, i) {
+        d.classList.toggle("active", i === idx);
+      });
+    }
+
+    function goTo(idx) {
+      idx = ((idx % total) + total) % total;
+      current = idx;
+      var tile = tiles[idx];
+      if (tile) {
+        carousel.scrollTo({ left: tile.offsetLeft, behavior: "smooth" });
+      }
+      syncDots(idx);
+    }
+
+    function next() { goTo(current + 1); }
+    function startAuto() {
+      if (timer) return;
+      timer = setInterval(function () {
+        if (!paused) next();
+      }, interval);
+    }
+
+    function stopAuto() {
+      if (timer) { clearInterval(timer); timer = null; }
+    }
+
+    dots.forEach(function (dot) {
+      dot.addEventListener("click", function () {
+        var idx = parseInt(dot.getAttribute("data-dot-index"), 10);
+        goTo(idx);
+        stopAuto();
+        startAuto();
+      });
+    });
+
+    var scrollTimer = null;
+    carousel.addEventListener("scroll", function () {
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(function () {
+        var cx = carousel.scrollLeft + carousel.clientWidth / 2;
+        var best = 0;
+        var bestDist = Infinity;
+        tiles.forEach(function (tile, i) {
+          var tc   = tile.offsetLeft + tile.offsetWidth / 2;
+          var dist = Math.abs(cx - tc);
+          if (dist < bestDist) { bestDist = dist; best = i; }
+        });
+        if (best !== current) { current = best; syncDots(best); }
+      }, 80);
+    }, { passive: true });
+
+    carousel.addEventListener("mouseenter", function () { paused = true; });
+    carousel.addEventListener("mouseleave", function () { paused = false; });
+    carousel.addEventListener("touchstart", function () { paused = true;  stopAuto();  }, { passive: true });
+    carousel.addEventListener("touchend",   function () { paused = false; startAuto(); }, { passive: true });
+
+    startAuto();
+  }
+
+  function renderPhotoWall(p, scope, options) {
+    var wall = scope.photoWall;
+    var grid = scope.photoGrid;
+    if (!wall || !grid) return;
+
+    grid.innerHTML = "";
+    var oldCarousel = wall.querySelector("[data-photo-carousel]");
+    var oldDots     = wall.querySelector("[data-carousel-dots]");
+    if (oldCarousel) oldCarousel.parentNode.removeChild(oldCarousel);
+    if (oldDots)     oldDots.parentNode.removeChild(oldDots);
+    wall.style.display = "none";
+
+    var photos       = collectPhotos(p);
+    var preview      = getPreviewMeta(p);
+    var plan         = getEffectiveTheme(p);
+    var allowActions = options.allowActions !== false;
+
+    if (!photos.length) return;
+
+    var useCarousel = shouldUsePhotoCarousel_(photos.length, plan);
+
+    if (useCarousel) {
+      grid.style.display = "none";
+      var built = buildPhotoCarousel_(photos, p, preview, allowActions);
+      wall.appendChild(built.carousel);
+      wall.appendChild(built.dotsWrap);
+      wall.style.display = "";
+
+      applyCarouselRatioStyles_(
+        built.carousel,
+        built.carousel.querySelector("[data-carousel-track]"),
+        preview
+      );
+
+      initPhotoCarousel_(wall, { interval: 3200 });
+
+    } else {
+      grid.style.display = "";
+      grid.className = "photo-grid";
+
+      if (preview.layout === "single")   grid.classList.add("layout-single");
+      else if (photos.length === 1)      grid.classList.add("layout-1");
+      else if (photos.length === 2)      grid.classList.add("layout-2");
+      else if (photos.length === 3)      grid.classList.add("layout-3");
+      else if (photos.length === 4)      grid.classList.add("layout-4");
+      else                               grid.classList.add("layout-5");
+
+      grid.classList.add(preview.aspect_ratio === "16:9" ? "ratio-16-9" : "ratio-1-1");
+      grid.classList.add(preview.fit_mode === "contain"  ? "fit-contain" : "fit-cover");
+
+      photos.forEach(function (item, idx) {
+        var tile = document.createElement("div");
+        tile.className           = "photo-tile";
+        tile.dataset.photoKey    = item.key;
+
+        var img = document.createElement("img");
+        img.className  = "wall-img";
+        img.alt        = "照片 " + (idx + 1);
+        img.loading    = "lazy";
+        img.decoding   = "async";
+
+        var meta = getPhotoMeta(p, item.key);
+        applyPhotoMetaToImg(img, meta, preview.fit_mode);
+
+        if (isLocalUrl(item.url)) {
+          img.src = item.url;
+          img.onload  = function () { wall.style.display = ""; };
+          img.onerror = function () {
+            tile.remove();
+            if (!grid.children.length) wall.style.display = "none";
+          };
+        } else {
+          setImgWithFallback(img, buildImgCandidates(item.url), {
+            onLoad: function () { wall.style.display = ""; },
+            onFail: function () {
+              tile.remove();
+              if (!grid.children.length) wall.style.display = "none";
+            }
+          });
+        }
+
+        if (allowActions && !isLocalUrl(item.url)) {
+          img.style.cursor = "pointer";
+          img.addEventListener("click", function () { openUrl(item.url); });
+        }
+
+        tile.appendChild(img);
+        grid.appendChild(tile);
+      });
+
+      if (grid.children.length) wall.style.display = "";
+    }
+  }
+
+  function resolveQrUrl(p, options) {
+    var qrMode = options.qrMode || "card";
+    if (qrMode === "facade") {
+      return normalizeUrl(
+        pick(p, ["facade_url", "hub_url", "showcase_url", "website"]) ||
+        options.facadeUrl || options.hubUrl || ""
+      );
+    }
+    if (qrMode === "preview") {
+      return normalizeUrl(
+        pick(p, ["preview_url", "share_url", "card_url"]) ||
+        options.previewUrl || options.shareUrl || options.cardUrl || ""
+      );
+    }
+    return normalizeUrl(
+      pick(p, ["card_url", "share_url", "preview_url", "website"]) ||
+      options.cardUrl || options.shareUrl || ""
+    );
+  }
+
+  function renderBottomQr(p, scope, options) {
+    var sec    = scope.bottomQrSection;
+    var grid   = scope.bottomQrGrid;
+    var avatar = scope.bottomQrAvatar;
+    if (!sec || !grid || !avatar) return;
+
+    var qrUrl     = resolveQrUrl(p, options);
+    var avatarUrl = pickAvatarInfo(p).url;
+
+    if (!qrUrl) {
+      sec.style.display = "none";
+      grid.innerHTML = "";
+      hideCenterImg(avatar);
+      return;
+    }
+
+    sec.style.display = "";
+    renderQr({
+      container:      grid,
+      url:            qrUrl,
+      size:           136,
+      centerImgEl:    avatar,
+      centerImgUrl:   avatarUrl,
+      centerSizeRatio: 0.09
+    });
+  }
+
+  function applyCarouselRatioStyles_(carousel, track, preview) {
+    if (!carousel || !track) return;
+
+    var is169   = preview && preview.aspect_ratio === "16:9";
+    var fitMode = preview && preview.fit_mode === "contain" ? "contain" : "cover";
+
+    carousel.classList.remove("ratio-1-1", "ratio-16-9", "fit-cover", "fit-contain");
+    carousel.classList.add(is169 ? "ratio-16-9" : "ratio-1-1");
+    carousel.classList.add(fitMode === "contain" ? "fit-contain" : "fit-cover");
+
+    carousel.style.position = "relative";
+    carousel.style.width = "100%";
+    carousel.style.maxWidth = "100%";
+    carousel.style.overflowX = "auto";
+    carousel.style.overflowY = "hidden";
+    carousel.style.borderRadius = "18px";
+    carousel.style.aspectRatio = is169 ? "16 / 9" : "1 / 1";
+    carousel.style.scrollSnapType = "x mandatory";
+    carousel.style.WebkitOverflowScrolling = "touch";
+    carousel.style.scrollBehavior = "smooth";
+    carousel.style.scrollbarWidth = "none";
+
+    track.style.display = "flex";
+    track.style.width = "100%";
+    track.style.height = "100%";
+    track.style.minHeight = "100%";
+    track.style.overflow = "visible";
+
+    Array.from(track.children).forEach(function (tile) {
+      tile.style.flex = "0 0 100%";
+      tile.style.width = "100%";
+      tile.style.maxWidth = "100%";
+      tile.style.height = "100%";
+      tile.style.minHeight = "100%";
+      tile.style.position = "relative";
+      tile.style.overflow = "hidden";
+      tile.style.scrollSnapAlign = "start";
+
+      var img = tile.querySelector(".wall-img");
+      if (img) {
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.display = "block";
+        img.style.objectFit = fitMode;
+      }
+    });
+  }
+
+  function renderCard(data, options) {
+    var opts = Object.assign({}, DEFAULTS, options || {});
+    if (!opts.root || !(opts.root instanceof HTMLElement)) {
+      throw new Error("renderCard(data, options) 需要提供 options.root HTMLElement");
+    }
+
+    var sourceRow = data || {};
+    if (
+      sourceRow &&
+      typeof sourceRow === "object" &&
+      !text(sourceRow.name) &&
+      text(sourceRow.lead_snapshot)
+    ) {
+      var snap = safeJsonParse(sourceRow.lead_snapshot);
+      if (snap && typeof snap === "object") {
+        sourceRow = Object.assign({}, snap, sourceRow);
+      }
+    }
+
+    sourceRow = normalizeFeatures(sourceRow);
+    var p = buildNormalizedPayload(sourceRow);
+
+    var scope = opts.useExistingDom
+      ? getScope(opts.root, true)
+      : buildGeneratedTemplate(opts.root, opts.mode);
+
+    if (!scope.cardRoot) {
+      throw new Error("card-renderer.js 找不到 card root，請確認 root 或 HTML 結構");
+    }
+
+    applyThemeClasses(p, scope, opts);
+    renderAvatar(p, scope);
+    renderLogo(p, scope);
+    renderTexts(p, scope);
+    renderBlocks(p, scope);
+    renderContactDock(p, scope, opts);
+    renderMarquee(p, scope);
+    renderPrimaryLinkDock(p, scope, opts);
+    renderMediaDock(p, scope, opts);
+    renderCtaDock(p, scope, opts);
+    renderPhotoWall(p, scope, opts);
+    renderBottomQr(p, scope, opts);
+
+    return {
+      ok: true,
+      data: p,
+      scope: scope,
+      meta: {
+        plan:        getEffectiveTheme(p),
+        photoLimit:  getPhotoLimitFromPayload(p),
+        ctaLimit:    getCtaLimitFromPayload(p),
+        previewMeta: getPreviewMeta(p)
+      }
+    };
+  }
+
+  var __bridgeState = {
+    shell: null,
+    lite: null,
+    full: null
+  };
+
+  function __mergeObjects(a, b) {
+    var out = {};
+    var srcA = a && typeof a === "object" ? a : {};
+    var srcB = b && typeof b === "object" ? b : {};
+    Object.keys(srcA).forEach(function (k) { out[k] = srcA[k]; });
+    Object.keys(srcB).forEach(function (k) { out[k] = srcB[k]; });
+    return out;
+  }
+
+  function __resolveBridgeArgs(arg1, arg2, arg3) {
+    var root = null;
+    var data = null;
+    var options = {};
+
+    if (arg1 instanceof HTMLElement) {
+      root = arg1;
+      data = arg2 || {};
+      options = arg3 || {};
+    } else {
+      data = arg1 || {};
+      options = arg2 || {};
+      root = options.root || null;
+    }
+
+    options = Object.assign({}, options);
+    if (root) options.root = root;
+    if (!options.root || !(options.root instanceof HTMLElement)) {
+      throw new Error("card-renderer bridge 需要 root HTMLElement");
+    }
+    if (typeof options.useExistingDom === "undefined") {
+      options.useExistingDom = true;
+    }
+    return { root: options.root, data: data || {}, options: options };
+  }
+
+  function renderShell(arg1, arg2, arg3) {
+    var ctx = __resolveBridgeArgs(arg1, arg2, arg3);
+    __bridgeState.shell = ctx.data || {};
+    var merged = __mergeObjects({}, __bridgeState.shell);
+    return renderCard(merged, ctx.options);
+  }
+
+  function mergeLite(arg1, arg2, arg3) {
+    var ctx = __resolveBridgeArgs(arg1, arg2, arg3);
+    __bridgeState.lite = ctx.data || {};
+    var merged = __mergeObjects(__bridgeState.shell, __bridgeState.lite);
+    return renderCard(merged, ctx.options);
+  }
+
+  function mergeCardData(arg1, arg2, arg3) {
+    var ctx = __resolveBridgeArgs(arg1, arg2, arg3);
+    __bridgeState.full = ctx.data || {};
+    var merged = __mergeObjects(__mergeObjects(__bridgeState.shell, __bridgeState.lite), __bridgeState.full);
+    return renderCard(merged, ctx.options);
+  }
+
+  var api = {
+    renderCard:              renderCard,
+    renderQr:                renderQr,
+    shouldUsePhotoCarousel_: shouldUsePhotoCarousel_,
+    initPhotoCarousel_:      initPhotoCarousel_,
+    renderShell:             renderShell,
+    mergeLite:               mergeLite,
+    mergeCardData:           mergeCardData,
+    version: "HSC-card-renderer-v8.4.2-photo-wall-carousel-ratio-fix+v1.5.1-compat-bridge"
+  };
+
+  global.HscCardRenderer  = api;
+  global.HSCCardRenderer  = api;
+  global.renderCard       = renderCard;
+  global.renderQr         = renderQr;
+
+})(window);
