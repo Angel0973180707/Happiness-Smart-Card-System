@@ -1,6 +1,6 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v8.3.4-request-db-fix
+   v8.3.5-commercial-cache
    完整覆蓋版
 
    v8.3.4 修正項目：
@@ -31,7 +31,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v8.3.4-request-db-fix",
+  VERSION: "v8.4.0-speed-v1",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -120,6 +120,59 @@ const facadeState = {
   paper: "f1",
   premiumColor: "p1"
 };
+
+
+const CARD_CACHE_PREFIX = "hsc_card_cache_v15:";
+const CARD_CACHE_TTL = { shell: 120000, lite: 180000 };
+const trackingWarmState_ = { fullFetched: Object.create(null) };
+
+function getCardCacheKey_(type, cardId){
+  return CARD_CACHE_PREFIX + String(type || "card") + ":" + normalizeId_(cardId || CONFIG.DEFAULT_ID);
+}
+
+function readCardCache_(type, cardId){
+  try{
+    const raw = sessionStorage.getItem(getCardCacheKey_(type, cardId)) || localStorage.getItem(getCardCacheKey_(type, cardId));
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(!parsed || !parsed.data || !parsed.savedAt) return null;
+    const ttl = CARD_CACHE_TTL[type] || 120000;
+    if(Date.now() - Number(parsed.savedAt) > ttl) return null;
+    return parsed.data;
+  }catch(_err){ return null; }
+}
+
+function writeCardCache_(type, cardId, data){
+  try{
+    const payload = JSON.stringify({ savedAt: Date.now(), data: data || {} });
+    const key = getCardCacheKey_(type, cardId);
+    sessionStorage.setItem(key, payload);
+    localStorage.setItem(key, payload);
+  }catch(_err){}
+}
+
+function primeCardCacheFromRow_(cardId, row){
+  if(!row || typeof row !== "object") return;
+  writeCardCache_("shell", cardId, row);
+  writeCardCache_("lite", cardId, row);
+}
+
+function initAsyncTrackingDelegation_(){
+  if(document.body && document.body.dataset.v15TrackBound === "1") return;
+  if(document.body) document.body.dataset.v15TrackBound = "1";
+  document.addEventListener("click", function(e){
+    const target = e.target && (e.target.closest('[data-cta], .cta-btn, .dock-btn, a[href], button'));
+    if(!target) return;
+    const sp = getSearchParams_();
+    const cardId = normalizeId_(sp.get('id') || (currentRow && pick(currentRow,['id'])) || CONFIG.DEFAULT_ID);
+    if(!cardId || trackingWarmState_.fullFetched[cardId]) return;
+    trackingWarmState_.fullFetched[cardId] = true;
+    setTimeout(function(){
+      const url = buildCardFullApiUrl_(cardId, { trackView: true, withTrackedCta: true });
+      try{ fetch(url, { method:'GET', cache:'no-store', keepalive:true }); }catch(_err){}
+    }, 0);
+  }, true);
+}
 
 /* ============================================================
    基礎工具
@@ -2070,6 +2123,7 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenter
     initSelectionState_();
     applySmartBalanceAll_();
     updateInstallUi_();
+    initAsyncTrackingDelegation_();
     bindAnnouncementModal_();
     fetchAndRenderAnnouncements_();
 
@@ -2220,3 +2274,144 @@ __hscCopyrightObserver.observe(
     subtree: true
   }
 );
+
+/* ============================================================
+   v8.4.0 speed layer overrides
+============================================================ */
+function buildCardShellApiUrl_(id){
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  const u = new URL(CONFIG.GAS);
+  u.searchParams.set("action", "getCardPublicShell");
+  u.searchParams.set("id", cid);
+  u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
+  u.searchParams.set("ts", String(Date.now()));
+  u.searchParams.set("v", CONFIG.VERSION);
+  return u.toString();
+}
+
+function buildCardLiteApiUrl_(id){
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  const u = new URL(CONFIG.GAS);
+  u.searchParams.set("action", "getCardPublicLite");
+  u.searchParams.set("id", cid);
+  u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
+  u.searchParams.set("ts", String(Date.now()));
+  u.searchParams.set("v", CONFIG.VERSION);
+  return u.toString();
+}
+
+function buildCardFullApiUrl_(id, opts = {}){
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  const u = new URL(CONFIG.GAS);
+  u.searchParams.set("action", "getCard");
+  u.searchParams.set("id", cid);
+  u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
+  u.searchParams.set("track_view", opts.trackView === true ? "true" : "false");
+  u.searchParams.set("with_tracked_cta", opts.withTrackedCta === true ? "true" : "false");
+  u.searchParams.set("ts", String(Date.now()));
+  u.searchParams.set("v", CONFIG.VERSION);
+  return u.toString();
+}
+
+async function loadCardShellById_(cardId){
+  const cached = readCardCache_('shell', cardId);
+  if(cached && typeof cached === 'object' && Object.keys(cached).length){
+    return normalizeCardFeatures(cached);
+  }
+  const payload = await fetchJsonRobust_(buildCardShellApiUrl_(cardId));
+  const row = extractCardRow_(payload);
+  if(!row || typeof row !== 'object' || !Object.keys(row).length) throw new Error('名片 shell 資料為空，id=' + cardId);
+  writeCardCache_('shell', cardId, row);
+  return normalizeCardFeatures(row);
+}
+
+async function loadCardLiteById_(cardId){
+  const cached = readCardCache_('lite', cardId);
+  if(cached && typeof cached === 'object' && Object.keys(cached).length){
+    return normalizeCardFeatures(cached);
+  }
+  const payload = await fetchJsonRobust_(buildCardLiteApiUrl_(cardId));
+  const row = extractCardRow_(payload);
+  if(!row || typeof row !== 'object' || !Object.keys(row).length) throw new Error('名片 lite 資料為空，id=' + cardId);
+  writeCardCache_('lite', cardId, row);
+  return normalizeCardFeatures(row);
+}
+
+async function loadCardFullById_(cardId, opts = {}){
+  const payload = await fetchJsonRobust_(buildCardFullApiUrl_(cardId, opts));
+  const row = extractCardRow_(payload);
+  if(!row || typeof row !== 'object' || !Object.keys(row).length) throw new Error('名片 full 資料為空，id=' + cardId);
+  return normalizeCardFeatures(row);
+}
+
+function mergeCardPayload_(base, extra){
+  const out = { ...(base || {}) };
+  const src = extra || {};
+  Object.keys(src).forEach(k => {
+    const v = src[k];
+    if(v !== undefined && v !== null && String(v) !== '') out[k] = v;
+  });
+  return normalizeCardFeatures(out);
+}
+
+async function loadCardById_(cardId){
+  const shell = await loadCardShellById_(cardId);
+  try{
+    const lite = await loadCardLiteById_(cardId);
+    return mergeCardPayload_(shell, lite);
+  }catch(_err){
+    return shell;
+  }
+}
+
+async function renderPersonalCard_(cardId){
+  const root = qs('livePreviewCard');
+  if(!root) throw new Error('找不到 #livePreviewCard');
+  const shell = await loadCardShellById_(cardId);
+  let merged = normalizeCardFeatures(shell);
+  const rendererObj = window.HscCardRenderer || window.HSCCardRenderer;
+  if(!rendererObj || typeof rendererObj.renderCard !== 'function') throw new Error('card-renderer.js 未正確載入');
+  const shellPayload = buildNormalizedPayload_(merged);
+  const shellShareUrl = buildTrackedShareUrl_(shellPayload);
+  merged.card_url = shellShareUrl;
+  merged.share_url = shellShareUrl;
+  merged.preview_url = shellShareUrl;
+  rendererObj.renderCard(buildNormalizedPayload_(merged), { mode:'index', root, useExistingDom:true, qrMode:'card', allowActions:true, cardUrl:shellShareUrl, shareUrl:shellShareUrl, previewUrl:shellShareUrl, stage:'shell' });
+  currentRow = buildNormalizedPayload_(merged);
+  facadeCurrentRow = currentRow;
+  window.__CARD_DATA__ = currentRow;
+  window.cardData = currentRow;
+  try {
+    const lite = await loadCardLiteById_(cardId);
+    primeCardCacheFromRow_(cardId, lite);
+    merged = mergeCardPayload_(merged, lite);
+    const litePayload = buildNormalizedPayload_(merged);
+    rendererObj.mergeCardData(litePayload, { mode:'index', root, useExistingDom:true, qrMode:'card', allowActions:true, stage:'lite' });
+    currentRow = litePayload;
+    facadeCurrentRow = litePayload;
+    window.__CARD_DATA__ = litePayload;
+    window.cardData = litePayload;
+    renderPostRendererUi_(litePayload, root);
+  } catch(err) {
+    console.warn('[HSC card] lite merge failed:', err);
+    renderPostRendererUi_(currentRow, root);
+  }
+}
+
+async function loadFacadeBaseCard(){
+  const shell = await loadCardShellById_(FACADE_SAMPLE_ID);
+  let merged = normalizeCardFeatures(shell);
+  try{ const facadeLite = await loadCardLiteById_(FACADE_SAMPLE_ID); primeCardCacheFromRow_(FACADE_SAMPLE_ID, facadeLite); merged = mergeCardPayload_(merged, facadeLite); }catch(err){ console.warn('[HSC facade] lite load failed:', err); }
+  facadeBaseData = buildNormalizedPayload_(merged);
+  const basePlan = getEffectiveTheme_(facadeBaseData);
+  if(basePlan === 'premium'){
+    facadeState.plan = 'premium';
+    facadeState.premiumColor = text(pick(facadeBaseData, ['color'])) || 'p1';
+  }else{
+    facadeState.plan = 'free';
+    facadeState.color = text(pick(facadeBaseData, ['color'])) || 'c1';
+    facadeState.style = text(pick(facadeBaseData, ['style'])) || 's1';
+    facadeState.paper = text(pick(facadeBaseData, ['paper'])) || 'f1';
+  }
+  syncPlanUI_();
+}
