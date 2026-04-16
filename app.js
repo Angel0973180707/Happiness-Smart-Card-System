@@ -31,7 +31,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v8.3.4-request-db-fix-v1.5.1",
+  VERSION: "v8.3.4-request-db-fix-v1.5.5",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -1029,6 +1029,23 @@ async function renderPersonalCard_(cardId){
           window.__CARD_DATA__ = normalizedFull;
           window.cardData = normalizedFull;
           renderPostRendererUi_(normalizedFull, root);
+
+          const blockService = root.querySelector("#block-service") || qs("block-service");
+          const blockExp = root.querySelector("#block-exp") || qs("block-exp");
+
+          renderExpandableInfoBlock_(
+            blockService,
+            "服務項目",
+            pick(normalizedFull, ["services","服務項目","service"]),
+            2
+          );
+
+          renderExpandableInfoBlock_(
+            blockExp,
+            "經歷 / 品牌故事",
+            pick(normalizedFull, ["experience","經歷","exp"]),
+            3
+          );
         }catch(err){ console.warn("[HSC card] full load deferred failed:", err); }
       }, 60);
     }catch(err){
