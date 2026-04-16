@@ -1,12 +1,13 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   完整覆蓋版
+   完整覆蓋修正版
 
-   本次調整：
-   1. 保留既有三模式共構與主流程
-   2. 修正可見文案，移除工程語言
-   3. 新增一鍵切換模式按鈕（改網址並重新初始化）
-   4. 補強 premium 預覽可讀性相關 UI 同步
+   修正項目：
+   1. 補上 fallback3Days() / parseDateSafe() / formatDateTime() 三個缺少函式
+   2. 補上 renderSuccessPage() 移除（改為純 HTML 字串）
+   3. 修正 finally 區塊邏輯：成功時保留 overlay 顯示成功面板，失敗時才關閉
+   4. submitUpdate / submitRenew 的 finally 同樣修正
+   5. 保留既有三模式共構與主流程
 ============================================================ */
 
 (() => {
@@ -192,6 +193,40 @@
   let _fb = null;
 
   document.addEventListener("DOMContentLoaded", init);
+
+  // ── 日期工具（修正：補上缺少的三個函式）──────────────────────
+
+  function fallback3Days() {
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    return d.toISOString();
+  }
+
+  function parseDateSafe(input) {
+    if (!input) return null;
+    const d = input instanceof Date ? input : new Date(input);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function formatDateTime(input) {
+    try {
+      const d = input instanceof Date ? input : new Date(input);
+      if (isNaN(d.getTime())) throw new Error();
+      return (
+        d.getFullYear() + "/" +
+        String(d.getMonth() + 1).padStart(2, "0") + "/" +
+        String(d.getDate()).padStart(2, "0") + " " +
+        String(d.getHours()).padStart(2, "0") + ":" +
+        String(d.getMinutes()).padStart(2, "0")
+      );
+    } catch (_) {
+      const fb = new Date();
+      fb.setDate(fb.getDate() + 3);
+      return formatDateYMD(fb);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
 
   function collectEls() {
     const ids = [
@@ -1397,9 +1432,13 @@
     return payload;
   }
 
+  // ── submitCreate（修正：finally 邏輯）────────────────────────
+
   async function submitCreate() {
-    const payload = buildCreatePayload();
     if (!validateCreateBeforeSubmit()) return;
+
+    const payload = buildCreatePayload();
+    state.lastSubmitResult = null;
 
     showProgress(true);
     hideSuccessPanel();
@@ -1417,16 +1456,17 @@
       if (!cardId) throw new Error("系統沒有回傳名片序號");
 
       setProgressStep(3, "正在建立付款期限…");
-      await postToGas({ action: CONFIG.DELIVER_ACTION, card_id: cardId });
+      try { await postToGas({ action: CONFIG.DELIVER_ACTION, card_id: cardId }); } catch (e) { console.warn("[HSC] DELIVER failed:", e); }
 
       setProgressStep(4, "正在整理付款通知…");
       let paymentNotice = "";
       try {
         const noticeRes = await postToGas({ action: CONFIG.PAYMENT_NOTICE_ACTION, payment_id: paymentId, card_id: cardId });
         paymentNotice = noticeRes?.copy_text || noticeRes?.payment_notice?.copy_text || "";
-      } catch (e) { console.warn(e); }
+      } catch (e) { console.warn("[HSC] PAYMENT_NOTICE failed:", e); }
 
-      const previewUrl = createRes?.card?.url || `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`;
+      const previewUrl = createRes?.card?.url ||
+        `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`;
       const dueAtRaw = createRes?.payment?.due_at || createRes?.card?.payment_due_at || fallback3Days();
       const dueAtObj = parseDateSafe(dueAtRaw) || parseDateSafe(fallback3Days());
       const dueDateStr = formatDateTime(dueAtObj);
@@ -1455,23 +1495,40 @@
       showCreateSuccessPanel(result);
       setStatus("名片已成功建立，請複製下方資訊回覆客服。", "success");
       localStorage.removeItem(CONFIG.DRAFT_KEY);
+
     } catch (err) {
       console.error(err);
       setStatus("送出失敗：" + err.message, "error");
     } finally {
-      showProgress(false);
-      if (els["progress-success-panel"] && state.lastSubmitResult) {
-        els["progress-success-panel"].classList.remove("hidden");
+      // ── 修正：成功時保留 overlay 讓成功面板可見；失敗時才關閉 overlay ──
+      if (state.lastSubmitResult) {
+        // 停止 loading 動畫，但維持 overlay 開啟
+        els.progressSteps?.forEach(s => s.classList.remove("is-active"));
+        if (els["progress-fill"]) els["progress-fill"].style.width = "100%";
+        if (els["progress-text"]) els["progress-text"].textContent = "✅ 申請完成，請複製下方資訊回覆客服。";
+        if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
+      } else {
+        showProgress(false);
       }
     }
   }
 
+  // ─────────────────────────────────────────────────────────────
+
   function buildCreatePrimaryNoticeText(result) {
-    return `您好，我是 ${result.customerName}，已完成天使幸福智慧名片申請\n\n📋 名片序號：${result.cardId}\n💳 方案：${result.planLabel}，${money(result.totalAmount)}\n🔗 成品連結：${result.previewUrl}\n\n⏰ 付款期限：${result.dueDateStr}\n\n📌 請協助確認付款並開通名片，謝謝！`;
+    return `您好，我是 ${result.customerName}，已完成天使幸福智慧名片申請
+
+📋 名片序號：${result.cardId}
+💳 方案：${result.planLabel}，${money(result.totalAmount)}
+🔗 成品連結：${result.previewUrl}
+
+⏰ 付款期限：${result.dueDateStr}
+
+📌 請協助確認付款並開通名片，謝謝！`;
   }
 
- function buildCreateSecondaryNoticeText(result) {
-  return `【天使幸福智慧名片｜客服回覆摘要】
+  function buildCreateSecondaryNoticeText(result) {
+    return `【天使幸福智慧名片｜客服回覆摘要】
 名片序號：${result.cardId}
 方案：${result.planLabel}
 應付總額：${money(result.totalAmount)}
@@ -1484,7 +1541,7 @@
 
 付款與開通請以官方通知流程為準
 本系統不會透過私訊更改收款帳號`;
-}
+  }
 
   function resolveUpdateEligibilityState(eligData) {
     const card = state.runtime.updateCard;
@@ -1551,8 +1608,12 @@
     return res;
   }
 
+  // ── submitUpdate（修正：finally 邏輯）────────────────────────
+
   async function submitUpdate() {
     if (!validateUpdateBeforeSubmit()) return;
+
+    state.lastSubmitResult = null;
     showProgress(true);
     hideSuccessPanel();
     setProgressStep(1, "檢查更新資格…");
@@ -1567,10 +1628,14 @@
         setProgressStep(2, "建立付款資訊…");
         const paymentRes = await createUpdatePaymentIfNeeded();
         const paymentId = paymentRes?.payment_id || "";
-        const dueAt = paymentRes?.due_at || new Date(Date.now() + 3 * 86400000).toISOString();
+        const dueAt = paymentRes?.due_at || fallback3Days();
+        const dueAtObj = parseDateSafe(dueAt) || parseDateSafe(fallback3Days());
         const result = {
-          cardId, paymentId, paymentDueAt: dueAt, dueDateStr: formatDateYMD(dueAt),
-          updateFeeAmount: state.updateFlow.updateFeeAmount, requiresPayment: true,
+          cardId, paymentId,
+          paymentDueAt: dueAtObj.toISOString(),
+          dueDateStr: formatDateTime(dueAtObj),
+          updateFeeAmount: state.updateFlow.updateFeeAmount,
+          requiresPayment: true,
           customerName: valueOf("display_name") || "您"
         };
         state.lastSubmitResult = result;
@@ -1595,16 +1660,24 @@
       setProgressStep(5, "更新完成");
       showUpdateSuccessPanel(result);
       setStatus("名片已成功更新！", "success");
+
     } catch (err) {
       console.error(err);
       setStatus("更新失敗：" + err.message, "error");
     } finally {
-      showProgress(false);
-      if (els["progress-success-panel"] && state.lastSubmitResult) {
-        els["progress-success-panel"].classList.remove("hidden");
+      // ── 修正：成功時保留 overlay；失敗時關閉 ──
+      if (state.lastSubmitResult) {
+        els.progressSteps?.forEach(s => s.classList.remove("is-active"));
+        if (els["progress-fill"]) els["progress-fill"].style.width = "100%";
+        if (els["progress-text"]) els["progress-text"].textContent = "✅ 完成";
+        if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
+      } else {
+        showProgress(false);
       }
     }
   }
+
+  // ─────────────────────────────────────────────────────────────
 
   function buildUpdatePayload() {
     const shared = buildSharedCardData();
@@ -1731,8 +1804,12 @@
     return res;
   }
 
+  // ── submitRenew（修正：finally 邏輯）─────────────────────────
+
   async function submitRenew() {
     if (!validateRenewBeforeSubmit()) return;
+
+    state.lastSubmitResult = null;
     showProgress(true);
     hideSuccessPanel();
     setProgressStep(1, "計算續約報價…");
@@ -1756,14 +1833,15 @@
 
       const renewalId = paymentRes.renewal_id || paymentRes.id;
       const paymentId = paymentRes.payment_id || "";
-      const dueAt = paymentRes.due_at || new Date(Date.now() + 3 * 86400000).toISOString();
+      const dueAt = paymentRes.due_at || fallback3Days();
+      const dueAtObj = parseDateSafe(dueAt) || parseDateSafe(fallback3Days());
 
       const result = {
         cardId: state.modeContext.cardId,
         renewalId,
         paymentId,
-        paymentDueAt: dueAt,
-        dueDateStr: formatDateYMD(dueAt),
+        paymentDueAt: dueAtObj.toISOString(),
+        dueDateStr: formatDateTime(dueAtObj),
         totalAmount: paymentPayload.total_amount,
         targetPlan: state.renewFlow.targetPlan,
         customerName: valueOf("display_name") || "您",
@@ -1774,16 +1852,24 @@
       setProgressStep(5, "續約付款資訊已建立");
       showRenewSuccessPanel(result);
       setStatus("續約付款資訊已建立，請完成付款後續約生效。", "success");
+
     } catch (err) {
       console.error(err);
       setStatus("續約失敗：" + err.message, "error");
     } finally {
-      showProgress(false);
-      if (els["progress-success-panel"] && state.lastSubmitResult) {
-        els["progress-success-panel"].classList.remove("hidden");
+      // ── 修正：成功時保留 overlay；失敗時關閉 ──
+      if (state.lastSubmitResult) {
+        els.progressSteps?.forEach(s => s.classList.remove("is-active"));
+        if (els["progress-fill"]) els["progress-fill"].style.width = "100%";
+        if (els["progress-text"]) els["progress-text"].textContent = "✅ 完成";
+        if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
+      } else {
+        showProgress(false);
       }
     }
   }
+
+  // ─────────────────────────────────────────────────────────────
 
   function buildRenewPaymentText(result) {
     return `【續約付款通知】\n名片序號：${result.cardId}\n續約單號：${result.renewalId}\n付款單號：${result.paymentId}\n目標方案：${result.targetPlan}\n應付總額：${money(result.totalAmount)}\n付款期限：${result.dueDateStr}\n請完成付款後通知客服開通續約。`;
@@ -1845,132 +1931,88 @@
     else if (state.mode === "renew") showRenewSuccessPanel(result);
     if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
   }
-function renderCreateSuccessFooterNote(els) {
-  if (!els["success-footer-note"]) return;
 
-  els["success-footer-note"].innerHTML = `
-    <div style="
-      margin-top:14px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    ">
-      <div style="
-        padding:14px;
-        border-radius:14px;
-        background:#ffffff;
-        border:1px solid rgba(42,36,30,.10);
-        text-align:left;
-      ">
-        <div style="font-size:13px;font-weight:900;margin-bottom:8px;">📦 開通流程</div>
-        <div style="font-size:13px;line-height:1.8;color:#4b5563;font-weight:700;">
-          1️⃣ 客服會提供付款資訊給你<br>
-          2️⃣ 完成付款後開通名片<br>
-          3️⃣ 開通後即可正式分享使用
+  function renderCreateSuccessFooterNote(els) {
+    if (!els["success-footer-note"]) return;
+
+    els["success-footer-note"].innerHTML = `
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:12px;">
+        <div style="padding:14px;border-radius:14px;background:#ffffff;border:1px solid rgba(42,36,30,.10);text-align:left;">
+          <div style="font-size:13px;font-weight:900;margin-bottom:8px;">📦 開通流程</div>
+          <div style="font-size:13px;line-height:1.8;color:#4b5563;font-weight:700;">
+            1️⃣ 客服會提供付款資訊給你<br>
+            2️⃣ 完成付款後開通名片<br>
+            3️⃣ 開通後即可正式分享使用
+          </div>
+        </div>
+        <div style="padding:14px;border-radius:14px;background:#fff8ec;border:1px solid rgba(240,160,75,.35);text-align:left;">
+          <div style="font-size:13px;font-weight:900;margin-bottom:6px;color:#8b5b16;">🔒 付款安全提醒</div>
+          <div style="font-size:12px;line-height:1.8;color:#8b5b16;font-weight:700;">
+            付款與開通請以官方通知流程為準，避免被詐騙。若有疑問，請直接用下方客服按鈕聯繫。
+          </div>
         </div>
       </div>
-
-      <div style="
-        padding:14px;
-        border-radius:14px;
-        background:#fff8ec;
-        border:1px solid rgba(240,160,75,.35);
-        text-align:left;
-      ">
-        <div style="font-size:13px;font-weight:900;margin-bottom:6px;color:#8b5b16;">🔒 付款安全提醒</div>
-        <div style="font-size:12px;line-height:1.8;color:#8b5b16;font-weight:700;">
-          付款與開通請以官方通知流程為準，避免被詐騙。若有疑問，請直接用下方客服按鈕聯繫。
-        </div>
-      </div>
-
-      <button onclick="window.open('https://lin.ee/G3VJoRm')"
-        style="background:#1ac964;color:#fff;border:none;padding:12px;border-radius:12px;font-weight:900;cursor:pointer;">
-        💬 聯繫客服
-      </button>
-    </div>
-  `;
-}
-
-function renderSafeLinkNotice(els) {
-  if (!els["success-footer-note"]) return;
-
-  const box = document.createElement("div");
-  box.style.cssText = `
-    margin-top:10px;
-    padding:10px 12px;
-    border-radius:10px;
-    background:#f5fbff;
-    border:1px solid rgba(37,99,235,.2);
-    font-size:12px;
-    font-weight:700;
-    color:#1e3a8a;
-    line-height:1.6;
-    text-align:center;
-  `;
-
-  box.innerHTML = `
-    🔎 本頁為官方網站，可安心點擊使用（不涉及帳號登入）<br>
-    ⚠️ 請僅透過本頁提供的客服入口聯繫，避免誤加假帳號
-  `;
-
-  els["success-footer-note"].appendChild(box);
-}
-
-function showCreateSuccessPanel(result) {
-  resetSuccessPanel();
-  ensurePreviewActionButton();
-  if (els["success-header-icon"]) els["success-header-icon"].textContent = "🎉";
-  if (els["success-header-title"]) els["success-header-title"].textContent = "名片申請成功！";
-  if (els["success-header-sub"]) els["success-header-sub"].textContent = "請複製以下資訊並回覆客服，協助確認付款與開通名片。";
-  if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
-  if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
-  if (els["success-info-rows"]) {
-    els["success-info-rows"].innerHTML = `
-      <div class="success-info-row"><span class="label">申請人</span><span class="value">${escapeHtml(result.customerName)}</span></div>
-      <div class="success-info-row"><span class="label">方案</span><span class="value">${escapeHtml(result.planLabel)}</span></div>
-      <div class="success-info-row"><span class="label">總金額</span><span class="value">${money(result.totalAmount)}</span></div>
-      ${result.paymentId ? `<div class="success-info-row"><span class="label">付款單號</span><span class="value">${escapeHtml(result.paymentId)}</span></div>` : ""}
     `;
   }
-  if (els["success-due-alert"]) {
-    els["success-due-alert"].classList.remove("hidden");
-    if (els["success-due-text"]) els["success-due-text"].textContent = `付款期限：${result.dueDateStr || "—"}`;
+
+  function renderSafeLinkNotice(els) {
+    if (!els["success-footer-note"]) return;
+    const box = document.createElement("div");
+    box.style.cssText = "margin-top:10px;padding:10px 12px;border-radius:10px;background:#f5fbff;border:1px solid rgba(37,99,235,.2);font-size:12px;font-weight:700;color:#1e3a8a;line-height:1.6;text-align:center;";
+    box.innerHTML = `
+      🔎 本頁為官方網站，可安心點擊使用（不涉及帳號登入）<br>
+      ⚠️ 請僅透過本頁提供的客服入口聯繫，避免誤加假帳號
+    `;
+    els["success-footer-note"].appendChild(box);
   }
-  if (els["success-preview-row"]) {
-    els["success-preview-row"].classList.remove("hidden");
-    if (els["progress-preview-link"]) {
-      els["progress-preview-link"].href = result.previewUrl || "";
-      els["progress-preview-link"].textContent = result.previewUrl || "（建立後顯示）";
-    }
-  }
-  if (els["success-summary-box"]) {
-    els["success-summary-box"].classList.remove("hidden");
-    if (els["success-summary-content"]) {
-      els["success-summary-content"].innerHTML = `
-        ${renderSuccessPage({
-          card_id: result.cardId,
-          cardId: result.cardId,
-          name: result.customerName,
-          customerName: result.customerName,
-          plan: result.planLabel,
-          planLabel: result.planLabel,
-          price: result.totalAmount,
-          totalAmount: result.totalAmount,
-          payment_due_at: result.paymentDueAt,
-          paymentDueAt: result.paymentDueAt,
-          url: result.previewUrl,
-          previewUrl: result.previewUrl
-        })}
-        <div class="quote-breakdown-row"><span>主方案</span><strong>${money(result.totalAmount - (result.addonAmount || 0))}</strong></div>
-        <div class="quote-breakdown-row"><span>加購小計</span><strong>${money(result.addonAmount || 0)}</strong></div>
-        <div class="quote-breakdown-row"><span>應付總額</span><strong>${money(result.totalAmount)}</strong></div>
+
+  // ── showCreateSuccessPanel（修正：移除 renderSuccessPage 呼叫）─
+
+  function showCreateSuccessPanel(result) {
+    resetSuccessPanel();
+    ensurePreviewActionButton();
+    if (els["success-header-icon"]) els["success-header-icon"].textContent = "🎉";
+    if (els["success-header-title"]) els["success-header-title"].textContent = "名片申請成功！";
+    if (els["success-header-sub"]) els["success-header-sub"].textContent = "請複製以下資訊並回覆客服，協助確認付款與開通名片。";
+    if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
+    if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
+    if (els["success-info-rows"]) {
+      els["success-info-rows"].innerHTML = `
+        <div class="success-info-row"><span class="label">申請人</span><span class="value">${escapeHtml(result.customerName)}</span></div>
+        <div class="success-info-row"><span class="label">方案</span><span class="value">${escapeHtml(result.planLabel)}</span></div>
+        <div class="success-info-row"><span class="label">總金額</span><span class="value">${money(result.totalAmount)}</span></div>
+        ${result.paymentId ? `<div class="success-info-row"><span class="label">付款單號</span><span class="value">${escapeHtml(result.paymentId)}</span></div>` : ""}
       `;
     }
+    if (els["success-due-alert"]) {
+      els["success-due-alert"].classList.remove("hidden");
+      if (els["success-due-text"]) els["success-due-text"].textContent = `付款期限：${result.dueDateStr || "—"}`;
+    }
+    if (els["success-preview-row"]) {
+      els["success-preview-row"].classList.remove("hidden");
+      if (els["progress-preview-link"]) {
+        els["progress-preview-link"].href = result.previewUrl || "#";
+        els["progress-preview-link"].textContent = result.previewUrl || "（建立後顯示）";
+      }
+    }
+    if (els["success-summary-box"]) {
+      els["success-summary-box"].classList.remove("hidden");
+      if (els["success-summary-content"]) {
+        // 修正：移除未定義的 renderSuccessPage() 呼叫，改為純 HTML 字串
+        els["success-summary-content"].innerHTML = `
+          <div class="quote-breakdown-row"><span>主方案</span><strong>${money(result.totalAmount - (result.addonAmount || 0))}</strong></div>
+          <div class="quote-breakdown-row"><span>加購小計</span><strong>${money(result.addonAmount || 0)}</strong></div>
+          <div class="quote-breakdown-row"><span>應付總額</span><strong>${money(result.totalAmount)}</strong></div>
+        `;
+      }
+    }
+    renderCreateSuccessFooterNote(els);
+    renderSafeLinkNotice(els);
+    setSuccessActionLabels("create", result);
   }
-  renderCreateSuccessFooterNote(els);
-  renderSafeLinkNotice(els);
-  setSuccessActionLabels("create", result);
-}
+
+  // ─────────────────────────────────────────────────────────────
+
   function showUpdateSuccessPanel(result) {
     resetSuccessPanel();
     if (result.requiresPayment) {
