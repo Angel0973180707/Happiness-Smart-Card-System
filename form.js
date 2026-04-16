@@ -12,14 +12,12 @@
 (() => {
   "use strict";
 
-  // v8.4.0-speed-v1
-
   const CONFIG = {
     GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     SERVICE_URL: "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v834",
+    DRAFT_KEY: "hsc_form_draft_v834_v151",
 
     CREATE_ACTION: "createCardWithOfflinePayment",
     DELIVER_ACTION: "markCardDelivered",
@@ -456,7 +454,6 @@
       ]);
       if (!cardRes.ok) throw new Error(cardRes.error || "取得資料失敗");
       state.runtime.updateCard = cardRes.card || cardRes.data || cardRes;
-
       state.runtime.updateEligibilityRaw = eligRes;
       resolveUpdateEligibilityState(eligRes);
       state.runtime.updateEligibility = { ...state.updateFlow };
@@ -480,15 +477,13 @@
 
     try {
       const [cardRes, paymentRes, addonRes] = await Promise.all([
-        postToGas({ action: CONFIG.RENEW_LOAD_CARD_ACTION, card_id: cardId, renew_token: token, track_view: false, with_tracked_cta: false }),
-        postToGas({ action: CONFIG.RENEW_PAYMENT_SUMMARY_ACTION, card_id: cardId, light: true, limit: 20 }),
-        postToGas({ action: CONFIG.RENEW_ADDON_SUMMARY_ACTION, card_id: cardId, light: true, limit: 20 })
+        postToGas({ action: CONFIG.RENEW_LOAD_CARD_ACTION, card_id: cardId, renew_token: token }),
+        postToGas({ action: CONFIG.RENEW_PAYMENT_SUMMARY_ACTION, card_id: cardId }),
+        postToGas({ action: CONFIG.RENEW_ADDON_SUMMARY_ACTION, card_id: cardId })
       ]);
       if (!cardRes.ok) throw new Error(cardRes.error || "取得資料失敗");
       state.runtime.renewCard = cardRes.card || cardRes.data || cardRes;
-
       state.runtime.renewPaymentSummary = paymentRes;
-
       state.runtime.renewAddonSummary = addonRes;
 
       hydrateFormFromCard(state.runtime.renewCard);
