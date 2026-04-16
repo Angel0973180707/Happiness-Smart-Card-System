@@ -433,6 +433,37 @@ function normalizeCardFeatures(card){
   return src;
 }
 
+function normalizeForRenderer_(row){
+  const out = row && typeof row === "object" ? { ...row } : {};
+
+  if(!text(out.services) && text(out.service)) out.services = out.service;
+  if(!text(out.slogan) && text(out.subtitle)) out.slogan = out.subtitle;
+  if(!text(out.intro) && text(out.subtitle)) out.intro = out.subtitle;
+
+  if(Array.isArray(out.photos)) {
+    out.photos.forEach((url, idx) => {
+      const n = idx + 1;
+      if(n <= 10 && !text(out[`photo${n}_url`])) out[`photo${n}_url`] = url;
+    });
+  }
+
+  if(Array.isArray(out.ctas)) {
+    out.ctas.forEach((cta, idx) => {
+      const n = idx + 1;
+      if(n <= 10) {
+        if(!text(out[`cta_text_${n}`])) out[`cta_text_${n}`] = text(cta && cta.text);
+        if(!text(out[`cta_link_${n}`])) out[`cta_link_${n}`] = text(cta && cta.link);
+      }
+    });
+  }
+
+  if(typeof out.marquee_enabled === "boolean") {
+    out.marquee_enabled = out.marquee_enabled ? "TRUE" : "";
+  }
+
+  return out;
+}
+
 function getPreviewMeta_(p){
   const features = p?.features || {};
   return normalizePreviewMeta_(features.preview_meta);
@@ -927,12 +958,12 @@ async function renderPersonalCard_(cardId){
     writeCardCache_("shell", cardId, shell);
   }
 
-  const shellP = buildNormalizedPayload_(normalizeCardFeatures(shell));
+  const shellP = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(shell)));
   const shareUrl = buildTrackedShareUrl_(shellP);
   shell.card_url = shareUrl;
   shell.share_url = shareUrl;
   shell.preview_url = shareUrl;
-  const normalizedShell = buildNormalizedPayload_(shell);
+  const normalizedShell = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(shell)));
 
   const result = rendererApi.renderCard(normalizedShell, {
     mode: "index",
@@ -961,13 +992,13 @@ async function renderPersonalCard_(cardId){
       const lite = extractCardRow_(litePayload);
       if(!lite || typeof lite !== "object" || !Object.keys(lite).length) return;
       writeCardCache_("lite", cardId, lite);
-      const merged = { ...shell, ...lite, card_url: shareUrl, share_url: shareUrl, preview_url: shareUrl };
+      const merged = normalizeForRenderer_({ ...shell, ...lite, card_url: shareUrl, share_url: shareUrl, preview_url: shareUrl });
       if(typeof rendererApi.mergeCardData === "function"){
         rendererApi.mergeCardData(merged, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
       }else{
         rendererApi.renderCard(merged, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
       }
-      const normalizedMerged = buildNormalizedPayload_(normalizeCardFeatures(merged));
+      const normalizedMerged = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(merged)));
       currentRow = normalizedMerged;
       facadeCurrentRow = normalizedMerged;
       window.__CARD_DATA__ = normalizedMerged;
@@ -977,9 +1008,9 @@ async function renderPersonalCard_(cardId){
       setTimeout(async ()=>{
         try{
           const fullRow = await loadCardById_(cardId, { useTracked: false });
-          const mergedFull = { ...merged, ...fullRow, card_url: shareUrl, share_url: shareUrl, preview_url: shareUrl };
+          const mergedFull = normalizeForRenderer_({ ...merged, ...fullRow, card_url: shareUrl, share_url: shareUrl, preview_url: shareUrl });
           if(typeof rendererApi.mergeCardData === "function") rendererApi.mergeCardData(mergedFull, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
-          const normalizedFull = buildNormalizedPayload_(normalizeCardFeatures(mergedFull));
+          const normalizedFull = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(mergedFull)));
           currentRow = normalizedFull;
           facadeCurrentRow = normalizedFull;
           window.__CARD_DATA__ = normalizedFull;
@@ -1308,7 +1339,7 @@ function renderFacadePreview(){
   if(!root || !facadeBaseData) return;
 
   applyFacadeBodyMode_();
-  const data = buildFacadePreviewData();
+  const data = normalizeForRenderer_(buildFacadePreviewData());
 
   const renderer =
     window.HscCardRenderer && typeof window.HscCardRenderer.renderCard === "function"
