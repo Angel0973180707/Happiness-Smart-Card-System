@@ -434,30 +434,43 @@ function normalizeCardFeatures(card){
 }
 
 function normalizeForRenderer_(row){
-  const out = row && typeof row === "object" ? { ...row } : {};
+  const out = { ...(row || {}) };
 
-  if(!text(out.services) && text(out.service)) out.services = out.service;
-  if(!text(out.slogan) && text(out.subtitle)) out.slogan = out.subtitle;
-  if(!text(out.intro) && text(out.subtitle)) out.intro = out.subtitle;
+  // 基本文字
+  if (!out.services && out.service) out.services = out.service;
+  if (!out.slogan && out.subtitle) out.slogan = out.subtitle;
 
-  if(Array.isArray(out.photos)) {
+  // ⭐ 品牌故事 / 經歷（你現在缺這段）
+  if (!out.about && out.bio) out.about = out.bio;
+  if (!out.about && out.intro) out.about = out.intro;
+  if (!out.experience && out.about) out.experience = out.about;
+
+  // ⭐ 聯繫區（你現在缺這段）
+  if (!out.line && out.line_id) out.line = out.line_id;
+
+  // 照片
+  if (Array.isArray(out.photos)) {
     out.photos.forEach((url, idx) => {
       const n = idx + 1;
-      if(n <= 10 && !text(out[`photo${n}_url`])) out[`photo${n}_url`] = url;
-    });
-  }
-
-  if(Array.isArray(out.ctas)) {
-    out.ctas.forEach((cta, idx) => {
-      const n = idx + 1;
-      if(n <= 10) {
-        if(!text(out[`cta_text_${n}`])) out[`cta_text_${n}`] = text(cta && cta.text);
-        if(!text(out[`cta_link_${n}`])) out[`cta_link_${n}`] = text(cta && cta.link);
+      if (n <= 10 && !out[`photo${n}_url`]) {
+        out[`photo${n}_url`] = url;
       }
     });
   }
 
-  if(typeof out.marquee_enabled === "boolean") {
+  // CTA
+  if (Array.isArray(out.ctas)) {
+    out.ctas.forEach((cta, idx) => {
+      const n = idx + 1;
+      if (n <= 3) {
+        if (!out[`cta_text_${n}`]) out[`cta_text_${n}`] = cta?.text || "";
+        if (!out[`cta_link_${n}`]) out[`cta_link_${n}`] = cta?.link || "";
+      }
+    });
+  }
+
+  // marquee
+  if (typeof out.marquee_enabled === "boolean") {
     out.marquee_enabled = out.marquee_enabled ? "TRUE" : "";
   }
 
