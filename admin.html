@@ -1,612 +1,1482 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Happiness Smart Card 管理後台 v6.5.1-stable-buttons-fix</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: system-ui, 'Segoe UI', 'Roboto', 'Noto Sans', sans-serif;
-      background: #f1f5f9;
-      color: #0f172a;
-      padding: 20px;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>HSC 管理後台</title>
+<style>
+:root {
+  --bg: #f5f3ef;
+  --surface: #ffffff;
+  --surface2: #faf8f5;
+  --border: #e8e2d8;
+  --ink: #1a1410;
+  --ink2: #6b5f55;
+  --ink3: #a09288;
+  --primary: #c47d42;
+  --primary-dk: #a8622e;
+  --primary-bg: #fdf2e8;
+  --danger: #d44c4c;
+  --danger-bg: #fff0f0;
+  --warn: #d97c06;
+  --warn-bg: #fff8ec;
+  --ok: #2a9d5c;
+  --ok-bg: #edfaf2;
+  --info: #2563eb;
+  --info-bg: #eef3ff;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 2px 12px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.04);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.10);
+  --tab-h: 56px;
+  --bottom-h: 64px;
+}
 
-    .admin-container {
-      max-width: 1600px;
-      margin: 0 auto;
-    }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* 頂部工具列 */
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 24px;
-      padding: 16px 20px;
-      background: white;
-      border-radius: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
 
-    .key-section {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; border: none; background: none; }
+textarea { resize: vertical; }
+input:focus, textarea:focus, select:focus { outline: none; }
 
-    .key-status {
-      font-size: 0.85rem;
-      padding: 4px 10px;
-      border-radius: 30px;
-      background: #eef2ff;
-    }
-    .key-status.ok { background: #d1fae5; color: #065f46; }
-    .key-status.warn { background: #fed7aa; color: #9b2c1d; }
+/* ── LAYOUT ── */
+.app {
+  max-width: 680px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
-    .btn {
-      border: none;
-      background: #e2e8f0;
-      padding: 6px 14px;
-      border-radius: 40px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn-primary { background: #2563eb; color: white; }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-soft { background: #f1f5f9; border: 1px solid #cbd5e1; }
-    .btn-danger { background: #dc2626; color: white; }
-    .btn-danger:hover { background: #b91c1c; }
-    .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
-    .btn-xs { padding: 2px 8px; font-size: 0.7rem; }
+/* ── TOP BAR ── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  height: var(--tab-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: var(--shadow);
+}
 
-    .nav-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 24px;
-    }
-    .nav-btn {
-      background: white;
-      border: 1px solid #cbd5e1;
-      padding: 8px 18px;
-      border-radius: 40px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    .nav-btn.active {
-      background: #2563eb;
-      color: white;
-      border-color: #2563eb;
-    }
+.topbar-brand {
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--primary);
+  letter-spacing: -.3px;
+  white-space: nowrap;
+}
 
-    /* 卡片樣式 */
-    .card {
-      background: white;
-      border-radius: 24px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      margin-bottom: 32px;
-      overflow: hidden;
-    }
-    .card-header {
-      padding: 18px 24px;
-      background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    .card-header h2 { font-size: 1.35rem; font-weight: 600; }
+.topbar-key {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-end;
+}
 
-    .details-content {
-      padding: 20px 24px;
-    }
+.key-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--ink3);
+  flex-shrink: 0;
+  transition: .2s;
+}
+.key-dot.ok { background: var(--ok); }
+.key-dot.warn { background: var(--warn); }
 
-    /* 表格 */
-    .table-wrapper {
-      overflow-x: auto;
-    }
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-    .data-table th, .data-table td {
-      padding: 12px 12px;
-      text-align: left;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    .data-table th {
-      background: #f1f5f9;
-      font-weight: 600;
-    }
-    .empty-cell {
-      text-align: center;
-      color: #64748b;
-      padding: 40px;
-    }
+.key-input-wrap {
+  position: relative;
+}
+.key-input-wrap input {
+  width: 160px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 36px 0 12px;
+  font-size: 13px;
+  background: var(--surface2);
+  transition: .15s;
+}
+.key-input-wrap input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(196,125,66,.12);
+}
+.key-save-btn {
+  position: absolute;
+  right: 4px; top: 50%;
+  transform: translateY(-50%);
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.key-save-btn:hover { background: var(--primary-dk); }
 
-    /* 表單 */
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
-      gap: 16px;
-    }
-    .form-row {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-row.full-width {
-      grid-column: 1 / -1;
-    }
-    label {
-      font-weight: 500;
-      font-size: 0.85rem;
-    }
-    input, textarea, select {
-      padding: 8px 12px;
-      border: 1px solid #cbd5e1;
-      border-radius: 16px;
-      font-size: 0.85rem;
-    }
-    .readonly-input, .readonly-textarea {
-      background: #f8fafc;
-    }
+/* ── TAB NAV ── */
+.tabnav {
+  display: flex;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  position: sticky;
+  top: var(--tab-h);
+  z-index: 90;
+}
+.tabnav::-webkit-scrollbar { display: none; }
 
-    /* 狀態標籤 */
-    .status-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 30px;
-      font-size: 0.7rem;
-      font-weight: 500;
-    }
-    .status-warning { background: #fed7aa; color: #9b2c1d; }
-    .status-success { background: #d1fae5; color: #065f46; }
-    .badge { padding: 2px 8px; border-radius: 30px; font-size: 0.7rem; }
-    .badge-success { background: #d1fae5; color: #065f46; }
-    .badge-warn { background: #fed7aa; color: #9b2c1d; }
+.tab-btn {
+  flex-shrink: 0;
+  padding: 0 16px;
+  height: 44px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink3);
+  border-bottom: 2.5px solid transparent;
+  transition: .15s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.tab-more {
+  margin-left: auto;
+  padding: 0 14px;
+  color: var(--ink3);
+  font-size: 13px;
+  font-weight: 700;
+}
 
-    /* 操作列 */
-    .action-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 16px;
-      align-items: center;
-    }
-    .table-actions {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
+/* ── CONTENT ── */
+.content {
+  flex: 1;
+  padding: 16px;
+  padding-bottom: 80px;
+}
 
-    /* 收合細節 */
-    .collapsible-native {
-      border: 1px solid #e2e8f0;
-      border-radius: 20px;
-      margin-bottom: 16px;
-      background: white;
-    }
-    .collapsible-native summary {
-      padding: 14px 20px;
-      font-weight: 600;
-      cursor: pointer;
-      background: #f8fafc;
-      border-radius: 20px;
-    }
-    .collapsible-native[open] summary {
-      border-bottom-left-radius: 0;
-      border-bottom-right-radius: 0;
-    }
+.section { display: none; }
+.section.active { display: block; }
 
-    /* 詳細區塊 */
-    .detail-stack {
-      padding: 16px;
-      background: #f8fafc;
-      border-radius: 16px;
-    }
-    .detail-section {
-      margin-bottom: 20px;
-    }
-    .detail-title {
-      font-weight: 600;
-      margin-bottom: 12px;
-      font-size: 1rem;
-    }
-    .detail-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px,1fr));
-      gap: 12px;
-    }
-    .detail-item {
-      background: white;
-      padding: 8px 12px;
-      border-radius: 12px;
-      border: 1px solid #e2e8f0;
-    }
-    .detail-key {
-      font-size: 0.7rem;
-      color: #475569;
-      text-transform: uppercase;
-    }
-    .detail-value {
-      font-weight: 500;
-      word-break: break-word;
-    }
+/* ── SECTION HEADER ── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.section-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--ink);
+}
+.section-actions {
+  display: flex;
+  gap: 8px;
+}
 
-    /* 工具區塊 */
-    .tool-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px,1fr));
-      gap: 16px;
-    }
-    .tool-box {
-      background: #f8fafc;
-      padding: 12px;
-      border-radius: 16px;
-    }
-    .tool-label {
-      font-size: 0.75rem;
-      color: #475569;
-      margin-bottom: 6px;
-    }
-    .result-box {
-      background: #f1f5f9;
-      padding: 12px;
-      border-radius: 16px;
-      font-family: monospace;
-      font-size: 0.8rem;
-    }
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
 
-    /* 載入遮罩 */
-    #loadingMask {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-    .spinner {
-      width: 40px; height: 40px;
-      border: 4px solid white;
-      border-top-color: #2563eb;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .hidden { display: none !important; }
+.card-body { padding: 14px 16px; }
 
-    /* Toast */
-    #toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1e293b;
-      color: white;
-      padding: 8px 20px;
-      border-radius: 40px;
-      font-size: 0.85rem;
-      z-index: 10000;
-      white-space: nowrap;
-    }
+/* ── STATS ROW ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
 
-    /* 狀態指示 */
-    .status-pill {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 30px;
-      font-size: 0.7rem;
-    }
-    .status-pill.ok { background: #d1fae5; color: #065f46; }
-    .status-pill.bad { background: #fee2e2; color: #b91c1c; }
+.stat-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+.stat-tile.urgent {
+  background: var(--danger-bg);
+  border-color: rgba(212,76,76,.2);
+}
+.stat-tile.warn {
+  background: var(--warn-bg);
+  border-color: rgba(217,124,6,.2);
+}
+.stat-tile.ok {
+  background: var(--ok-bg);
+  border-color: rgba(42,157,92,.2);
+}
 
-    /* 申請單操作面板 */
-    .request-actions-row.hidden { display: none; }
-    .request-actions-panel {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      padding: 12px;
-      background: #f8fafc;
-      border-radius: 16px;
-    }
-    .mt8 { margin-top: 8px; }
-    .mt16 { margin-top: 16px; }
-  </style>
+.stat-label {
+  font-size: 11px;
+  color: var(--ink3);
+  font-weight: 800;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.stat-value {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.stat-tile.urgent .stat-value { color: var(--danger); }
+.stat-tile.warn .stat-value { color: var(--warn); }
+.stat-tile.ok .stat-value { color: var(--ok); }
+
+/* ── RISK LIST ── */
+.risk-list { display: flex; flex-direction: column; gap: 8px; }
+
+.risk-item {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.risk-item.danger { background: var(--danger-bg); color: var(--danger); border-left: 3px solid var(--danger); }
+.risk-item.warn { background: var(--warn-bg); color: var(--warn); border-left: 3px solid var(--warn); }
+.risk-item.info { background: var(--info-bg); color: var(--info); border-left: 3px solid var(--info); }
+.risk-item.ok { background: var(--ok-bg); color: var(--ok); border-left: 3px solid var(--ok); }
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin: 16px 0 8px;
+}
+
+/* ── LIST ROWS ── */
+.list-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: box-shadow .15s;
+}
+.list-row:active { box-shadow: none; }
+
+.list-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.list-row-head:active { background: var(--surface2); }
+
+.list-row-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.icon-pending { background: var(--warn-bg); }
+.icon-done { background: var(--ok-bg); }
+.icon-neutral { background: var(--surface2); border: 1px solid var(--border); }
+
+.list-row-info { flex: 1; min-width: 0; }
+
+.list-row-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-row-sub {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.chevron {
+  color: var(--ink3);
+  font-size: 14px;
+  transition: transform .2s;
+}
+.list-row.open .chevron { transform: rotate(90deg); }
+
+.list-row-body {
+  display: none;
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--border);
+}
+.list-row.open .list-row-body { display: block; }
+
+/* ── BADGE ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+.badge-ok { background: var(--ok-bg); color: var(--ok); }
+.badge-warn { background: var(--warn-bg); color: var(--warn); }
+.badge-danger { background: var(--danger-bg); color: var(--danger); }
+.badge-info { background: var(--info-bg); color: var(--info); }
+.badge-neutral { background: var(--surface2); color: var(--ink3); border: 1px solid var(--border); }
+
+/* ── DETAIL GRID ── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.detail-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+}
+.detail-key {
+  font-size: 11px;
+  color: var(--ink3);
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+.detail-val {
+  font-size: 13px;
+  font-weight: 700;
+  word-break: break-all;
+  line-height: 1.4;
+}
+.detail-item.wide { grid-column: 1 / -1; }
+
+/* ── ACTION STRIP ── */
+.action-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 800;
+  transition: .15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dk); }
+.btn-soft { background: var(--surface2); color: var(--ink); border: 1px solid var(--border); }
+.btn-soft:hover { background: var(--border); }
+.btn-ok { background: var(--ok-bg); color: var(--ok); }
+.btn-warn { background: var(--warn-bg); color: var(--warn); }
+.btn-danger { background: var(--danger-bg); color: var(--danger); }
+
+.btn-icon {
+  width: 40px; height: 40px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+}
+
+.btn-full { width: 100%; }
+.btn-sm { height: 34px; padding: 0 12px; font-size: 12px; }
+
+/* ── SEARCH BAR ── */
+.search-bar {
+  position: relative;
+  margin-bottom: 12px;
+}
+.search-bar input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 44px 0 14px;
+  font-size: 14px;
+  background: var(--surface);
+  transition: .15s;
+}
+.search-bar input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(196,125,66,.1);
+}
+.search-bar-icon {
+  position: absolute;
+  right: 12px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink3);
+  font-size: 18px;
+  pointer-events: none;
+}
+
+/* ── FORM FIELD ── */
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.field label { font-size: 12px; font-weight: 800; color: var(--ink2); }
+.field input, .field textarea, .field select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 14px;
+  background: var(--surface);
+  transition: .15s;
+  color: var(--ink);
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(196,125,66,.1);
+}
+.field textarea { min-height: 80px; }
+
+/* ── COPY ROW ── */
+.copy-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.copy-row-label {
+  font-size: 11px;
+  color: var(--ink3);
+  font-weight: 800;
+  flex-shrink: 0;
+  width: 60px;
+}
+.copy-row-value {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'SF Mono', 'Menlo', monospace;
+}
+.copy-row-btn {
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.copy-row-btn:hover { background: var(--primary-dk); }
+
+/* ── MORE MENU ── */
+.more-menu {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.more-menu.open { display: block; }
+.more-menu-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+}
+.more-menu-sheet {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 16px 40px;
+  box-shadow: var(--shadow-lg);
+}
+.more-menu-title {
+  font-size: 16px;
+  font-weight: 900;
+  margin-bottom: 16px;
+  color: var(--ink2);
+}
+.more-menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.more-menu-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 12px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: .15s;
+}
+.more-menu-btn:active { background: var(--border); }
+
+/* ── COLLAPSIBLE SECTION ── */
+.collapsible { margin-bottom: 10px; }
+.collapsible-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+  -webkit-tap-highlight-color: transparent;
+}
+.collapsible-head:active { background: var(--surface2); }
+.collapsible.open .collapsible-head {
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom-color: transparent;
+}
+.collapsible-body {
+  display: none;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.collapsible.open .collapsible-body { display: block; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--ink3);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ── LOADING / TOAST ── */
+#loadingMask {
+  position: fixed;
+  inset: 0;
+  background: rgba(245,243,239,.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+#loadingMask.hidden { display: none; }
+
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#toast {
+  position: fixed;
+  left: 50%; bottom: 80px;
+  transform: translateX(-50%);
+  background: rgba(26,20,16,.9);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  z-index: 10000;
+  white-space: nowrap;
+  max-width: 90vw;
+  text-align: center;
+  backdrop-filter: blur(4px);
+}
+#toast.hidden { display: none; }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* ── INLINE RESULT ── */
+.result-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-size: 12px;
+  font-family: monospace;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--ink2);
+}
+
+/* ── INVITE CARD (selected) ── */
+.invite-selected-card {
+  background: var(--primary-bg);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.invite-selected-title {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.invite-code-display {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  color: var(--ink);
+  font-family: monospace;
+  margin-bottom: 10px;
+}
+
+/* ── 3-btn copy row ── */
+.copy3-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ── SYSTEM TOOLS ── */
+.tool-list { display: flex; flex-direction: column; gap: 8px; }
+.tool-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.tool-item-label { font-size: 14px; font-weight: 800; }
+.tool-item-sub { font-size: 12px; color: var(--ink3); margin-top: 2px; }
+
+/* ── RESPONSIVE (desktop upgrade) ── */
+@media (min-width: 640px) {
+  .app { max-width: 760px; }
+  .stats-row { grid-template-columns: repeat(4, 1fr); }
+  .detail-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 960px) {
+  .app { max-width: 1100px; }
+  .stats-row { grid-template-columns: repeat(5, 1fr); }
+}
+</style>
 </head>
 <body>
-<div class="admin-container">
-  <!-- 頂部工具列 -->
-  <div class="top-bar">
-    <div class="key-section">
-      <input type="text" id="adminKeyInput" placeholder="輸入 Admin Key" class="input" style="width: 240px;">
-      <button id="btnSaveKey" class="btn btn-primary">儲存 Key</button>
-      <button id="btnClearKey" class="btn btn-soft">清除 Key</button>
-      <span id="keyStatus" class="key-status warn">⚠️ 尚未設定</span>
-    </div>
-    <div class="key-section">
-      <button id="btnRefreshAll" class="btn btn-primary">🔄 重新整理所有</button>
-      <button id="btnOpenHub" class="btn btn-soft">🔗 前台首頁</button>
-      <button id="btnOpenForm" class="btn btn-soft">📝 申請表單</button>
-    </div>
-  </div>
 
-  <!-- 導航按鈕 -->
-  <div class="nav-buttons">
-    <button class="nav-btn active" data-target="dashboardSection">📊 儀表板</button>
-    <button class="nav-btn" data-target="cardSection">💳 卡片管理</button>
-    <button class="nav-btn" data-target="paymentSection">💰 付款管理</button>
-    <button class="nav-btn" data-target="recognitionSection">✅ 採認佇列</button>
-    <button class="nav-btn" data-target="renewalSection">🔄 續約管理</button>
-    <button class="nav-btn" data-target="addonSection">➕ 加購管理</button>
-    <button class="nav-btn" data-target="agentSection">🤝 代理管理</button>
-    <button class="nav-btn" data-target="commissionSection">💵 分潤管理</button>
-    <button class="nav-btn" data-target="announcementSection">📢 公告管理</button>
-    <button class="nav-btn" data-target="trackingSection">📈 追蹤統計</button>
-    <button class="nav-btn" data-target="systemSection">⚙️ 系統工具</button>
-    <button class="nav-btn" data-target="deliverySection">📦 交付工具箱</button>
-    <button class="nav-btn" data-target="inviteSection">🎫 邀請碼管理</button>
-  </div>
+<div class="app">
 
-  <!-- 儀表板區塊 -->
-  <section id="dashboardSection" class="section">
-    <div class="card">
-      <div class="card-header"><h2>📊 儀表板</h2></div>
-      <div class="details-content">
-        <div class="tool-grid">
-          <div class="tool-box"><div class="tool-label">未付款卡片</div><div id="statUnpaid" class="detail-value">-</div></div>
-          <div class="tool-box"><div class="tool-label">已付款待交付</div><div id="statNeedDelivery" class="detail-value">-</div></div>
-          <div class="tool-box"><div class="tool-label">需續約關注</div><div id="statNeedRenewal" class="detail-value">-</div></div>
-          <div class="tool-box"><div class="tool-label">加購單待處理</div><div id="statAddonPending" class="detail-value">-</div></div>
-          <div class="tool-box"><div class="tool-label">代理總數</div><div id="statAgents" class="detail-value">-</div></div>
-          <div class="tool-box"><div class="tool-label">待確認付款</div><div id="statPendingPayments" class="detail-value">-</div></div>
-          <div class="tool-box"><div class="tool-label">待採認單</div><div id="statPendingRecognition" class="detail-value">-</div></div>
-          <div class="tool-box"><div class="tool-label">今日付款</div><div id="statTodayPayments" class="detail-value">-</div></div>
-          <div class="tool-box"><div class="tool-label">今日卡片</div><div id="statTodayCards" class="detail-value">-</div></div>
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-brand">✦ HSC 後台</div>
+    <div class="topbar-key">
+      <div class="key-dot" id="keyDot"></div>
+      <div class="key-input-wrap">
+        <input type="password" id="adminKeyInput" placeholder="Admin Key">
+        <button class="key-save-btn" id="btnSaveKey">✓</button>
+      </div>
+      <button class="btn btn-icon btn-soft" id="btnClearKey" title="清除 Key">✕</button>
+    </div>
+  </header>
+
+  <!-- TAB NAV -->
+  <nav class="tabnav" id="tabNav">
+    <button class="tab-btn active" data-section="dashSection">📊 總覽</button>
+    <button class="tab-btn" data-section="inviteSection">🎫 邀請碼</button>
+    <button class="tab-btn" data-section="cardSection">💳 卡片</button>
+    <button class="tab-btn" data-section="deliverySection">📦 交付</button>
+    <button class="tab-more" id="btnMore">更多 ▾</button>
+  </nav>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- ── 總覽 ── -->
+    <section id="dashSection" class="section active">
+      <div class="section-header">
+        <div class="section-title">總覽</div>
+        <button class="btn btn-soft btn-sm" id="btnRefreshAll">↻ 重新整理</button>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-tile urgent" id="tileUnpaid">
+          <div class="stat-label">未付款</div>
+          <div class="stat-value" id="statUnpaid">-</div>
         </div>
-        <div class="detail-section mt16"><div class="detail-title">⚠️ 風險提醒</div><div id="dashboardRiskList"></div></div>
-        <div class="detail-section"><div class="detail-title">🎯 焦點待辦</div><div id="dashboardFocus"></div></div>
-        <div class="detail-section"><div class="detail-title">📋 最近操作紀錄</div><div id="recentOpsLogs"></div></div>
+        <div class="stat-tile warn" id="tileDelivery">
+          <div class="stat-label">待交付</div>
+          <div class="stat-value" id="statNeedDelivery">-</div>
+        </div>
+        <div class="stat-tile" id="tileRenewal">
+          <div class="stat-label">需續約</div>
+          <div class="stat-value" id="statNeedRenewal">-</div>
+        </div>
+        <div class="stat-tile" id="tileAddon">
+          <div class="stat-label">加購待辦</div>
+          <div class="stat-value" id="statAddonPending">-</div>
+        </div>
+        <div class="stat-tile ok" id="tileToday">
+          <div class="stat-label">今日付款</div>
+          <div class="stat-value" id="statTodayPayments">-</div>
+        </div>
       </div>
-    </div>
-  </section>
 
-  <!-- 卡片管理區塊 -->
-  <section id="cardSection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>💳 卡片管理</h2></div>
-      <div class="details-content">
-        <div class="form-row"><input type="text" id="cardSearch" placeholder="搜尋卡片 ID / 姓名 / 電話 / Email" class="input"><div class="action-row"><button id="btnSearchCards" class="btn btn-primary">搜尋</button><button id="btnReloadCards" class="btn btn-soft">重新整理</button></div></div>
-        <div class="table-wrapper"><table class="data-table"><thead><tr><th>卡片ID</th><th>姓名</th><th>電話</th><th>方案</th><th>狀態</th><th>帳務狀態</th><th>到期日</th><th>操作</th></tr></thead><tbody id="cardsTableBody"><tr><td colspan="8" class="empty-cell">載入中…</td></tr></tbody></table></div>
-        <div class="detail-section mt16"><div class="detail-title">卡片詳情查詢</div><div class="form-row"><label>卡片ID</label><input type="text" id="detailCardId" placeholder="輸入卡片ID"><button id="btnLoadCardDetail" class="btn btn-primary">查詢詳情</button></div><div id="cardDetailWrap" class="detail-stack empty-state">請輸入卡片ID查詢</div></div>
-        <div class="detail-section"><div class="detail-title">流程總控</div><div class="tool-grid"><div class="tool-box"><div class="tool-label">成品預覽連結</div><textarea id="previewLinkBox" readonly class="readonly-textarea"></textarea><button id="btnCopyPreviewLink" class="btn btn-xs btn-soft">複製</button></div><div class="tool-box"><div class="tool-label">交付卡連結</div><textarea id="deliveryLinkBox" readonly class="readonly-textarea"></textarea><button id="btnCopyDeliveryLink" class="btn btn-xs btn-soft">複製</button></div></div></div>
-        <div class="detail-section"><div class="detail-title">目前選取卡片</div><div class="detail-grid"><div class="detail-item"><div class="detail-key">卡片ID</div><div id="currentCardLabel" class="detail-value">-</div></div><div class="detail-item"><div class="detail-key">姓名</div><div id="currentCardName" class="detail-value">-</div></div><div class="detail-item"><div class="detail-key">帳務狀態</div><div id="currentBillingStatus" class="detail-value">-</div></div><div class="detail-item"><div class="detail-key">方案</div><div id="currentPlan" class="detail-value">-</div></div></div></div>
+      <div class="section-label">⚠️ 需要處理</div>
+      <div id="dashRiskList"><div class="empty-state">載入中…</div></div>
+
+      <div class="section-label">📋 最近紀錄</div>
+      <div id="dashRecentLogs"><div class="empty-state">載入中…</div></div>
+    </section>
+
+    <!-- ── 邀請碼 ── -->
+    <section id="inviteSection" class="section">
+      <div class="section-header">
+        <div class="section-title">邀請碼</div>
+        <button class="btn btn-soft btn-sm" id="btnRefreshRequests">↻ 重整</button>
       </div>
-    </div>
-  </section>
 
-  <!-- 付款管理區塊 -->
-  <section id="paymentSection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>💰 付款管理</h2></div>
-      <div class="details-content">
-        <div class="action-row"><button id="btnRefreshPayments" class="btn btn-primary">重新整理付款</button><button id="btnLoadPendingOffline" class="btn btn-soft">載入待處理線下單</button></div>
-        <div class="table-wrapper"><table class="data-table"><thead><tr><th>付款ID</th><th>卡片ID</th><th>事件類型</th><th>金額</th><th>狀態</th><th>應付日</th><th>付款日</th><th>操作</th></tr></thead><tbody id="paymentsTableBody"><tr><td colspan="8" class="empty-cell">載入中…</td></tr></tbody></table></div>
-        <div class="detail-section mt16"><div class="detail-title">付款詳情</div><div id="paymentDetailWrap" class="detail-stack empty-state">點擊「查看」按鈕</div></div>
-        <div class="detail-section"><div class="detail-title">卡片付款摘要</div><div id="cardPaymentSummaryWrap" class="detail-stack empty-state">尚未選取付款</div></div>
-        <div class="detail-section"><div class="detail-title">文案生成</div><div class="tool-grid"><div class="tool-box"><div class="tool-label">付款通知文案</div><textarea id="paymentNoticeText" class="textarea" readonly></textarea><button id="btnBuildPaymentNotice" class="btn btn-sm btn-soft">產生</button></div><div class="tool-box"><div class="tool-label">付款完成通知</div><textarea id="paidNoticeText" class="textarea" readonly></textarea><button id="btnBuildPaidNotice" class="btn btn-sm btn-soft">產生</button></div><div class="tool-box"><div class="tool-label">交付通知文案</div><textarea id="deliveryNoticeText" class="textarea" readonly></textarea><button id="btnBuildDeliveryNotice" class="btn btn-sm btn-soft">產生</button></div></div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 採認佇列區塊 -->
-  <section id="recognitionSection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>✅ 採認佇列</h2></div>
-      <div class="details-content">
-        <div class="action-row"><button class="recognition-tab btn btn-soft active" data-type="renewal">續約採認</button><button class="recognition-tab btn btn-soft" data-type="addon">加購採認</button></div>
-        <div class="table-wrapper"><table class="data-table"><thead><tr><th>採認ID</th><th>事件類型</th><th>事件ID</th><th>卡片ID</th><th>代理ID</th><th>結果</th><th>採認時間</th><th>操作</th></tr></thead><tbody id="recognitionTableBody"><tr><td colspan="8" class="empty-cell">載入中…</td></tr></tbody></table></div>
-        <div class="detail-section mt16"><div class="detail-title">採認詳情</div><div id="recognitionDetailWrap" class="detail-stack empty-state">點擊「查看」按鈕</div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 續約管理區塊 -->
-  <section id="renewalSection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>🔄 續約管理</h2></div>
-      <div class="details-content">
-        <div class="action-row"><button id="btnRefreshRenewalList" class="btn btn-primary">重新整理續約單</button><button id="btnConfirmRenewalPaid" class="btn btn-primary">手動續約（目前卡片）</button><button id="btnTriggerPaymentReminder" class="btn btn-soft">觸發付款提醒</button></div>
-        <div class="tool-grid"><div class="tool-box"><div class="tool-label">30天內到期</div><div id="renewalSoonCount" class="detail-value">-</div></div><div class="tool-box"><div class="tool-label">已到期</div><div id="renewalExpiredCount" class="detail-value">-</div></div><div class="tool-box"><div class="tool-label">待付款</div><div id="renewalPendingPayCount" class="detail-value">-</div></div></div>
-        <div class="table-wrapper"><table class="data-table"><thead><tr><th>續約ID</th><th>卡片ID</th><th>續約天數</th><th>金額</th><th>狀態</th><th>到期日</th><th>操作</th></tr></thead><tbody id="renewalListTableBody"><tr><td colspan="7" class="empty-cell">載入中…</td></tr></tbody></table></div>
-        <div class="detail-section mt16"><div class="detail-title">續約詳情</div><div id="renewalDetailWrap" class="detail-stack empty-state">點擊「查看詳情」</div></div>
-        <div class="detail-section"><div class="detail-title">續約文案</div><textarea id="renewalTextBox" class="textarea" readonly placeholder="續約提醒文案"></textarea><div class="action-row"><button id="btnCopyRenewalText" class="btn btn-sm btn-soft">複製提醒文案</button><button id="btnCopyRenewalDeliveryText" class="btn btn-sm btn-soft">複製交付文案</button></div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 加購管理區塊 -->
-  <section id="addonSection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>➕ 加購管理</h2></div>
-      <div class="details-content">
-        <div class="form-row"><input type="text" id="addonSearch" placeholder="搜尋加購單ID / 卡片ID / 類型"><div class="action-row"><button id="btnSearchAddons" class="btn btn-primary">搜尋</button><button id="btnReloadAddons" class="btn btn-soft">重新整理</button><button id="btnRepairAddonStatus" class="btn btn-soft">修復狀態</button></div></div>
-        <div class="table-wrapper"><table class="data-table"><thead><tr><th>加購單ID</th><th>卡片ID</th><th>類型</th><th>數量</th><th>狀態</th><th>金額</th><th>應付日</th><th>操作</th></tr></thead><tbody id="addonsTableBody"><tr><td colspan="8" class="empty-cell">載入中…</td></tr></tbody></table></div>
-        <div class="detail-section mt16"><div class="detail-title">加購詳情</div><input type="text" id="addonDetailId" placeholder="加購單ID"><button id="btnLoadAddonDetail" class="btn btn-sm btn-primary">查詢</button><div id="addonDetailWrap" class="detail-stack empty-state">輸入ID查詢</div></div>
-        <div class="detail-section"><div class="detail-title">建立加購單</div><div class="form-grid"><div class="form-row"><label>卡片ID</label><input type="text" id="createAddonCardId"></div><div class="form-row"><label>加購類型</label><input type="text" id="createAddonType" placeholder="例如：vip_badge"></div><div class="form-row"><label>數量</label><input type="number" id="createAddonQty" value="1"></div><div class="form-row"><label>金額</label><input type="number" id="createAddonAmount" step="0.01"></div></div><button id="btnSubmitCreateAddon" class="btn btn-primary">建立加購單</button></div>
-        <div class="detail-section"><div class="detail-title">加購提醒文案</div><textarea id="addonPaymentReminderText" class="textarea" readonly></textarea><button id="btnCopyAddonReminder" class="btn btn-sm btn-soft">複製提醒文案</button></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 代理管理區塊 -->
-  <section id="agentSection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>🤝 代理管理</h2></div>
-      <div class="details-content">
-        <div class="form-row"><input type="text" id="agentSearch" placeholder="搜尋代理ID / 姓名 / 類型"><div class="action-row"><button id="btnSearchAgents" class="btn btn-primary">搜尋</button><button id="btnReloadAgents" class="btn btn-soft">重新整理</button></div></div>
-        <div class="table-wrapper"><table class="data-table"><thead><tr><th>代理ID</th><th>姓名</th><th>類型</th><th>會員等級</th><th>點數餘額</th><th>總分潤</th><th>狀態</th><th>操作</th></tr></thead><tbody id="agentsTableBody"><tr><td colspan="8" class="empty-cell">載入中…</td></tr></tbody></table></div>
-        <div class="detail-section mt16"><div class="detail-title">代理詳情</div><input type="text" id="detailAgentId" placeholder="代理ID"><button id="btnLoadAgentDetail" class="btn btn-sm btn-primary">查詢</button><div id="agentDetailWrap" class="detail-stack empty-state">輸入ID查詢</div></div>
-        <div class="detail-section"><div class="detail-title">目前選取代理</div><div class="detail-grid"><div class="detail-item"><div class="detail-key">代理ID</div><div id="currentAgentLabel" class="detail-value">-</div></div><div class="detail-item"><div class="detail-key">姓名</div><div id="currentAgentName" class="detail-value">-</div></div><div class="detail-item"><div class="detail-key">點數餘額</div><div id="currentAgentPoints" class="detail-value">-</div></div><div class="detail-item"><div class="detail-key">總分潤</div><div id="currentAgentCommission" class="detail-value">-</div></div></div></div>
-        <div class="detail-section"><div class="detail-title">編輯代理</div><div class="form-grid"><div class="form-row"><label>姓名</label><input type="text" id="editAgentName"></div><div class="form-row"><label>電話</label><input type="text" id="editAgentPhone"></div><div class="form-row"><label>Email</label><input type="email" id="editAgentEmail"></div><div class="form-row"><label>代理類型</label><input type="text" id="editAgentType"></div></div><div class="action-row"><button id="btnUpdateAgent" class="btn btn-primary">更新資料</button><button id="btnFreezeAgent" class="btn btn-danger">凍結代理</button><button id="btnUnfreezeAgent" class="btn btn-soft">解凍代理</button></div></div>
-        <div class="detail-section"><div class="detail-title">升級設定</div><div class="form-row"><label>目標等級 (target_tier)</label><input type="text" id="target_tier" placeholder="例如：silver / gold"><button id="btnSetAgentUpgrade" class="btn btn-primary">設定可升級</button></div><div id="agentUpgradeCard" class="detail-stack empty-state">請先查詢代理</div></div>
-        <div class="detail-section"><div class="detail-title">點數/分潤調整</div><div class="form-grid"><div class="form-row"><label>代理ID</label><input type="text" id="pointsAgentId" placeholder="agent_id"></div><div class="form-row"><label>點數值</label><input type="number" id="pointsValue" step="1"></div><div class="form-row"><label>備註</label><input type="text" id="pointsNote"></div></div><div class="action-row"><button id="btnAddPoints" class="btn btn-primary">加點</button><button id="btnSubtractPoints" class="btn btn-danger">扣點</button></div><div class="form-grid mt16"><div class="form-row"><label>代理ID</label><input type="text" id="commissionAgentId" placeholder="agent_id"></div><div class="form-row"><label>分潤金額</label><input type="number" id="commissionValue" step="0.01"></div><div class="form-row"><label>備註</label><input type="text" id="commissionNote"></div></div><button id="btnAdjustCommission" class="btn btn-primary">補分潤</button></div>
-        <div class="detail-section"><div class="detail-title">點數/分潤紀錄</div><button id="btnLoadLogs" class="btn btn-sm btn-soft">重新整理紀錄</button><div class="detail-subtitle mt8">點數紀錄</div><div class="table-wrapper"><table class="data-table"><thead><tr><th>時間</th><th>類型</th><th>變動</th><th>備註</th></tr></thead><tbody id="pointsLogTableBody"></tbody></table></div><div class="detail-subtitle mt16">分潤紀錄</div><div class="table-wrapper"><table class="data-table"><thead><tr><th>時間</th><th>金額</th><th>變動</th><th>備註</th></tr></thead><tbody id="commissionLogTableBody"></tbody></table></div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 分潤管理區塊 -->
-  <section id="commissionSection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>💵 分潤管理</h2></div>
-      <div class="details-content">
-        <div class="action-row"><button id="btnLoadCommissions" class="btn btn-primary">重新整理分潤</button><button id="btnLoadPendingCommissions" class="btn btn-soft">載入待支付分潤</button></div>
-        <div class="table-wrapper"><table class="data-table"><thead><tr><th>分潤ID</th><th>代理ID</th><th>金額</th><th>狀態</th><th>付款單ID</th><th>操作</th></tr></thead><tbody id="commissionListTableBody"><tr><td colspan="6" class="empty-cell">載入中…</td></tr></tbody></table></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 公告管理區塊 -->
-  <section id="announcementSection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>📢 公告管理</h2></div>
-      <div class="details-content">
-        <div class="action-row"><button id="btnRefreshAnnouncements" class="btn btn-primary">重新整理公告</button><button id="btnCreateAnnouncement" class="btn btn-primary">新增公告</button></div>
-        <div class="table-wrapper"><table class="data-table"><thead><tr><th>公告ID</th><th>標題</th><th>內容</th><th>狀態</th><th>發佈時間</th><th>操作</th></tr></thead><tbody id="announcementsTableBody"><tr><td colspan="6" class="empty-cell">載入中…</td></tr></tbody></table></div>
-        <details id="announcementFormCard" class="collapsible-native" style="display:none;"><summary>新增/編輯公告</summary><div class="details-content"><div class="form-grid"><div class="form-row"><label>標題</label><input type="text" id="announcementTitle"></div><div class="form-row"><label>內容</label><textarea id="announcementContent" rows="4"></textarea></div><div class="form-row"><label>狀態</label><select id="announcementStatus"><option value="draft">草稿</option><option value="active">發布</option></select></div></div><div class="action-row"><button id="btnSaveAnnouncement" class="btn btn-primary">儲存</button><button id="btnCancelAnnouncement" class="btn btn-soft">取消</button></div></div></details>
-      </div>
-    </div>
-  </section>
-
-  <!-- 追蹤統計區塊 -->
-  <section id="trackingSection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>📈 追蹤統計</h2></div>
-      <div class="details-content">
-        <div class="action-row"><button id="btnRefreshTracking" class="btn btn-primary">重新整理摘要</button></div>
-        <div class="tool-grid"><div class="tool-box"><div class="tool-label">總卡片數</div><div id="trackingTotalCards" class="detail-value">-</div></div><div class="tool-box"><div class="tool-label">總代理數</div><div id="trackingTotalAgents" class="detail-value">-</div></div><div class="tool-box"><div class="tool-label">本月營收</div><div id="trackingMonthlyRevenue" class="detail-value">-</div></div><div class="tool-box"><div class="tool-label">本月分潤</div><div id="trackingMonthlyCommission" class="detail-value">-</div></div></div>
-        <div class="detail-section mt16"><div class="detail-title">卡片追蹤</div><div class="form-row"><input type="text" id="trackingCardId" placeholder="卡片ID"><button id="btnGetCardTracking" class="btn btn-sm btn-primary">查詢</button></div><div id="cardTrackingDetail" class="detail-stack empty-state">請輸入卡片ID</div></div>
-        <div class="detail-section"><div class="detail-title">代理追蹤</div><div class="form-row"><input type="text" id="trackingAgentId" placeholder="代理ID"><button id="btnGetAgentTracking" class="btn btn-sm btn-primary">查詢</button></div><div id="agentTrackingDetail" class="detail-stack empty-state">請輸入代理ID</div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 系統工具區塊 -->
-  <section id="systemSection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>⚙️ 系統工具</h2></div>
-      <div class="details-content">
-        <div class="action-row"><button id="btnCheckSchema" class="btn btn-primary">檢查 Schema</button><button id="btnRunDailyOps" class="btn btn-primary">執行每日維運</button><button id="btnRefreshOpsLogs" class="btn btn-soft">重新整理維運紀錄</button></div>
-        <div id="schemaStatus" class="detail-stack empty-state">尚未檢查</div>
-        <div class="detail-section mt16"><div class="detail-title">維運紀錄</div><div id="opsLogsList" class="detail-stack empty-state">暫無紀錄</div></div>
-        <div class="detail-section"><div class="detail-title">修復工具</div><div class="tool-grid"><div class="tool-box"><button id="btnRepairDueAt" class="btn btn-sm btn-soft">修復 due_at</button><button id="btnRepairAddonStatusTool" class="btn btn-sm btn-soft">修復加購狀態</button><button id="btnRepairDataValidation" class="btn btn-sm btn-soft">資料驗證修復</button><button id="btnNormalizeCardTheme" class="btn btn-sm btn-soft">正規化卡片主題</button><button id="btnAuditCardTheme" class="btn btn-sm btn-soft">稽核卡片主題</button><button id="btnInstallSystemTriggers" class="btn btn-sm btn-soft">安裝系統觸發器</button><button id="btnInstallCommercialTriggers" class="btn btn-sm btn-soft">安裝商業觸發器</button></div></div><div id="systemToolResult" class="detail-stack empty-state">執行結果</div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 交付工具箱區塊 -->
-  <section id="deliverySection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>📦 交付工具箱</h2></div>
-      <div class="details-content">
-        <div class="detail-section"><div class="detail-title">連結工具箱</div><div class="tool-grid"><div class="tool-box"><div class="tool-label">名片連結</div><div id="toolboxCardLink" class="detail-value">-</div><button id="btnCopyCardLink" class="btn btn-xs btn-soft">複製</button></div><div class="tool-box"><div class="tool-label">交付卡連結</div><div id="toolboxPosterLink" class="detail-value">-</div><button id="btnCopyPosterLink" class="btn btn-xs btn-soft">複製</button></div><div class="tool-box"><div class="tool-label">推薦入口連結</div><div id="toolboxReferralLink" class="detail-value">-</div><button id="btnCopyReferralToolLink" class="btn btn-xs btn-soft">複製</button></div><div class="tool-box"><div class="tool-label">更新入口連結</div><div id="toolboxUpdateLink" class="detail-value">-</div><button id="btnCopyUpdateToolLink" class="btn btn-xs btn-soft">複製</button></div><div class="tool-box"><div class="tool-label">續用入口連結</div><div id="toolboxRenewalLink" class="detail-value">-</div><button id="btnCopyRenewalToolLink" class="btn btn-xs btn-soft">複製</button></div><div class="tool-box"><div class="tool-label">海報圖片連結</div><div id="toolboxPosterUrl" class="detail-value">-</div><button id="btnCopyPosterUrlLink" class="btn btn-xs btn-soft">複製</button></div></div></div>
-        <div class="detail-section"><div class="detail-title">分享文案</div><div class="tool-grid"><div class="tool-box"><div class="tool-label">Trial 分享文案</div><textarea id="trialShareText" class="textarea" readonly></textarea><button id="btnCopyTrialShareText" class="btn btn-xs btn-soft">複製</button></div><div class="tool-box"><div class="tool-label">專屬入口文案</div><textarea id="referralEntryText" class="textarea" readonly></textarea><button id="btnCopyReferralEntryText" class="btn btn-xs btn-soft">複製</button></div><div class="tool-box"><div class="tool-label">更新入口文案</div><textarea id="updateEntryText" class="textarea" readonly></textarea><button id="btnCopyUpdateEntryText" class="btn btn-xs btn-soft">複製</button></div><div class="tool-box"><div class="tool-label">續用入口文案</div><textarea id="renewalEntryText" class="textarea" readonly></textarea><button id="btnCopyRenewalEntryText" class="btn btn-xs btn-soft">複製</button></div></div></div>
-        <div class="detail-section"><div class="detail-title">錢包模式模擬</div><div id="walletModeSimulator"></div><div id="walletObserver" class="detail-stack empty-state">請先選取卡片</div><div id="serviceLogObserver" class="detail-stack empty-state">服務紀錄</div><div id="deliveryWarnings" class="detail-stack empty-state">異常檢查</div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 邀請碼管理區塊（完整修復版） -->
-  <section id="inviteSection" class="section" style="display:none;">
-    <div class="card">
-      <div class="card-header"><h2>🎫 申請碼 / 邀請碼管理</h2></div>
-
-      <!-- 建立結果與複製區塊（已移除 inline onclick） -->
-      <details class="collapsible-native" open>
-        <summary>📋 建立結果與複製</summary>
-        <div class="details-content">
-          <div class="result-box">
-            <div class="result-title">目前邀請碼資訊</div>
-            <pre id="inviteCreateResult">尚未選取任何已派發申請</pre>
-          </div>
-          <div class="tool-grid mt16">
-            <div class="tool-box">
-              <div class="tool-label">申請連結</div>
-              <textarea id="inviteFormUrlBox" class="textarea" readonly placeholder="選取已派發申請後自動填入"></textarea>
-            </div>
-            <div class="tool-box">
-              <div class="tool-label">客服回覆文案</div>
-              <textarea id="inviteReplyTextBox" class="textarea" readonly placeholder="選取已派發申請後自動填入"></textarea>
-            </div>
-          </div>
-          <div class="action-row">
-            <button class="btn btn-soft btn-copy-invite-code-global">複製邀請碼</button>
-            <button class="btn btn-primary btn-copy-invite-url-global">複製申請連結</button>
-            <button class="btn btn-primary btn-copy-invite-text-global">複製客服文案</button>
+      <!-- 已選申請單 -->
+      <div id="inviteSelectedWrap" style="display:none;">
+        <div class="invite-selected-card">
+          <div class="invite-selected-title">已選取申請單</div>
+          <div class="invite-code-display" id="inviteCodeDisplay">——</div>
+          <div id="inviteSelectedMeta" style="font-size:12px;color:var(--ink2);margin-bottom:10px;"></div>
+          <div class="copy3-row">
+            <button class="btn btn-soft btn-sm" id="btnCopyCode">複製碼</button>
+            <button class="btn btn-primary btn-sm" id="btnCopyUrl">複製連結</button>
+            <button class="btn btn-ok btn-sm" id="btnCopyText">複製文案</button>
           </div>
         </div>
-      </details>
+      </div>
+
+      <!-- 派碼表單 (收合) -->
+      <div class="collapsible" id="assignCollapsible">
+        <div class="collapsible-head" id="assignCollapsibleHead">
+          <span>🎁 派發邀請碼</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="collapsible-body">
+          <div class="field">
+            <label>申請單 ID</label>
+            <input type="text" id="requestIdForAssign" placeholder="點申請單「派碼」自動帶入">
+          </div>
+          <div class="field">
+            <label>備註（選填）</label>
+            <input type="text" id="assignInviteNote" placeholder="選填">
+          </div>
+          <button class="btn btn-primary btn-full" id="btnAssignInviteToRequest">✅ 確認派發</button>
+        </div>
+      </div>
 
       <!-- 申請單列表 -->
-      <details class="collapsible-native" open>
-        <summary>📋 申請單列表</summary>
-        <div class="details-content">
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr><th>申請單 ID</th><th>建立時間</th><th>來源 ref</th><th>狀態</th><th>邀請碼</th><th>派發者</th><th>備註</th><th>操作</th></tr>
-              </thead>
-              <tbody id="requestListContainer"><tr><td colspan="8" class="empty-cell">載入中…</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="action-row"><button id="btnRefreshRequests" class="btn btn-soft">🔄 重新整理申請單</button></div>
-        </div>
-      </details>
+      <div class="section-label">申請單列表</div>
+      <div id="requestListContainer">
+        <div class="empty-state">載入中…</div>
+      </div>
+    </section>
 
-      <!-- 正式派發邀請碼 -->
-      <details id="assignInviteDetails" class="collapsible-native">
-        <summary>🎁 正式派發邀請碼</summary>
-        <div class="details-content">
-          <div class="form-grid">
-            <div class="form-row"><label>申請單 ID</label><input type="text" id="requestIdForAssign" placeholder="點擊申請單「填寫派碼」自動帶入" /></div>
-            <div class="form-row"><label>邀請碼（系統自動產生）</label><input type="text" id="inviteCodeForRequest" placeholder="派碼時會自動產生" readonly /></div>
-            <div class="form-row full-width"><label>備註</label><input type="text" id="assignInviteNote" placeholder="選填" /></div>
-          </div>
-          <div class="action-row"><button id="btnAssignInviteToRequest" type="button" class="btn btn-primary">✅ 確認派發邀請碼</button></div>
-        </div>
-      </details>
+    <!-- ── 卡片管理 ── -->
+    <section id="cardSection" class="section">
+      <div class="section-header">
+        <div class="section-title">卡片</div>
+        <button class="btn btn-soft btn-sm" id="btnReloadCards">↻ 重整</button>
+      </div>
 
-      <!-- 申請單追蹤 -->
-      <details id="requestTraceDetails" class="collapsible-native">
-        <summary>🔍 申請單追蹤（Request → Invite → Lead）</summary>
-        <div class="details-content">
-          <div id="requestTraceWrap" class="detail-stack empty-state">點擊申請單的「查看」按鈕後，這裡會顯示追蹤資料。</div>
+      <div class="search-bar">
+        <input type="text" id="cardSearch" placeholder="搜尋 ID / 姓名 / 電話 / Email">
+        <span class="search-bar-icon">⌕</span>
+      </div>
+
+      <div id="cardsListContainer">
+        <div class="empty-state">載入中…</div>
+      </div>
+
+      <!-- 詳情查詢 -->
+      <div class="collapsible" id="cardDetailCollapsible">
+        <div class="collapsible-head" id="cardDetailCollapsibleHead">
+          <span>🔍 輸入 ID 查詢</span>
+          <span class="chevron">›</span>
         </div>
-      </details>
+        <div class="collapsible-body">
+          <div class="field">
+            <label>卡片 ID</label>
+            <input type="text" id="detailCardId" placeholder="輸入完整卡片 ID">
+          </div>
+          <button class="btn btn-primary btn-full" id="btnLoadCardDetail">查詢</button>
+          <div id="cardDetailWrap" style="margin-top:12px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 交付工具箱 ── -->
+    <section id="deliverySection" class="section">
+      <div class="section-header">
+        <div class="section-title">交付</div>
+      </div>
+
+      <div class="field">
+        <label>選取卡片 ID</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="deliveryCardIdInput" placeholder="輸入卡片 ID" style="flex:1;">
+          <button class="btn btn-primary" id="btnLoadDelivery">載入</button>
+        </div>
+      </div>
+
+      <div id="deliveryContent" style="display:none;">
+        <!-- 卡片摘要 -->
+        <div class="card" id="deliveryCardSummary"></div>
+
+        <!-- 連結區 -->
+        <div class="section-label">連結</div>
+        <div id="deliveryLinksWrap"></div>
+
+        <!-- 文案區 -->
+        <div class="section-label">分享文案</div>
+        <div id="deliveryCopyTextsWrap"></div>
+
+        <!-- 錢包狀態 -->
+        <div class="collapsible" id="walletCollapsible">
+          <div class="collapsible-head" id="walletCollapsibleHead">
+            <span>💰 錢包狀態</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="collapsible-body">
+            <div id="walletObserverWrap"></div>
+          </div>
+        </div>
+
+        <!-- 異常提示 -->
+        <div id="deliveryWarningsWrap"></div>
+      </div>
+
+      <div id="deliveryEmpty" class="empty-state">請輸入卡片 ID 後點「載入」</div>
+    </section>
+
+    <!-- ── 付款管理 ── -->
+    <section id="paymentSection" class="section">
+      <div class="section-header">
+        <div class="section-title">付款</div>
+        <button class="btn btn-soft btn-sm" id="btnRefreshPayments">↻ 重整</button>
+      </div>
+      <div id="paymentsListContainer"><div class="empty-state">載入中…</div></div>
+    </section>
+
+    <!-- ── 續約管理 ── -->
+    <section id="renewalSection" class="section">
+      <div class="section-header">
+        <div class="section-title">續約</div>
+        <button class="btn btn-soft btn-sm" id="btnRefreshRenewalList">↻ 重整</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-tile warn"><div class="stat-label">30天到期</div><div class="stat-value" id="renewalSoonCount">-</div></div>
+        <div class="stat-tile urgent"><div class="stat-label">已到期</div><div class="stat-value" id="renewalExpiredCount">-</div></div>
+        <div class="stat-tile"><div class="stat-label">待付款</div><div class="stat-value" id="renewalPendingPayCount">-</div></div>
+      </div>
+      <div id="renewalListContainer"><div class="empty-state">載入中…</div></div>
+    </section>
+
+    <!-- ── 加購管理 ── -->
+    <section id="addonSection" class="section">
+      <div class="section-header">
+        <div class="section-title">加購</div>
+        <button class="btn btn-soft btn-sm" id="btnReloadAddons">↻ 重整</button>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="addonSearch" placeholder="搜尋加購單 ID / 卡片 ID / 類型">
+        <span class="search-bar-icon">⌕</span>
+      </div>
+      <div id="addonsListContainer"><div class="empty-state">載入中…</div></div>
+    </section>
+
+    <!-- ── 代理管理 ── -->
+    <section id="agentSection" class="section">
+      <div class="section-header">
+        <div class="section-title">代理</div>
+        <button class="btn btn-soft btn-sm" id="btnReloadAgents">↻ 重整</button>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="agentSearch" placeholder="搜尋代理 ID / 姓名 / 類型">
+        <span class="search-bar-icon">⌕</span>
+      </div>
+      <div id="agentsListContainer"><div class="empty-state">載入中…</div></div>
+    </section>
+
+    <!-- ── 分潤管理 ── -->
+    <section id="commissionSection" class="section">
+      <div class="section-header">
+        <div class="section-title">分潤</div>
+        <button class="btn btn-soft btn-sm" id="btnLoadCommissions">↻ 重整</button>
+      </div>
+      <div id="commissionsListContainer"><div class="empty-state">載入中…</div></div>
+    </section>
+
+    <!-- ── 公告管理 ── -->
+    <section id="announcementSection" class="section">
+      <div class="section-header">
+        <div class="section-title">公告</div>
+        <button class="btn btn-primary btn-sm" id="btnCreateAnnouncement">+ 新增</button>
+      </div>
+      <div class="collapsible" id="announcementFormCollapsible" style="display:none;">
+        <div class="collapsible-head" id="announcementFormHead">
+          <span>✏️ 編輯公告</span><span class="chevron">›</span>
+        </div>
+        <div class="collapsible-body">
+          <div class="field"><label>標題</label><input type="text" id="announcementTitle"></div>
+          <div class="field"><label>內容</label><textarea id="announcementContent" rows="3"></textarea></div>
+          <div class="field"><label>狀態</label>
+            <select id="announcementStatus"><option value="draft">草稿</option><option value="active">發布</option></select>
+          </div>
+          <div class="action-strip">
+            <button class="btn btn-primary" id="btnSaveAnnouncement">儲存</button>
+            <button class="btn btn-soft" id="btnCancelAnnouncement">取消</button>
+          </div>
+        </div>
+      </div>
+      <div id="announcementsListContainer"><div class="empty-state">載入中…</div></div>
+    </section>
+
+    <!-- ── 追蹤統計 ── -->
+    <section id="trackingSection" class="section">
+      <div class="section-header">
+        <div class="section-title">追蹤統計</div>
+        <button class="btn btn-soft btn-sm" id="btnRefreshTracking">↻ 重整</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-tile"><div class="stat-label">總卡片</div><div class="stat-value" id="trackingTotalCards">-</div></div>
+        <div class="stat-tile"><div class="stat-label">總代理</div><div class="stat-value" id="trackingTotalAgents">-</div></div>
+        <div class="stat-tile ok"><div class="stat-label">本月營收</div><div class="stat-value" id="trackingMonthlyRevenue">-</div></div>
+        <div class="stat-tile ok"><div class="stat-label">本月分潤</div><div class="stat-value" id="trackingMonthlyCommission">-</div></div>
+      </div>
+      <div class="field" style="margin-top:8px;">
+        <label>查詢卡片追蹤</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="trackingCardId" placeholder="卡片 ID" style="flex:1;">
+          <button class="btn btn-primary btn-sm" id="btnGetCardTracking">查</button>
+        </div>
+      </div>
+      <div id="cardTrackingDetail" style="margin-bottom:12px;"></div>
+      <div class="field">
+        <label>查詢代理追蹤</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="trackingAgentId" placeholder="代理 ID" style="flex:1;">
+          <button class="btn btn-primary btn-sm" id="btnGetAgentTracking">查</button>
+        </div>
+      </div>
+      <div id="agentTrackingDetail"></div>
+    </section>
+
+    <!-- ── 系統工具 ── -->
+    <section id="systemSection" class="section">
+      <div class="section-header">
+        <div class="section-title">系統工具</div>
+      </div>
+      <div class="tool-list">
+        <div class="tool-item">
+          <div><div class="tool-item-label">每日維運</div><div class="tool-item-sub">觸發每日排程任務</div></div>
+          <button class="btn btn-warn btn-sm" id="btnRunDailyOps">執行</button>
+        </div>
+        <div class="tool-item">
+          <div><div class="tool-item-label">Schema 健康檢查</div><div class="tool-item-sub">檢查資料結構完整性</div></div>
+          <button class="btn btn-soft btn-sm" id="btnCheckSchema">檢查</button>
+        </div>
+        <div class="tool-item">
+          <div><div class="tool-item-label">修復到期日</div><div class="tool-item-sub">補正缺失的 due_at</div></div>
+          <button class="btn btn-soft btn-sm" id="btnRepairDueAt">修復</button>
+        </div>
+        <div class="tool-item">
+          <div><div class="tool-item-label">修復加購狀態</div><div class="tool-item-sub">重整加購單狀態標記</div></div>
+          <button class="btn btn-soft btn-sm" id="btnRepairAddonStatusTool">修復</button>
+        </div>
+        <div class="tool-item">
+          <div><div class="tool-item-label">資料驗證修復</div><div class="tool-item-sub">自動修正資料格式異常</div></div>
+          <button class="btn btn-soft btn-sm" id="btnRepairDataValidation">修復</button>
+        </div>
+        <div class="tool-item">
+          <div><div class="tool-item-label">正規化卡片主題</div><div class="tool-item-sub">統一主題欄位格式</div></div>
+          <button class="btn btn-soft btn-sm" id="btnNormalizeCardTheme">執行</button>
+        </div>
+        <div class="tool-item">
+          <div><div class="tool-item-label">稽核卡片主題</div><div class="tool-item-sub">掃描主題欄位異常</div></div>
+          <button class="btn btn-soft btn-sm" id="btnAuditCardTheme">稽核</button>
+        </div>
+        <div class="tool-item">
+          <div><div class="tool-item-label">排程設定 — 系統</div><div class="tool-item-sub">安裝系統排程觸發器</div></div>
+          <button class="btn btn-soft btn-sm" id="btnInstallSystemTriggers">安裝</button>
+        </div>
+        <div class="tool-item">
+          <div><div class="tool-item-label">排程設定 — 商業</div><div class="tool-item-sub">安裝商業排程觸發器</div></div>
+          <button class="btn btn-soft btn-sm" id="btnInstallCommercialTriggers">安裝</button>
+        </div>
+      </div>
+      <div class="section-label">執行結果</div>
+      <div id="systemToolResult" class="result-box" style="min-height:60px;">尚未執行</div>
+      <div class="divider"></div>
+      <div id="schemaStatus" class="result-box" style="min-height:40px;">尚未檢查</div>
+    </section>
+
+  </main><!-- /content -->
+</div><!-- /app -->
+
+<!-- MORE MENU (bottom sheet) -->
+<div class="more-menu" id="moreMenu">
+  <div class="more-menu-overlay" id="moreMenuOverlay"></div>
+  <div class="more-menu-sheet">
+    <div class="more-menu-title">更多功能</div>
+    <div class="more-menu-grid">
+      <button class="more-menu-btn" data-section="paymentSection">💰 付款管理</button>
+      <button class="more-menu-btn" data-section="renewalSection">🔄 續約管理</button>
+      <button class="more-menu-btn" data-section="addonSection">➕ 加購管理</button>
+      <button class="more-menu-btn" data-section="agentSection">🤝 代理管理</button>
+      <button class="more-menu-btn" data-section="commissionSection">💵 分潤管理</button>
+      <button class="more-menu-btn" data-section="announcementSection">📢 公告管理</button>
+      <button class="more-menu-btn" data-section="trackingSection">📈 追蹤統計</button>
+      <button class="more-menu-btn" data-section="systemSection">⚙️ 系統工具</button>
     </div>
-  </section>
-
-  <!-- 載入遮罩 & Toast -->
-  <div id="loadingMask" class="hidden"><div class="spinner"></div></div>
-  <div id="toast" class="hidden"></div>
+  </div>
 </div>
+
+<!-- Loading & Toast -->
+<div id="loadingMask" class="hidden"><div class="spinner"></div></div>
+<div id="toast" class="hidden"></div>
+
 <script src="admin.js"></script>
+<script>
+// ── UI SHELL SCRIPT (layout / nav / collapsibles only) ──
+// All API calls and data logic remain in admin.js
+
+(function() {
+  // ── helpers ──
+  function $(s) { return document.querySelector(s); }
+  function $$(s, r) { return Array.from((r||document).querySelectorAll(s)); }
+  function escHtml(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // ── TAB NAV ──
+  function activateSection(id) {
+    $$('.section').forEach(s => s.classList.remove('active'));
+    $$('.tab-btn').forEach(b => b.classList.remove('active'));
+    const sec = document.getElementById(id);
+    if (sec) sec.classList.add('active');
+    const tab = $$(`.tab-btn[data-section="${id}"]`)[0];
+    if (tab) tab.classList.add('active');
+    $('#moreMenu').classList.remove('open');
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  $$('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => activateSection(btn.dataset.section));
+  });
+
+  // More menu
+  $('#btnMore').addEventListener('click', () => $('#moreMenu').classList.add('open'));
+  $('#moreMenuOverlay').addEventListener('click', () => $('#moreMenu').classList.remove('open'));
+  $$('.more-menu-btn').forEach(btn => {
+    btn.addEventListener('click', () => activateSection(btn.dataset.section));
+  });
+
+  // ── COLLAPSIBLES ──
+  function bindCollapsible(headId, parentId) {
+    const head = document.getElementById(headId);
+    const parent = document.getElementById(parentId);
+    if (!head || !parent) return;
+    head.addEventListener('click', () => parent.classList.toggle('open'));
+  }
+
+  bindCollapsible('assignCollapsibleHead', 'assignCollapsible');
+  bindCollapsible('cardDetailCollapsibleHead', 'cardDetailCollapsible');
+  bindCollapsible('walletCollapsibleHead', 'walletCollapsible');
+  bindCollapsible('announcementFormHead', 'announcementFormCollapsible');
+
+  // ── DELIVERY section load ──
+  document.getElementById('btnLoadDelivery')?.addEventListener('click', () => {
+    const cardId = ($('#deliveryCardIdInput') || {}).value?.trim();
+    if (!cardId) return;
+    // delegate to admin.js loadCardDetail if available
+    if (typeof window.loadCardDetailForDelivery === 'function') {
+      window.loadCardDetailForDelivery(cardId);
+    } else if (typeof window.loadCardDetail === 'function') {
+      window.loadCardDetail(cardId);
+    }
+    $('#deliveryContent').style.display = 'block';
+    $('#deliveryEmpty').style.display = 'none';
+  });
+
+  // ── CARD SEARCH live filter ──
+  const cardSearchEl = $('#cardSearch');
+  if (cardSearchEl) {
+    cardSearchEl.addEventListener('input', () => {
+      if (typeof window.renderCards === 'function') window.renderCards();
+    });
+  }
+
+  // ── ADDON SEARCH live filter ──
+  const addonSearchEl = $('#addonSearch');
+  if (addonSearchEl) {
+    addonSearchEl.addEventListener('input', () => {
+      if (typeof window.renderAddons === 'function') window.renderAddons();
+    });
+  }
+
+  // ── AGENT SEARCH live filter ──
+  const agentSearchEl = $('#agentSearch');
+  if (agentSearchEl) {
+    agentSearchEl.addEventListener('input', () => {
+      if (typeof window.renderAgents === 'function') window.renderAgents();
+    });
+  }
+
+  // ── ANNOUNCEMENT form toggle ──
+  document.getElementById('btnCreateAnnouncement')?.addEventListener('click', () => {
+    const wrap = $('#announcementFormCollapsible');
+    if (wrap) {
+      wrap.style.display = 'block';
+      wrap.classList.add('open');
+    }
+  });
+  document.getElementById('btnCancelAnnouncement')?.addEventListener('click', () => {
+    const wrap = $('#announcementFormCollapsible');
+    if (wrap) wrap.classList.remove('open');
+  });
+
+  // ── expose activateSection globally for admin.js cross-navigation ──
+  window.activateAdminSection = activateSection;
+
+  // ── render helpers exposed to admin.js ──
+
+  // Render request list (invite section)
+  window.renderRequestsNew = function(requests, state) {
+    const container = $('#requestListContainer');
+    if (!container) return;
+    if (!requests || !requests.length) {
+      container.innerHTML = '<div class="empty-state">尚無申請單</div>';
+      return;
+    }
+    container.innerHTML = requests.map(r => {
+      const id = escHtml(String(r.request_id || ''));
+      const status = String(r.status || '').toLowerCase();
+      const hasCode = !!(r.assigned_invite_code);
+      const badgeClass = status === 'pending' ? 'badge-warn' : status === 'done' ? 'badge-ok' : 'badge-neutral';
+      const iconClass = status === 'pending' ? 'icon-pending' : (hasCode ? 'icon-done' : 'icon-neutral');
+      const iconEmoji = status === 'pending' ? '⏳' : (hasCode ? '✅' : '📋');
+      return `
+        <div class="list-row" id="lrow-${id}">
+          <div class="list-row-head" data-row="${id}">
+            <div class="list-row-icon ${iconClass}">${iconEmoji}</div>
+            <div class="list-row-info">
+              <div class="list-row-title">${id}</div>
+              <div class="list-row-sub">${escHtml(r.ref || '')} · ${escHtml(r.created_at || '')}</div>
+            </div>
+            <div class="list-row-right">
+              <span class="badge ${badgeClass}">${escHtml(r.status || '-')}</span>
+              ${hasCode ? '<span class="badge badge-ok" style="margin-top:3px;">已派碼</span>' : ''}
+            </div>
+            <span class="chevron" style="margin-left:6px;">›</span>
+          </div>
+          <div class="list-row-body">
+            <div class="detail-grid">
+              <div class="detail-item"><div class="detail-key">申請單 ID</div><div class="detail-val">${id}</div></div>
+              <div class="detail-item"><div class="detail-key">狀態</div><div class="detail-val">${escHtml(r.status||'-')}</div></div>
+              <div class="detail-item"><div class="detail-key">來源 ref</div><div class="detail-val">${escHtml(r.ref||'-')}</div></div>
+              <div class="detail-item"><div class="detail-key">邀請碼</div><div class="detail-val">${escHtml(r.assigned_invite_code||'尚未派碼')}</div></div>
+              <div class="detail-item"><div class="detail-key">備註</div><div class="detail-val">${escHtml(r.note||'-')}</div></div>
+              <div class="detail-item"><div class="detail-key">建立時間</div><div class="detail-val">${escHtml(r.created_at||'-')}</div></div>
+            </div>
+            <div class="action-strip" style="margin-top:12px;">
+              ${!hasCode
+                ? `<button class="btn btn-primary" data-action="fillAssign" data-rid="${id}">🎁 派碼</button>`
+                : `<button class="btn btn-soft" data-action="copyCode" data-rid="${id}">複製碼</button>
+                   <button class="btn btn-primary" data-action="copyUrl" data-rid="${id}">複製連結</button>
+                   <button class="btn btn-ok" data-action="copyReply" data-rid="${id}">複製文案</button>
+                   <button class="btn btn-warn" data-action="reassign" data-rid="${id}">重新派發</button>`
+              }
+              <button class="btn btn-soft" data-action="trace" data-rid="${id}">🔍 追蹤</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Toggle rows
+    container.querySelectorAll('.list-row-head').forEach(head => {
+      head.addEventListener('click', () => {
+        const rid = head.dataset.row;
+        const row = document.getElementById(`lrow-${rid}`);
+        if (row) row.classList.toggle('open');
+      });
+    });
+
+    // Action buttons
+    container.addEventListener('click', e => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const rid = btn.dataset.rid;
+      if (!rid) return;
+      e.stopPropagation();
+
+      // Delegate back to admin.js handlers
+      if (action === 'fillAssign') {
+        const reqIn = $('#requestIdForAssign');
+        if (reqIn) reqIn.value = rid;
+        $('#assignCollapsible')?.classList.add('open');
+        reqIn?.scrollIntoView({behavior:'smooth', block:'center'});
+        if (typeof window.fillRequestToAssignForm === 'function') window.fillRequestToAssignForm(rid);
+      } else if (action === 'copyCode') {
+        if (typeof window.copyInviteCodeByRequest === 'function') window.copyInviteCodeByRequest(rid);
+      } else if (action === 'copyUrl') {
+        if (typeof window.copyInviteUrlByRequest === 'function') window.copyInviteUrlByRequest(rid);
+      } else if (action === 'copyReply') {
+        if (typeof window.copyInviteReplyByRequest === 'function') window.copyInviteReplyByRequest(rid);
+      } else if (action === 'reassign') {
+        if (typeof window.reassignInvite === 'function') window.reassignInvite(rid);
+      } else if (action === 'trace') {
+        if (typeof window.handleRequestTrace === 'function') window.handleRequestTrace(rid);
+      }
+    });
+  };
+
+  // Render cards list
+  window.renderCardsNew = function(cards, keyword) {
+    const container = $('#cardsListContainer');
+    if (!container) return;
+    const kw = (keyword || '').toLowerCase();
+    const rows = cards.filter(c => {
+      if (!kw) return true;
+      return [c.id||c.card_id, c.name||c.owner_name, c.phone, c.email].map(v=>String(v||'')).join(' ').toLowerCase().includes(kw);
+    });
+    if (!rows.length) { container.innerHTML = '<div class="empty-state">查無卡片</div>'; return; }
+
+    function billingBadge(v) {
+      const s = String(v||'').toLowerCase();
+      if (s === 'paid') return 'badge-ok';
+      if (s === 'unpaid') return 'badge-warn';
+      if (s === 'locked') return 'badge-danger';
+      return 'badge-neutral';
+    }
+    function billingLabel(v) {
+      const s = String(v||'').toLowerCase();
+      if (s === 'paid') return '已付款';
+      if (s === 'unpaid') return '未付款';
+      if (s === 'locked') return '已鎖卡';
+      return v || '-';
+    }
+
+    container.innerHTML = rows.map(c => {
+      const id = escHtml(String(c.id||c.card_id||''));
+      const name = escHtml(String(c.name||c.owner_name||'-'));
+      const billing = billingLabel(c.billing_status);
+      const bClass = billingBadge(c.billing_status);
+      const statusLabel = escHtml(String(c.status||'-'));
+      return `
+        <div class="list-row" id="crow-${id}">
+          <div class="list-row-head" data-row="${id}" data-type="card">
+            <div class="list-row-icon icon-neutral">💳</div>
+            <div class="list-row-info">
+              <div class="list-row-title">${name}</div>
+              <div class="list-row-sub">${id} · ${statusLabel}</div>
+            </div>
+            <div class="list-row-right">
+              <span class="badge ${bClass}">${escHtml(billing)}</span>
+              <span style="font-size:11px;color:var(--ink3);margin-top:3px;">${escHtml(String(c.expires_at||''))}</span>
+            </div>
+            <span class="chevron" style="margin-left:6px;">›</span>
+          </div>
+          <div class="list-row-body">
+            <div class="detail-grid">
+              <div class="detail-item"><div class="detail-key">卡片 ID</div><div class="detail-val">${id}</div></div>
+              <div class="detail-item"><div class="detail-key">電話</div><div class="detail-val">${escHtml(String(c.phone||'-'))}</div></div>
+              <div class="detail-item"><div class="detail-key">方案</div><div class="detail-val">${escHtml(String(c.plan||'-'))}</div></div>
+              <div class="detail-item"><div class="detail-key">到期日</div><div class="detail-val">${escHtml(String(c.expires_at||'-'))}</div></div>
+            </div>
+            <div class="action-strip">
+              <button class="btn btn-primary btn-sm" data-action="cardDetail" data-cid="${id}">完整詳情</button>
+              <button class="btn btn-soft btn-sm" data-action="goDelivery" data-cid="${id}">前往交付</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    container.querySelectorAll('.list-row-head[data-type="card"]').forEach(head => {
+      head.addEventListener('click', () => {
+        const row = document.getElementById(`crow-${head.dataset.row}`);
+        if (row) row.classList.toggle('open');
+      });
+    });
+
+    container.addEventListener('click', e => {
+      const btn = e.target.closest('[data-action="cardDetail"]');
+      if (btn) {
+        e.stopPropagation();
+        if (typeof window.loadCardDetail === 'function') window.loadCardDetail(btn.dataset.cid);
+      }
+      const goBtn = e.target.closest('[data-action="goDelivery"]');
+      if (goBtn) {
+        e.stopPropagation();
+        const cid = goBtn.dataset.cid;
+        const inp = $('#deliveryCardIdInput');
+        if (inp) inp.value = cid;
+        if (typeof window.activateAdminSection === 'function') window.activateAdminSection('deliverySection');
+        if (typeof window.loadCardDetail === 'function') window.loadCardDetail(cid);
+        $('#deliveryContent').style.display = 'block';
+        $('#deliveryEmpty').style.display = 'none';
+      }
+    });
+  };
+
+  // Render delivery links
+  window.renderDeliveryLinks = function(cardId, referralLink) {
+    const wrap = $('#deliveryLinksWrap');
+    if (!wrap) return;
+    const base = 'https://angel0973180707.github.io/Happiness-Smart-Card-System/';
+    const links = [
+      {label:'名片', value: `${base}index.html?id=${encodeURIComponent(cardId)}`},
+      {label:'交付卡', value: `${base}poster.html?id=${encodeURIComponent(cardId)}`},
+      {label:'更新入口', value: `${base}update.html?id=${encodeURIComponent(cardId)}`},
+      {label:'續約入口', value: `${base}renew.html?id=${encodeURIComponent(cardId)}`},
+      {label:'推薦入口', value: referralLink || `${base}index.html?id=${encodeURIComponent(cardId)}`},
+    ];
+    wrap.innerHTML = links.map(l => `
+      <div class="copy-row">
+        <span class="copy-row-label">${escHtml(l.label)}</span>
+        <span class="copy-row-value">${escHtml(l.value)}</span>
+        <button class="copy-row-btn" data-copy="${escHtml(l.value)}" title="複製">⎘</button>
+      </div>`).join('');
+    wrap.querySelectorAll('[data-copy]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard?.writeText(btn.dataset.copy).then(()=>window._hscToast?.('已複製')).catch(()=>{});
+      });
+    });
+  };
+
+  // Render delivery copy texts
+  window.renderDeliveryCopyTexts = function(texts) {
+    const wrap = $('#deliveryCopyTextsWrap');
+    if (!wrap) return;
+    wrap.innerHTML = texts.map(t => `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:800;color:var(--ink3);margin-bottom:5px;">${escHtml(t.label)}</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;">${escHtml(t.value)}</div>
+        <button class="btn btn-soft btn-sm" style="margin-top:6px;" data-copy-text="${escHtml(t.value)}">複製</button>
+      </div>`).join('');
+    wrap.querySelectorAll('[data-copy-text]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard?.writeText(btn.dataset.copyText).then(()=>window._hscToast?.('已複製')).catch(()=>{});
+      });
+    });
+  };
+
+  // Expose toast
+  window._hscToast = function(msg) {
+    const el = $('#toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    clearTimeout(window._hscToastTimer);
+    window._hscToastTimer = setTimeout(() => el.classList.add('hidden'), 2200);
+  };
+
+  // Update invite selected panel
+  window.updateInviteSelectedPanel = function(request) {
+    const wrap = $('#inviteSelectedWrap');
+    if (!wrap) return;
+    if (!request || !request.assigned_invite_code) {
+      wrap.style.display = 'none';
+      return;
+    }
+    wrap.style.display = 'block';
+    const codeEl = $('#inviteCodeDisplay');
+    if (codeEl) codeEl.textContent = request.assigned_invite_code;
+    const metaEl = $('#inviteSelectedMeta');
+    if (metaEl) metaEl.textContent = `申請單：${request.request_id} · ${request.ref || ''}`;
+
+    function buildUrl(code, formUrl) {
+      if (formUrl) return formUrl;
+      return `https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html?invite=${encodeURIComponent(code)}`;
+    }
+    function buildText(r) {
+      const url = buildUrl(r.assigned_invite_code, r.form_url);
+      return `您好，這是您的申請入口\n\n申請編號：${r.request_id}\n邀請碼：${r.assigned_invite_code}\n\n👉 點擊填寫：\n${url}`;
+    }
+
+    const copyCodeBtn = $('#btnCopyCode');
+    const copyUrlBtn = $('#btnCopyUrl');
+    const copyTextBtn = $('#btnCopyText');
+    if (copyCodeBtn) {
+      copyCodeBtn.onclick = () => navigator.clipboard?.writeText(request.assigned_invite_code).then(()=>window._hscToast('已複製邀請碼'));
+    }
+    if (copyUrlBtn) {
+      copyUrlBtn.onclick = () => navigator.clipboard?.writeText(buildUrl(request.assigned_invite_code, request.form_url)).then(()=>window._hscToast('已複製申請連結'));
+    }
+    if (copyTextBtn) {
+      copyTextBtn.onclick = () => navigator.clipboard?.writeText(buildText(request)).then(()=>window._hscToast('已複製客服文案'));
+    }
+  };
+
+})();
+</script>
 </body>
 </html>
