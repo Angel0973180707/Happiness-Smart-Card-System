@@ -204,40 +204,31 @@
   // ── 文案產生器 ──
 
   // 建卡完成通知（第一次發送）
-  function buildCardCreatedNotice(card) {
+function buildCardCreatedNotice(card) {
     const name = textOf(card.name || card.owner_name) || '您';
     const cardId = textOf(card.id || card.card_id);
-    const deadline = formatDeadlineStr(card);
     const amount = card.amount || card.plan_price || '請洽客服';
-    const previewUrl = `${CONFIG.HUB_URL}index.html?id=${encodeURIComponent(cardId)}`;
+    const expiresAt = card.expires_at || '—';
+    const renewUrl = `${CONFIG.HUB_URL}renew.html?id=${encodeURIComponent(cardId)}`;
 
     return `您好 ${name}，
 
-🎉 您的 HSC 智慧名片已建立完成！
-
-請依照以下步驟完成付款，名片即可正式啟用：
+✅ 已確認收到您的付款，感謝您！
 
 ━━━━━━━━━━━━━━━━━
-💳【付款資訊】
-銀行：${CONFIG.BANK_NAME}（${CONFIG.BANK_CODE}）
-帳號：${CONFIG.BANK_ACCOUNT}
-戶名：${CONFIG.BANK_HOLDER}
-金額：NT$ ${amount}
+💰【付款確認明細】
+收款金額：NT$ ${amount}
+服務使用期限：${expiresAt} 到期
 ━━━━━━━━━━━━━━━━━
 
-📋【付款注意事項】
-1. 付款後請提供後 5 碼（${CONFIG.BANK_ACCOUNT_LAST5}）對帳確認
-2. 付款截止時間：${deadline || '請盡快完成'}
-3. 付款確認後 1 個工作天內啟用
-4. 啟用後將發送名片連結至您
+📋【續約說明】
+・本服務為年費方案，到期前 30 天將通知續約
+・續約連結：${renewUrl}
+・如有問題請透過 LINE 聯繫
 
-🔗 名片預覽：
-${previewUrl}
+📩 客服 LINE：${CONFIG.CONTACT_LINE}
 
-📩 如有任何問題，請透過 LINE 官方帳號聯繫：
-${CONFIG.CONTACT_LINE}
-
-感謝您的支持！`;
+感謝您的支持，啟用通知請稍候，我們將儘快完成交付！`;
   }
 
   // 催繳提醒文案
