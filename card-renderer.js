@@ -1100,7 +1100,7 @@
 
   function initPhotoCarousel_(wall, options) {
     var opts     = options || {};
-    var interval = opts.interval || 3200;
+    var interval = opts.interval || 4500;
 
     var carousel = wall.querySelector("[data-photo-carousel]");
     var track    = wall.querySelector("[data-carousel-track]");
