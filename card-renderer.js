@@ -1100,7 +1100,7 @@
 
   function initPhotoCarousel_(wall, options) {
     var opts     = options || {};
-    var interval = opts.interval || 5000;
+    var interval = opts.interval || 6000;
 
     var carousel = wall.querySelector("[data-photo-carousel]");
     var track    = wall.querySelector("[data-carousel-track]");
@@ -1211,7 +1211,7 @@
         preview
       );
 
-      initPhotoCarousel_(wall, { interval:5000});
+      initPhotoCarousel_(wall, { interval:6000});
 
     } else {
       grid.style.display = "";
