@@ -13,7 +13,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "v1.3-fixed";
+  const VERSION = "v1.4";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -53,7 +53,6 @@
     openCardBtn: q("openCardBtn"),
     shareCardBtn: q("shareCardBtn"),
     downloadBtn: q("downloadBtn"),
-    updateEntryBtn: q("updateEntryBtn"),
     renewalBtn: q("renewalBtn"),
 
     walletAccordion: q("walletAccordion"),
@@ -102,9 +101,6 @@
     renewalCardBody:      q("renewalCardBody"),
     goRenewalBtn:         q("goRenewalBtn"),
     askRenewalBtn:        q("askRenewalBtn"),
-    updateFullDialog:     q("updateFullDialog"),
-    updateFullLineBtn:    q("updateFullLineBtn"),
-    updateFullCloseBtn:   q("updateFullCloseBtn"),
     cardLinkDisplay:      q("cardLinkDisplay"),
     copyCardLinkBtn2:     q("copyCardLinkBtn2"),
     shareCardLinkBtn2:    q("shareCardLinkBtn2"),
@@ -129,6 +125,8 @@
     serviceLogSubmitBtn: q("serviceLogSubmitBtn"),
     serviceLogCancelBtn: q("serviceLogCancelBtn")
   };
+
+  window.__lineOA = lineOA;
 
   let rawPayload = null;
   let currentItem = null;
@@ -226,7 +224,6 @@
     el.openCardBtn?.addEventListener("click", onOpenCard);
     el.shareCardBtn?.addEventListener("click", onShareCard);
     el.downloadBtn?.addEventListener("click", onDownloadPoster);
-    el.updateEntryBtn?.addEventListener("click", onOpenUpdate);
     el.renewalBtn?.addEventListener("click", onOpenRenewal);
 
     el.qrBox?.addEventListener("click", () => {
@@ -343,6 +340,8 @@
     show(q("refLinkMissingNote"), !hasRef);
     _setLinkBtns("copyRefLinkBtn2", "shareRefLinkBtn2", hasRef);
 
+    setText(q("refLinkTrialNote"), "你的名片分享連結也已帶有個人序號，多多分享都算推薦紀錄！");
+    setText(q("refLinkFullNote"), "分享這個連結，朋友從這裡進入智慧名片館，你的推薦會自動記錄。你的名片連結同樣帶有個人序號，分享名片也算推薦！");
     show(q("refLinkTrialNote"), isTrial);
     show(q("refLinkFullNote"),  !isTrial);
 
@@ -585,18 +584,19 @@
       txt(item?.referral_link) ||
       txt(item?.agent?.referral_link) ||
       txt(payload?.delivery_guidance?.referral_link);
-
     if (backendLink) return backendLink;
 
     const agentId =
       txt(item?.agent_id) ||
       txt(item?.service_agent) ||
       txt(item?.owner_agent_id) ||
-      txt(item?.referrer);
+      txt(item?.referrer) ||
+      txt(item?.id);
 
     if (!agentId) return "";
 
-    return buildUrl("", { ref: agentId });
+    const galleryBase = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+    return `${galleryBase}?ref=${encodeURIComponent(agentId)}`;
   }
 
   function resolveUpdateUrl(payload, item) {
@@ -1245,92 +1245,211 @@
 
     var elig       = payload?.raw?.update_eligibility || {};
     var mode       = txt(elig?.update_mode || "");
-    var freeRemain = toNum(elig?.remaining_free_updates, -1);
+    var freeRemain = toNum(elig?.remaining_free_updates ?? elig?.free_update_remaining, -1);
     var freeTotal  = toNum(elig?.free_update_limit_yearly, 3);
     var freeUsed   = toNum(elig?.used_update_count_yearly, 0);
 
-    var isUnlimitedCard = txt(item?.update_limit_override_enabled) === "TRUE"
-                          && txt(item?.update_limit_override_value) === "-1";
-    if (!mode) {
-      if (isUnlimitedCard) {
-        mode = "unlimited";
-      } else {
-        if (freeRemain < 0) { freeRemain = 3; freeUsed = 0; }
-        mode = freeRemain > 0 ? "quota" : "none";
-      }
-    }
-
-    var expiresAt = txt(item?.expires_at);
+    var expiresAt = txt(item?.expires_at || item?.expired_at);
     var expDate   = expiresAt ? new Date(expiresAt) : null;
     var now       = new Date();
+    var isExpiredCard = expDate && !isNaN(expDate.getTime()) && expDate < now;
+    var isUnlimitedCard = txt(item?.update_limit_override_enabled) === "TRUE"
+                          && txt(item?.update_limit_override_value) === "-1";
+
+    if (!mode) {
+      if (isUnlimitedCard || elig?.has_unlimited_update) {
+        mode = "unlimited";
+      } else if (freeRemain > 0) {
+        mode = "quota";
+      } else {
+        mode = "paid";
+      }
+    }
+    if (isExpiredCard) mode = "expired";
 
     if (mode === "unlimited") {
-      if (badge) { badge.textContent = "無限更新"; badge.className = "update-status-badge unlimited"; }
-      var expStr = (expDate && !isNaN(expDate.getTime()))
-        ? "到期日 <strong>" + fmtDate(expiresAt) + "</strong> 前有效"
-        : "效期內有效";
-      if (body) body.innerHTML = "已購買無限更新，" + expStr + "，更新不另收費。";
-      if (expDate && !isNaN(expDate.getTime())) {
-        var dLeft = Math.ceil((expDate - now) / 86400000);
-        if (dLeft > 0 && dLeft <= 60) {
-          var dColor = dLeft <= 30 ? "#c85a3a" : "var(--gold-deep)";
-          if (body) body.innerHTML +=
-            "<div style='margin-top:6px;font-size:12px;color:var(--muted)'>還有 <strong style='color:" +
-            dColor + "'>" + dLeft + " 天</strong> 到期</div>";
+      if (badge) {
+        badge.textContent = "無限更新";
+        badge.className = "update-status-badge unlimited";
+      }
+      if (body) {
+        body.innerHTML =
+          "已購買無限更新方案，<strong>卡片效期內可不限次數更新</strong>名片內容，更新不另收費。" +
+          "<div style='margin-top:6px;font-size:13px;color:var(--muted)'>" +
+          "⚠ 到期後需先完成<strong>續約</strong>並加購無限更新方案，即可繼續享有不限次數更新。</div>";
+        if (expDate && !isNaN(expDate.getTime())) {
+          var dLeft = Math.ceil((expDate - now) / 86400000);
+          if (dLeft > 0 && dLeft <= 60) {
+            var dColor = dLeft <= 30 ? "#c85a3a" : "var(--gold-deep)";
+            body.innerHTML +=
+              "<div style='margin-top:6px;font-size:12px;color:var(--muted)'>還有 <strong style='color:" +
+              dColor + "'>" + dLeft + " 天</strong> 到期，到期後無限更新將暫停，" +
+              "<strong>請提前續約並加購</strong>。</div>";
+          }
         }
       }
-      if (goBtn) { goBtn.style.display = ""; goBtn.onclick = null; goBtn.textContent = "更新名片內容"; }
-    } else if (mode === "quota" || freeRemain > 0) {
+      if (goBtn) {
+        goBtn.style.display = "";
+        goBtn.textContent = "更新名片內容";
+        goBtn.onclick = function () {
+          if (currentUpdateUrl) window.open(currentUpdateUrl, "_blank", "noopener");
+          else openUrl(lineOA, "請聯繫客服進行資料更新");
+        };
+      }
+    } else if (mode === "quota") {
       var remain = freeRemain >= 0 ? freeRemain : 3;
       var total  = freeTotal  >= 1 ? freeTotal  : 3;
       var used   = freeUsed   >= 0 ? freeUsed   : (total - remain);
       var pct    = total > 0 ? Math.round((remain / total) * 100) : 0;
-      if (badge) { badge.textContent = "剩 " + remain + " / " + total + " 次"; badge.className = "update-status-badge has-quota"; }
-      if (body)  body.innerHTML =
-        "每年 <strong>" + total + " 次</strong> 免費更新，已使用 " + used + " 次。" +
-        "<div class='update-progress-wrap'><div class='update-progress-fill' style='width:" + pct + "%'></div></div>";
-      if (goBtn) { goBtn.style.display = ""; goBtn.onclick = null; goBtn.textContent = "更新名片內容"; }
-    } else {
-      if (badge) { badge.textContent = "次數已用完"; badge.className = "update-status-badge no-quota"; }
-      if (body)  body.innerHTML =
-        "今年免費更新次數已全部使用。" +
-        "<div style='margin-top:6px;font-size:12px;color:var(--muted)'>需付費 NT$300，由客服協助開通。</div>";
+      if (badge) {
+        badge.textContent = "剩 " + remain + " / " + total + " 次";
+        badge.className = "update-status-badge has-quota";
+      }
+      if (body) {
+        body.innerHTML =
+          "每年提供 <strong>" + total + " 次</strong> 免費更新，已使用 <strong>" + used + "</strong> 次，" +
+          "剩餘 <strong style='color:var(--gold-deep)'>" + remain + "</strong> 次。" +
+          "<div class='update-progress-wrap'>" +
+          "<div class='update-progress-fill' style='width:" + pct + "%'></div></div>" +
+          "<div style='margin-top:6px;font-size:12px;color:var(--muted)'>" +
+          "次數用完後如需更新，請洽客服索取付費更新連結（NT$300／次）。</div>";
+      }
       if (goBtn) {
-        goBtn.textContent  = "需付費，聯繫客服開通";
         goBtn.style.display = "";
-        goBtn.onclick = function () { openDialog(q("updateFullDialog")); };
+        goBtn.textContent = "更新名片內容（剩 " + remain + " 次）";
+        goBtn.onclick = function () {
+          if (currentUpdateUrl) window.open(currentUpdateUrl, "_blank", "noopener");
+          else openUrl(lineOA, "請聯繫客服進行資料更新");
+        };
+      }
+    } else if (mode === "paid") {
+      if (badge) {
+        badge.textContent = "需付費更新";
+        badge.className = "update-status-badge no-quota";
+      }
+      if (body) {
+        body.innerHTML =
+          "今年 3 次免費更新已全部使用完畢。" +
+          "<div style='margin-top:6px;font-size:12px;color:var(--muted)'>" +
+          "如需繼續更新名片內容，請先洽客服索取付費更新連結（NT$300／次）。</div>";
+      }
+      if (goBtn) {
+        goBtn.textContent = "找客服索取更新連結";
+        goBtn.style.display = "";
+        goBtn.onclick = function () { openUrl(lineOA); };
+      }
+    } else if (mode === "expired") {
+      if (badge) {
+        badge.textContent = "已過期";
+        badge.className = "update-status-badge no-quota";
+      }
+      if (body) {
+        body.innerHTML =
+          "名片已到期，需先完成續約後才能更新內容。" +
+          "<div style='margin-top:6px;font-size:12px;color:var(--muted)'>" +
+          "請先辦理續約，再回來進行資料更新。</div>" +
+          "<div class='post-submit-btns'>" +
+          "<button class='btn btn-line' onclick='window.__lineOA && window.open(window.__lineOA,\"_blank\",\"noopener\")'>回覆客服</button>" +
+          "<button class='btn btn-soft' onclick='window.__lineOA && window.open(window.__lineOA,\"_blank\",\"noopener\")'>客服窗口</button>" +
+          "</div>";
+      }
+      if (goBtn) {
+        goBtn.textContent = "先辦理續約";
+        goBtn.style.display = "";
+        goBtn.onclick = function () {
+          if (currentRenewalUrl) window.open(currentRenewalUrl, "_blank", "noopener");
+          else openUrl(lineOA);
+        };
       }
     }
 
-    var renewalCard = q("renewalCard");
+    var renewalCard   = q("renewalCard");
+    var renewalBtnEl  = q("renewalBtn");
+    var goRenewalBtnEl = q("goRenewalBtn");
+    var askRenewalBtnEl = q("askRenewalBtn");
+
     if (!renewalCard || !expDate || isNaN(expDate.getTime())) return;
     var daysLeft = Math.ceil((expDate - now) / 86400000);
-    if (daysLeft > 60) { renewalCard.classList.add("hidden"); return; }
+    if (daysLeft > 60) {
+      renewalCard.classList.add("hidden");
+      if (renewalBtnEl) renewalBtnEl.classList.remove("btn-renewal-urgent", "btn-renewal-pending");
+      return;
+    }
+
     renewalCard.classList.remove("hidden");
 
     var dot       = q("renewalUrgencyDot");
     var cardTitle = q("renewalCardTitle");
     var cardBody  = q("renewalCardBody");
     var isExpired = daysLeft <= 0;
-    var isUrgent  = daysLeft <= 30;
+    var isUrgent  = daysLeft > 0 && daysLeft <= 30;
+    var isPending = daysLeft > 30 && daysLeft <= 60;
+
+    if (renewalBtnEl) {
+      renewalBtnEl.classList.remove("btn-renewal-urgent", "btn-renewal-pending");
+      if (isUrgent || isExpired) renewalBtnEl.classList.add("btn-renewal-urgent");
+      else if (isPending) renewalBtnEl.classList.add("btn-renewal-pending");
+    }
 
     if (dot) dot.classList.toggle("urgent", isUrgent || isExpired);
     renewalCard.classList.toggle("urgent", isUrgent || isExpired);
 
+    if (isPending) {
+      setText(cardTitle, "效期提醒");
+      if (cardBody) {
+        cardBody.innerHTML =
+          "名片效期到 <strong>" + fmtDate(expiresAt) + "</strong>，" +
+          "還有 <strong style='color:var(--gold-deep)'>" + daysLeft + " 天</strong>。" +
+          "<div style='margin-top:8px;padding:10px 14px;background:rgba(191,135,87,.07);" +
+          "border-radius:12px;font-size:13px;color:var(--ink-soft);line-height:1.8'>" +
+          "⏳ <strong>到期前 30 天</strong>將自動開放續約表單連結，<br>" +
+          "屆時請回到此頁辦理續約，無縫接續使用。</div>";
+      }
+      if (goRenewalBtnEl) {
+        goRenewalBtnEl.textContent = "⏳ 到期前 30 天開放續約";
+        goRenewalBtnEl.classList.add("btn-renewal-pending");
+        goRenewalBtnEl.onclick = null;
+      }
+      if (askRenewalBtnEl) askRenewalBtnEl.style.display = "none";
+      return;
+    }
+
     if (isExpired) {
       setText(cardTitle, "名片已到期");
-      if (cardBody) cardBody.innerHTML =
-        "名片已到期，目前可能無法正常顯示。<br><strong style='color:#9a3e22'>請盡快續約</strong>，恢復正常使用。";
-    } else if (isUrgent) {
-      setText(cardTitle, "名片即將到期（" + daysLeft + " 天後）");
-      if (cardBody) cardBody.innerHTML =
-        "效期到 <strong>" + fmtDate(expiresAt) + "</strong>，還有 <strong style='color:#9a3e22'>" +
-        daysLeft + " 天</strong>。<br>建議現在續約，無縫接續使用。";
+      if (cardBody) {
+        cardBody.innerHTML =
+          "名片已到期，目前可能無法正常顯示。" +
+          "<br><strong style='color:#9a3e22'>請盡快續約</strong>，恢復正常使用。" +
+          "<div class='post-submit-btns' style='margin-top:12px'>" +
+          "<button class='btn btn-line' onclick='window.__lineOA && window.open(window.__lineOA,\"_blank\",\"noopener\")'>回覆客服</button>" +
+          "<button class='btn btn-soft' onclick='window.__lineOA && window.open(window.__lineOA,\"_blank\",\"noopener\")'>客服窗口</button>" +
+          "</div>";
+      }
     } else {
-      setText(cardTitle, "效期提醒");
-      if (cardBody) cardBody.innerHTML =
-        "名片效期到 <strong>" + fmtDate(expiresAt) + "</strong>，還有 <strong style='color:var(--gold-deep)'>" +
-        daysLeft + " 天</strong>。";
+      setText(cardTitle, "名片即將到期（" + daysLeft + " 天後）");
+      if (cardBody) {
+        cardBody.innerHTML =
+          "效期到 <strong>" + fmtDate(expiresAt) + "</strong>，" +
+          "還有 <strong style='color:#9a3e22'>" + daysLeft + " 天</strong>。" +
+          "<br>建議現在續約，無縫接續使用。" +
+          "<div class='post-submit-btns' style='margin-top:12px'>" +
+          "<button class='btn btn-line' onclick='window.__lineOA && window.open(window.__lineOA,\"_blank\",\"noopener\")'>回覆客服</button>" +
+          "<button class='btn btn-soft' onclick='window.__lineOA && window.open(window.__lineOA,\"_blank\",\"noopener\")'>客服窗口</button>" +
+          "</div>";
+      }
+    }
+
+    if (goRenewalBtnEl) {
+      goRenewalBtnEl.textContent = isExpired ? "立即辦理續約" : "前往續約表單";
+      goRenewalBtnEl.classList.remove("btn-renewal-pending");
+      goRenewalBtnEl.onclick = function () {
+        if (currentRenewalUrl) window.open(currentRenewalUrl, "_blank", "noopener");
+        else openUrl(lineOA);
+      };
+    }
+    if (askRenewalBtnEl) {
+      askRenewalBtnEl.style.display = "";
+      askRenewalBtnEl.onclick = function () { openUrl(lineOA); };
     }
   }
 
@@ -1364,18 +1483,9 @@
       else openUrl(lineOA);
     });
     q("askRenewalBtn")?.addEventListener("click", function () { openUrl(lineOA); });
-    q("updateFullLineBtn")?.addEventListener("click", function () {
-      closeDialog(q("updateFullDialog")); openUrl(lineOA);
-    });
-    q("updateFullCloseBtn")?.addEventListener("click", function () {
-      closeDialog(q("updateFullDialog"));
-    });
-    q("updateFullDialog")?.addEventListener("click", function (e) {
-      if (e.target === this) closeDialog(this);
-    });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") closeDialog(q("updateFullDialog"));
-    });
+
+    q("replyServiceBtn")?.addEventListener("click", function () { openUrl(lineOA); });
+    q("openServiceBtn")?.addEventListener("click", function () { openUrl(lineOA); });
   }
 
   function _nativeShare(url, title, text, copySuccessMsg) {
