@@ -107,6 +107,26 @@
     const idx = list.findIndex(r => String(r?.[idKey] || "").trim() === String(idVal || "").trim());
     if (idx >= 0) Object.assign(list[idx], patch);
   }
+  function setPaymentCollections(rows) {
+    const list = Array.isArray(rows) ? rows.slice() : [];
+    state.payments = list.slice();
+    state.paymentList = list.slice();
+  }
+
+  function upsertPaymentAcrossState(payment) {
+    if (!payment) return;
+    const pid = String(payment.payment_id || payment.id || '').trim();
+    if (!pid) return;
+    const apply = (list) => {
+      if (!Array.isArray(list)) return;
+      const idx = list.findIndex(r => String(r?.payment_id || r?.id || '').trim() === pid);
+      if (idx >= 0) list[idx] = { ...list[idx], ...payment };
+      else list.unshift({ ...payment });
+    };
+    apply(state.payments);
+    apply(state.paymentList);
+  }
+
 
   function toast(message) {
     if (typeof window._hscToast === 'function') { window._hscToast(message); return; }
@@ -920,31 +940,36 @@ ${updateDesc}
       const res = await apiPost("confirmPayment", { payment_id: paymentId });
       toast("✅ 付款已確認");
       const paidAt = res?.payment?.paid_at || new Date().toISOString();
-      patchListItem(state.paymentList, "payment_id", paymentId, { status: "paid", billing_status: "paid", paid_at: paidAt });
-      patchListItem(state.payments, "payment_id", paymentId, { status: "paid", billing_status: "paid", paid_at: paidAt });
       const cardId = res?.card?.id || res?.card_id;
-      const amount = res?.payment?.amount || res?.amount;
-      if (cardId) patchListItem(state.cards, "id", cardId, { billing_status: "paid", payment_paid_at: paidAt });
-
-      // 自動記帳
-      const card = cardId ? state.cards.find(c => String(c.id || c.card_id) === String(cardId)) : null;
-      addLedgerRecord({
-        type: 'income',
+      const nextPayment = {
+        ...(state.paymentList.find(x => String(x.payment_id || x.id || '') === String(paymentId)) || {}),
+        ...(res?.payment || {}),
         payment_id: paymentId,
-        card_id: cardId || '',
-        card_name: card ? (card.name || card.owner_name || '') : '',
-        amount: amount || 0,
+        status: 'paid',
+        billing_status: 'paid',
         paid_at: paidAt,
-        note: '付款確認自動記帳',
-        commission: 0,
-        withdrawn: 0,
-      });
+        card_id: cardId || (res?.payment?.card_id || '')
+      };
+      upsertPaymentAcrossState(nextPayment);
+      if (cardId) {
+        patchListItem(state.cards, "id", cardId, {
+          ...(res?.card || {}),
+          billing_status: "paid",
+          payment_paid_at: paidAt
+        });
+        patchListItem(state.cards, "card_id", cardId, {
+          ...(res?.card || {}),
+          billing_status: "paid",
+          payment_paid_at: paidAt
+        });
+      }
 
-      // 若記帳頁面正在顯示，更新它
+      renderPayments();
+      renderDashboard();
+      const cardsSection = $('#cardSection');
+      if (cardsSection?.classList.contains('active')) renderCards();
       const ledgerSection = $('#ledgerSection');
       if (ledgerSection?.classList.contains('active')) renderLedger();
-
-      renderPayments(); renderCards(); renderDashboard();
     } catch (err) { toast(`確認失敗：${err.message}`); }
   }
 
@@ -957,6 +982,9 @@ ${updateDesc}
       patchListItem(state.paymentList, "payment_id", paymentId, { status: "refunded" });
       patchListItem(state.payments, "payment_id", paymentId, { status: "refunded" });
       renderPayments();
+      renderDashboard();
+      const ledgerSection = $('#ledgerSection');
+      if (ledgerSection?.classList.contains('active')) renderLedger();
     } catch (err) { toast(`退款失敗：${err.message}`); }
   }
 
@@ -1387,36 +1415,63 @@ ${updateDesc}
     return 'NT$ ' + n.toLocaleString('zh-TW');
   }
 
-  function renderLedger() {
-    const container = $('#ledgerSection');
-    if (!container) return;
+  function buildLedgerPaymentRecords() {
+    return (state.paymentList || [])
+      .filter(p => textOf(p.status).toLowerCase() === 'paid')
+      .map(p => {
+        const cardId = textOf(p.card_id);
+        const card = (state.cards || []).find(c => String(c.id || c.card_id || '').trim() === cardId) || {};
+        return {
+          ledger_id: `PY_${textOf(p.payment_id || p.id)}`,
+          source_type: 'payment',
+          type: 'income',
+          payment_id: textOf(p.payment_id || p.id),
+          card_id: cardId,
+          card_name: textOf(card.name || card.owner_name),
+          amount: Number(p.amount || p.total_amount || 0),
+          commission: 0,
+          withdrawn: 0,
+          paid_at: p.paid_at || p.created_at || '',
+          note: `付款 ${textOf(p.event_type || p.order_type || '')}`.trim(),
+          created_at: p.created_at || '',
+        };
+      });
+  }
 
-    // 合併 localStorage + commission 資料
-    const localRecords = getLedgerRecords();
-
-    // 從 commission state 補入分潤紀錄（避免重複）
-    const commissionRecords = state.commissionItems
-      .filter(c => textOf(c.status).toLowerCase() === 'paid')
+  function buildLedgerCommissionRecords() {
+    return (state.commissionItems || [])
+      .filter(c => ['paid','done','settled'].includes(textOf(c.status).toLowerCase()))
       .map(c => ({
         ledger_id: `CM_${c.commission_id || c.id}`,
+        source_type: 'commission',
         type: 'commission_paid',
         payment_id: c.payment_id || '',
         card_id: c.card_id || '',
         card_name: '',
         amount: 0,
-        commission: Number(c.amount || 0),
-        withdrawn: Number(c.amount || 0),
+        commission: Number(c.reward_amount || c.amount || 0),
+        withdrawn: Number(c.paid_amount || c.reward_amount || c.amount || 0),
         paid_at: c.paid_at || c.created_at || '',
-        note: `分潤 代理：${c.agent_id || ''}`,
+        note: `分潤 ${textOf(c.beneficiary_agent_id || c.agent_id || '')}`.trim(),
         created_at: c.created_at || '',
       }));
+  }
 
-    // 合併，local 優先（有相同 ledger_id 不重複）
-    const allLocalIds = new Set(localRecords.map(r => r.ledger_id));
-    const merged = [
-      ...localRecords,
-      ...commissionRecords.filter(r => !allLocalIds.has(r.ledger_id))
-    ].sort((a, b) => new Date(b.paid_at || b.created_at) - new Date(a.paid_at || a.created_at));
+  function getMergedLedgerRecords() {
+    const localRecords = getLedgerRecords().map(r => ({ ...r, source_type: 'local' }));
+    const systemRecords = [...buildLedgerPaymentRecords(), ...buildLedgerCommissionRecords()];
+    const localIds = new Set(localRecords.map(r => r.ledger_id));
+    return [
+      ...systemRecords.filter(r => !localIds.has(r.ledger_id)),
+      ...localRecords
+    ].sort((a, b) => new Date(b.paid_at || b.created_at || 0) - new Date(a.paid_at || a.created_at || 0));
+  }
+
+  function renderLedger() {
+    const container = $('#ledgerSection');
+    if (!container) return;
+
+    const merged = getMergedLedgerRecords();
 
     // 統計
     const totalIncome = merged.filter(r => r.type === 'income').reduce((s, r) => s + Number(r.amount || 0), 0);
@@ -1588,7 +1643,7 @@ ${updateDesc}
     const typeLabel = { income: '💰 收款', commission_paid: '💵 分潤取款', manual: '✏️ 手動', withdrawal: '🏦 取款' }[r.type] || r.type;
     const typeColor = { income: 'var(--ok)', commission_paid: 'var(--warn)', manual: 'var(--info)', withdrawal: 'var(--ink3)' }[r.type] || 'var(--ink)';
     const dt = (r.paid_at || r.created_at || '').slice(0, 10);
-    const isLocal = !r.ledger_id?.startsWith('CM_');
+    const isLocal = r.source_type === 'local';
     return `
       <div class="list-row" style="margin-bottom:6px;">
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;">
@@ -1659,7 +1714,7 @@ ${updateDesc}
     main.appendChild(sec);
 
     document.getElementById('btnRefreshLedger')?.addEventListener('click', async () => {
-      await loadCommissionList();
+      await Promise.allSettled([loadPaymentList(), loadCommissionList()]);
       renderLedger();
     });
 
@@ -1675,7 +1730,7 @@ ${updateDesc}
       tabnav.insertBefore(tabBtn, moreBtn);
       tabBtn.addEventListener('click', () => {
         if (typeof window.activateAdminSection === 'function') window.activateAdminSection('ledgerSection');
-        renderLedger();
+        Promise.allSettled([loadPaymentList(), loadCommissionList()]).finally(() => renderLedger());
       });
     }
 
@@ -1688,7 +1743,7 @@ ${updateDesc}
       moreBtn.textContent = '📒 記帳';
       moreBtn.addEventListener('click', () => {
         if (typeof window.activateAdminSection === 'function') window.activateAdminSection('ledgerSection');
-        renderLedger();
+        Promise.allSettled([loadPaymentList(), loadCommissionList()]).finally(() => renderLedger());
         document.getElementById('moreMenu')?.classList.remove('open');
       });
       moreGrid.appendChild(moreBtn);
@@ -1701,12 +1756,23 @@ ${updateDesc}
     catch { state.cards = []; renderCards(); }
   }
   async function loadPayments() {
-    try { const data = await apiGet("getPayments", { limit: 100, offset: 0, light: true }); state.payments = normalizeList(data, ["payments", "items"]); }
-    catch { state.payments = []; }
+    try {
+      const data = await apiGet("getPayments", { limit: 100, offset: 0, light: true });
+      const rows = normalizeList(data, ["payments", "rows", "items"]);
+      state.payments = rows;
+    } catch {
+      state.payments = [];
+    }
   }
   async function loadPaymentList() {
-    try { const data = await apiGet("getPayments", { limit: 200, light: true }); state.paymentList = normalizeList(data, ["payments", "rows", "items"]); renderPayments(); }
-    catch { state.paymentList = []; renderPayments(); }
+    try {
+      const data = await apiGet("getPayments", { limit: 200, offset: 0, light: true });
+      setPaymentCollections(normalizeList(data, ["payments", "rows", "items"]));
+      renderPayments();
+    } catch {
+      setPaymentCollections([]);
+      renderPayments();
+    }
   }
   async function loadAddons() {
     try { const data = await apiGet("getAddonOrders"); state.addons = normalizeList(data, ["addons", "orders", "items"]); renderAddons(); }
@@ -1875,7 +1941,7 @@ ${updateDesc}
         boot = await apiGet("getAdminBootstrap", {
           requests_limit: 50,
           cards_limit: 100,
-          payments_limit: 100,
+          payments_limit: 200,
           ops_limit: 20,
           include_renewals: true,
           include_addons: true,
@@ -1884,39 +1950,33 @@ ${updateDesc}
         });
       } catch (bootErr) {
         console.warn("[refreshAll] bootstrap failed, fallback:", bootErr);
-        await Promise.allSettled([loadRequests(), loadCards(), loadPayments(), loadAddons(), loadAgents()]);
-        renderRequests(); renderCards(); renderDashboard();
+        await Promise.allSettled([loadRequests(), loadCards(), loadPaymentList(), loadAddons(), loadAgents(), loadAnnouncements(), loadRenewalList(), loadRecentOpsLogs()]);
+        renderRequests();
+        renderCards();
+        renderPayments();
+        renderDashboard();
         return;
       }
 
       if (boot.requests)      state.requests          = normalizeList(boot.requests,       ["requests", "items"]);
       if (boot.cards)         state.cards             = normalizeList(boot.cards,          ["cards", "items"]);
-      if (boot.payments)      state.payments          = normalizeList(boot.payments,       ["payments", "items"]);
+      if (boot.payments || boot.payment_list) setPaymentCollections(normalizeList(boot.payment_list || boot.payments, ["payments", "rows", "items"]));
       if (boot.announcements) state.announcementItems = normalizeList(boot.announcements,  ["announcements", "items"]);
-      if (boot.ops_logs)      state.opsLogs           = normalizeList(boot.ops_logs,       ["ops_logs", "items"]);
+      if (boot.ops_logs)      state.opsLogs           = normalizeList(boot.ops_logs,       ["ops_logs", "logs", "items"]);
       if (boot.renewals)      state.renewalItems      = normalizeList(boot.renewals,       ["renewals", "items"]);
       if (boot.addons)        state.addons            = normalizeList(boot.addons,         ["addon_orders", "addons", "items"]);
       if (boot.agents)        state.agents            = normalizeList(boot.agents,         ["agents", "items"]);
 
       renderRequests();
       renderCards();
-      if (state.renewalItems?.length)      renderRenewalList();
-      if (state.announcementItems?.length) renderAnnouncements();
-      if (state.addons?.length)            renderAddons();
-      if (state.agents?.length)            renderAgents();
+      renderPayments();
+      renderRenewalList();
+      renderAnnouncements();
+      renderAddons();
+      renderAgents();
       renderDashboard();
       renderDashboardOpsLogs();
-
-      const lazyLoads = [];
-      if (!state.renewalItems?.length)      lazyLoads.push(loadRenewalList());
-      if (!state.announcementItems?.length) lazyLoads.push(loadAnnouncements());
-      if (!state.addons?.length)            lazyLoads.push(loadAddons());
-      if (!state.agents?.length)            lazyLoads.push(loadAgents());
-      if (!state.commissionItems?.length)   lazyLoads.push(loadCommissionList());
-      if (lazyLoads.length) {
-        await Promise.allSettled(lazyLoads);
-        renderDashboard();
-      }
+      if ($('#ledgerSection')?.classList.contains('active')) renderLedger();
     } finally { setLoading(false); }
   }
 
