@@ -3,6 +3,7 @@
 
   const CONFIG = {
     VERSION: "v6.5.4-fixed-v1.5.1",
+    KEY_PREFIX: "ANGEL2026",          // 寫死前段，清快取後只需輸入後段
     GAS_BASE_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
@@ -20,8 +21,20 @@
 
   // ── KEY STORAGE ──
   const KEY_STORAGE = "hsc_admin_key";
-  function getAdminKey() { return localStorage.getItem(KEY_STORAGE) || ""; }
-  function saveAdminKey(key) { if (!key || !key.trim()) return false; localStorage.setItem(KEY_STORAGE, key.trim()); return true; }
+  function getAdminKey() {
+    const suffix = localStorage.getItem(KEY_STORAGE) || "";
+    // 若 suffix 已包含完整 prefix 則直接用（相容舊版已儲存完整 Key 的情況）
+    if (suffix.startsWith(CONFIG.KEY_PREFIX)) return suffix;
+    return suffix ? CONFIG.KEY_PREFIX + suffix : "";
+  }
+  function saveAdminKey(key) {
+    if (!key || !key.trim()) return false;
+    const val = key.trim();
+    // 只存後段（去掉 prefix 避免重複）
+    const suffix = val.startsWith(CONFIG.KEY_PREFIX) ? val.slice(CONFIG.KEY_PREFIX.length) : val;
+    localStorage.setItem(KEY_STORAGE, suffix);
+    return true;
+  }
   function clearAdminKey() { localStorage.removeItem(KEY_STORAGE); }
   function renderKeyStatus() {
     const el = $("#keyDot");
@@ -105,7 +118,24 @@
     clearTimeout(toast._timer);
     toast._timer = setTimeout(() => el.classList.add("hidden"), 2200);
   }
-  function setLoading(show) { const el = $("#loadingMask"); if (el) el.classList.toggle("hidden", !show); }
+  let _loadingCount = 0;
+  let _loadingTimer = null;
+  function setLoading(show) {
+    _loadingCount = Math.max(0, _loadingCount + (show ? 1 : -1));
+    const el = $("#loadingMask");
+    if (!el) return;
+    if (show) {
+      clearTimeout(_loadingTimer);
+      _loadingTimer = setTimeout(() => {
+        if (_loadingCount > 0) el.classList.remove("hidden");
+      }, 300);
+    } else {
+      if (_loadingCount <= 0) {
+        clearTimeout(_loadingTimer);
+        el.classList.add("hidden");
+      }
+    }
+  }
   function setBtnLoading(btnEl, isLoading) {
     if (!btnEl) return;
     if (isLoading) { btnEl.dataset.originalText = btnEl.dataset.originalText || btnEl.textContent; btnEl.textContent = "處理中…"; btnEl.disabled = true; }
@@ -247,6 +277,106 @@ ${urgencyPrefix}提醒您完成 HSC 智慧名片付款以正式啟用服務。
 ・如需延期請提前告知
 
 📩 聯繫客服：${CONFIG.CONTACT_LINE}`;
+  }
+
+
+  // ── 付款確認回覆文案 ──
+  function buildPaymentConfirmedNotice(card, paymentAmount) {
+    const name = textOf(card.name || card.owner_name) || '您';
+    const cardId = textOf(card.id || card.card_id);
+    const amount = paymentAmount || card.amount || card.plan_price || '—';
+    const expiresAt = card.expires_at || '—';
+    const renewUrl = `${CONFIG.HUB_URL}renew.html?id=${encodeURIComponent(cardId)}`;
+
+    return `您好 ${name}，
+
+✅ 已確認收到您的付款，感謝您！
+
+━━━━━━━━━━━━━━━━━
+💰【付款確認明細】
+收款金額：NT$ ${amount}
+服務使用期限：${expiresAt} 到期
+━━━━━━━━━━━━━━━━━
+
+📋【續約說明】
+・本服務為年費方案，到期前 30 天將通知續約
+・續約連結：${renewUrl}
+・如有問題請透過 LINE 聯繫
+
+📩 客服 LINE：${CONFIG.CONTACT_LINE}
+
+感謝您的支持，啟用通知請稍候，我們將儘快完成交付！`;
+  }
+
+  // ── 交付回覆文案（依 plan 自動判斷更新方案）──
+  function buildDeliveryNotice(card) {
+    const name = textOf(card.name || card.owner_name) || '您';
+    const cardId = textOf(card.id || card.card_id);
+    const previewUrl = `${CONFIG.HUB_URL}index.html?id=${encodeURIComponent(cardId)}`;
+    const updateUrl  = `${CONFIG.HUB_URL}update.html?id=${encodeURIComponent(cardId)}`;
+    const renewUrl   = `${CONFIG.HUB_URL}renew.html?id=${encodeURIComponent(cardId)}`;
+    const expiresAt  = card.expires_at || '—';
+
+    // 從加購單判斷是否有無限次更新（addon_type 包含 unlimited_update / update / 無限更新 等關鍵字）
+    const hasUnlimitedUpdate = state.addons.some(a => {
+      const isSameCard = String(a.card_id || '').trim() === String(cardId).trim();
+      const isPaid = String(a.status || '').toLowerCase() === 'paid';
+      const type = String(a.addon_type || '').toLowerCase();
+      return isSameCard && isPaid && (
+        type.includes('unlimited') || type.includes('無限') || type.includes('update') || type.includes('更新')
+      );
+    });
+
+    let updateDesc = '';
+    if (hasUnlimitedUpdate) {
+      updateDesc = `✏️【更新服務】
+・無限次更新，與名片同期限（到 ${expiresAt} 止）
+・更新連結：${updateUrl}
+・隨時修改，所有人即時看到最新版本`;
+    } else {
+      updateDesc = `✏️【更新服務】
+・贈送 3 次免費更新，用完後每次 NT$300
+・更新連結：${updateUrl}
+・建議先規劃好內容再進行更新，節省次數`;
+    }
+
+    return `您好 ${name}，
+
+🎉 您的 HSC 智慧名片已正式交付啟用！
+
+━━━━━━━━━━━━━━━━━
+🔗【您的名片連結】
+${previewUrl}
+
+📌 請將此連結加入 LINE 個人資料、IG 簡介或名片簽名欄
+━━━━━━━━━━━━━━━━━
+
+📦【交付卡保管提醒】
+・請截圖或收藏此訊息作為管理紀錄
+・連結請勿分享給他人編輯權限
+・如遺失連結可隨時聯繫客服補發
+
+━━━━━━━━━━━━━━━━━
+🛠️【名片完整功能說明】
+・智慧名片：點擊連結即可查看您的數位名片
+・一鍵儲存聯絡人：訪客可直接存入手機通訊錄
+・社群連結整合：IG、LINE、FB 等一鍵直達
+・QR Code：可下載印製於實體名片、DM 或貼紙
+・即時更新：修改後所有人看到的都是最新版本
+
+━━━━━━━━━━━━━━━━━
+${updateDesc}
+
+━━━━━━━━━━━━━━━━━
+🔄【續約提醒】
+・服務使用期限：${expiresAt} 到期
+・到期前 30 天將自動通知續約
+・續約連結：${renewUrl}
+
+━━━━━━━━━━━━━━━━━
+📩 如有任何問題請聯繫：${CONFIG.CONTACT_LINE}
+
+感謝您使用 HSC 智慧名片服務！`;
   }
 
   // ── INVITE HELPERS ──
@@ -607,11 +737,15 @@ ${urgencyPrefix}提醒您完成 HSC 智慧名片付款以正式啟用服務。
           <span class="badge badge-info">${escapeHtml(mode.toUpperCase())}</span>
           ${renderCountdownBadge(card)}
         </div>
-        ${unpaid ? `
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-ok btn-sm" id="btnDeliveryCardCreated">🎉 複製建卡通知</button>
-          <button class="btn btn-warn btn-sm" id="btnDeliveryPayReminder">📋 複製催繳文案</button>
-        </div>` : ''}
+          ${unpaid ? `
+            <button class="btn btn-ok btn-sm" id="btnDeliveryCardCreated">🎉 建卡通知</button>
+            <button class="btn btn-warn btn-sm" id="btnDeliveryPayReminder">📋 催繳文案</button>
+          ` : `
+            <button class="btn btn-primary btn-sm" id="btnDeliveryPayConfirmed">✅ 付款確認文案</button>
+            <button class="btn btn-ok btn-sm" id="btnDeliveryNotice">📦 交付文案</button>
+          `}
+        </div>
       </div>`;
 
       summaryEl.querySelector('#btnDeliveryCardCreated')?.addEventListener('click', () => {
@@ -619,6 +753,12 @@ ${urgencyPrefix}提醒您完成 HSC 智慧名片付款以正式啟用服務。
       });
       summaryEl.querySelector('#btnDeliveryPayReminder')?.addEventListener('click', () => {
         copyText(buildPaymentReminderNotice(card), '✅ 已複製催繳文案');
+      });
+      summaryEl.querySelector('#btnDeliveryPayConfirmed')?.addEventListener('click', () => {
+        copyText(buildPaymentConfirmedNotice(card, card.amount || card.plan_price), '✅ 已複製付款確認文案');
+      });
+      summaryEl.querySelector('#btnDeliveryNotice')?.addEventListener('click', () => {
+        copyText(buildDeliveryNotice(card), '✅ 已複製交付文案');
       });
     }
 
@@ -752,6 +892,7 @@ ${urgencyPrefix}提醒您完成 HSC 智慧名片付款以正式啟用服務。
             </div>
             <div class="action-strip">
               ${status !== 'paid' ? `<button class="btn btn-primary btn-sm btn-pay-confirm" data-pid="${pid}">確認付款</button>` : ''}
+              ${status === 'paid' ? `<button class="btn btn-ok btn-sm btn-pay-copy-confirm" data-pid="${pid}" data-cid="${escapeHtml(textOf(p.card_id))}">📋 複製付款確認文案</button>` : ''}
               ${status === 'paid' ? `<button class="btn btn-danger btn-sm btn-pay-refund" data-pid="${pid}">退款</button>` : ''}
             </div>
           </div>
@@ -763,6 +904,14 @@ ${urgencyPrefix}提醒您完成 HSC 智慧名片付款以正式啟用服務。
     });
     container.querySelectorAll('.btn-pay-confirm').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); confirmPaymentFromUi(btn.dataset.pid); }));
+    container.querySelectorAll('.btn-pay-copy-confirm').forEach(btn =>
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const cid = btn.dataset.cid;
+        const p = state.paymentList.find(x => String(x.payment_id || x.id) === btn.dataset.pid) || {};
+        const card = state.cards.find(c => String(c.id || c.card_id) === cid) || { id: cid, card_id: cid };
+        copyText(buildPaymentConfirmedNotice(card, p.amount), '✅ 已複製付款確認文案');
+      }));
     container.querySelectorAll('.btn-pay-refund').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); markPaymentRefundedFromUi(btn.dataset.pid); }));
   }
@@ -1834,9 +1983,22 @@ ${urgencyPrefix}提醒您完成 HSC 智慧名片付款以正式啟用服務。
   function init() {
     injectLedgerSection();
     bindEvents();
+
+    // URL 參數帶入後段 Key（書籤用，帶入後自動清除網址列）
+    const urlKey = new URLSearchParams(window.location.search).get("key");
+    if (urlKey && urlKey.trim()) {
+      saveAdminKey(urlKey.trim());
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+
     renderKeyStatus();
-    if (getAdminKey()) refreshAll();
-    else toast("⚠️ 請先設定 Admin Key");
+
+    const savedKey = getAdminKey();
+    const keyInput = $("#adminKeyInput");
+    if (savedKey && keyInput) keyInput.placeholder = "Key 已儲存 ✓";
+
+    if (savedKey) refreshAll();
+    else toast("⚠️ 請輸入後段 Key（1972070707）");
   }
 
   document.addEventListener("DOMContentLoaded", init);
