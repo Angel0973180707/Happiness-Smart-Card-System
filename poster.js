@@ -89,6 +89,33 @@
 
     lineOABtn: q("lineOABtn"),
 
+    statusViewCount:      q("statusViewCount"),
+    expireCountdownItem:  q("expireCountdownItem"),
+    statusExpireCountdown: q("statusExpireCountdown"),
+    updateRenewalSection: q("updateRenewalSection"),
+    updateStatusBadge:    q("updateStatusBadge"),
+    updateStatusBody:     q("updateStatusBody"),
+    goUpdateBtn:          q("goUpdateBtn"),
+    renewalCard:          q("renewalCard"),
+    renewalUrgencyDot:    q("renewalUrgencyDot"),
+    renewalCardTitle:     q("renewalCardTitle"),
+    renewalCardBody:      q("renewalCardBody"),
+    goRenewalBtn:         q("goRenewalBtn"),
+    askRenewalBtn:        q("askRenewalBtn"),
+    updateFullDialog:     q("updateFullDialog"),
+    updateFullLineBtn:    q("updateFullLineBtn"),
+    updateFullCloseBtn:   q("updateFullCloseBtn"),
+    cardLinkDisplay:      q("cardLinkDisplay"),
+    copyCardLinkBtn2:     q("copyCardLinkBtn2"),
+    shareCardLinkBtn2:    q("shareCardLinkBtn2"),
+    refLinkTrialNote:     q("refLinkTrialNote"),
+    refLinkFullNote:      q("refLinkFullNote"),
+    refLinkDisplay:       q("refLinkDisplay"),
+    refLinkBtnRow:        q("refLinkBtnRow"),
+    refLinkMissingNote:   q("refLinkMissingNote"),
+    copyRefLinkBtn2:      q("copyRefLinkBtn2"),
+    shareRefLinkBtn2:     q("shareRefLinkBtn2"),
+
     collabDialog: q("collabDialog"),
     collabDialogCloseBtn: q("collabDialogCloseBtn"),
     shareCardDialog: q("shareCardDialog"),
@@ -135,6 +162,9 @@
 
       renderPoster(currentItem);
       renderCardStatus(currentItem);
+      renderViewCount(currentItem);
+      renderExpireCountdown(currentItem);
+      renderUpdateAndRenewal(currentItem, rawPayload);
       renderWallet(currentWallet);
 
       await renderQrLocal(currentCardUrl);
@@ -230,6 +260,8 @@
       if (e.target === el.serviceLogDialog) closeDialog(el.serviceLogDialog);
     });
 
+    bindAllNewEvents();
+
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         closeDialog(el.collabDialog);
@@ -282,53 +314,70 @@
   }
 
   function renderWallet(wallet) {
-    const mode = resolveWalletMode(wallet);
+    var mode      = resolveWalletMode(wallet);
+    var isTrial   = mode === "trial";
+    var isPartner = mode === "partner";
 
-    setText(el.walletTitle, mode === "trial" ? "服務荷包（體驗中）" : "服務荷包");
-    setText(
-      el.walletHint,
-      mode === "trial"
-        ? "當你開始分享與幫助他人，這裡會慢慢累積你的成果"
-        : "服務、推薦、成果，都在這裡慢慢累積"
-    );
+    setText(q("walletTitle"), isTrial ? "服務荷包（體驗中）" : "服務荷包");
+    setText(q("walletHint"),  isTrial
+      ? "分享連結，讓更多人認識你，同時累積點數"
+      : "分享、推薦、成果，都在這裡");
 
-    const isTrial = mode === "trial";
-    const isPartner = mode === "partner";
+    show(q("walletNavHint"), !isTrial);
 
-    show(el.upgradeHintBar, isTrial);
-    show(el.walletNavHint, !isTrial);
-    show(el.serviceLogBlock, !isTrial);
-    show(el.serviceLogsViewBlock, !isTrial);
-    show(el.walletStatsBlock, !isTrial);
-    show(el.partnerEarningsBlock, isPartner);
-    show(el.referralEntryBlock, true);
+    var cardLink = currentCardUrl || "";
+    setText(q("cardLinkDisplay"), cardLink || "連結尚未建立");
+    _setLinkBtns("copyCardLinkBtn2", "shareCardLinkBtn2", !!cardLink);
 
-    if (isTrial && el.upgradeHintText) {
-      const pts = toNum(wallet?.points_lifetime, 0);
-      const remaining = Math.max(0, 5 - pts);
-      el.upgradeHintText.textContent =
-        remaining > 0
-          ? `再累積 ${remaining} 點，就能開啟完整服務荷包。`
-          : "完成 5 次分享成交，累積 5 點後，就能開啟完整服務荷包。";
+    var agentId    = txt(wallet?.agent_id);
+    var backendRef = txt(wallet?.referral_link)
+                  || txt(currentItem?.referral_link)
+                  || txt(rawPayload?.delivery_guidance?.referral_link);
+    var refUrl = backendRef || (agentId ? buildUrl("index.html", { ref: agentId }) : "");
+    if (refUrl) currentRefUrl = refUrl;
+
+    var hasRef = !!refUrl;
+    setText(q("refLinkDisplay"), hasRef ? refUrl : "");
+    show(q("refLinkDisplay"),     hasRef);
+    show(q("refLinkBtnRow"),      hasRef);
+    show(q("refLinkMissingNote"), !hasRef);
+    _setLinkBtns("copyRefLinkBtn2", "shareRefLinkBtn2", hasRef);
+
+    show(q("refLinkTrialNote"), isTrial);
+    show(q("refLinkFullNote"),  !isTrial);
+
+    show(q("trialProgressBlock"), isTrial);
+    if (isTrial) {
+      var pts       = toNum(wallet?.points_lifetime, 0);
+      var remaining = Math.max(0, 5 - pts);
+      var pct       = Math.min(100, Math.round((pts / 5) * 100));
+      setText(q("trialPtsNow"), String(pts));
+      var fill = q("trialProgressFill");
+      if (fill) fill.style.width = pct + "%";
+      setText(q("trialProgressCaption"), remaining > 0
+        ? "再推薦 " + remaining + " 位朋友建卡，就能升級推薦代理"
+        : "已達 5 點！請聯繫客服升級為推薦代理");
     }
 
-    setText(el.statReferralCount, fmtInt(toNum(wallet?.referral_count, 0)));
-    setText(el.statRewardPoints, fmtInt(toNum(wallet?.points_lifetime, 0)));
-    setText(el.statConvertedCount, fmtInt(toNum(wallet?.converted_count, 0)));
-    setText(el.statCommissionMonthly, fmtInt(toNum(wallet?.commission_monthly, 0)));
-    setText(el.statCommissionTotal, fmtInt(toNum(wallet?.commission_total, 0)));
+    show(q("walletStatsBlock"),     !isTrial);
+    show(q("partnerEarningsBlock"), isPartner);
+    show(q("serviceLogBlock"),      !isTrial);
+    show(q("serviceLogsViewBlock"), !isTrial);
 
-    const refLink = currentRefUrl || "";
-    setText(el.referralLinkDisplay, refLink || "專屬入口尚未建立，請聯繫客服");
+    setText(q("statReferralCount"),     fmtInt(toNum(wallet?.referral_count, 0)));
+    setText(q("statRewardPoints"),      fmtInt(toNum(wallet?.points_lifetime, 0)));
+    setText(q("statConvertedCount"),    fmtInt(toNum(wallet?.converted_count, 0)));
+    setText(q("statCommissionMonthly"), fmtInt(toNum(wallet?.commission_monthly, 0)));
+    setText(q("statCommissionTotal"),   fmtInt(toNum(wallet?.commission_total, 0)));
+  }
 
-    if (el.copyReferralLinkBtn) {
-      el.copyReferralLinkBtn.disabled = !refLink;
-      el.copyReferralLinkBtn.style.opacity = refLink ? "" : "0.5";
-    }
-    if (el.shareReferralBtn) {
-      el.shareReferralBtn.disabled = !refLink;
-      el.shareReferralBtn.style.opacity = refLink ? "" : "0.5";
-    }
+  function _setLinkBtns(copyId, shareId, enabled) {
+    var c = q(copyId), s = q(shareId);
+    [c, s].forEach(function (btn) {
+      if (!btn) return;
+      btn.disabled = !enabled;
+      btn.style.opacity = enabled ? "" : "0.5";
+    });
   }
 
   function buildWalletData(payload, item) {
@@ -630,24 +679,22 @@
   }
 
   async function onDownloadPoster() {
+    if (currentPosterUrl) {
+      window.open(currentPosterUrl, "_blank", "noopener");
+      setStatus("海報已開啟，長按圖片即可保存", false);
+      clearStatusSoon();
+      return;
+    }
     if (el.downloadBtn) el.downloadBtn.classList.add("loading");
     disableBtn(el.downloadBtn, true);
     setStatus("正在準備海報…", false);
-
     try {
-      if (currentPosterUrl) {
-        window.open(currentPosterUrl, "_blank", "noopener");
-        setStatus("海報已開啟，長按圖片即可保存", false);
-        clearStatusSoon();
-        return;
-      }
-
       await waitForFonts();
-      const dataUrl = await buildPosterCanvas();
+      var dataUrl = await buildPosterCanvas();
       openPosterPage(dataUrl, currentItem?.name || currentItem?.id || "smart-card");
       setStatus("");
     } catch (err) {
-      console.error(`[HSC ${VERSION}] download:`, err);
+      console.error("[HSC] download:", err);
       setStatus("海報產生失敗，請稍後再試", true);
       clearStatusSoon();
     } finally {
@@ -1150,4 +1197,203 @@
       </svg>
     `);
   }
+
+  function renderViewCount(item) {
+    var el_vc = q("statusViewCount");
+    if (!el_vc) return;
+    var count = toNum(item?.view_count, 0);
+    if (count === 0) {
+      el_vc.textContent = "尚無紀錄";
+      el_vc.style.color = "";
+    } else {
+      el_vc.textContent = fmtInt(count) + " 次";
+      el_vc.style.color = count >= 50 ? "var(--gold-deep)" : "";
+      el_vc.style.fontWeight = count >= 50 ? "900" : "";
+    }
+  }
+
+  function renderExpireCountdown(item) {
+    var expiresAt     = txt(item?.expires_at);
+    var countdownWrap = q("expireCountdownItem");
+    var countdownEl   = q("statusExpireCountdown");
+    var expireDateEl  = q("statusExpireDate");
+    if (!countdownWrap || !countdownEl || !expiresAt) return;
+    var expDate  = new Date(expiresAt);
+    if (isNaN(expDate.getTime())) return;
+    var now     = new Date();
+    var diffDay = Math.ceil((expDate.getTime() - now.getTime()) / 86400000);
+    if (diffDay > 60) { countdownWrap.classList.add("hidden"); return; }
+    countdownWrap.classList.remove("hidden");
+    var isUrgent  = diffDay <= 30;
+    var isExpired = diffDay <= 0;
+    var color = isExpired ? "#b05a3d" : isUrgent ? "#c85a3a" : "var(--gold-deep)";
+    var label = isExpired ? "已到期" : "還有 " + diffDay + " 天";
+    countdownEl.textContent     = label;
+    countdownEl.style.color     = color;
+    countdownEl.style.fontWeight = "900";
+    if (expireDateEl && isUrgent) expireDateEl.style.color = color;
+  }
+
+  function renderUpdateAndRenewal(item, payload) {
+    var section = q("updateRenewalSection");
+    if (!section || !item) return;
+    section.classList.remove("hidden");
+
+    var badge  = q("updateStatusBadge");
+    var body   = q("updateStatusBody");
+    var goBtn  = q("goUpdateBtn");
+
+    var elig       = payload?.raw?.update_eligibility || {};
+    var mode       = txt(elig?.update_mode || "");
+    var freeRemain = toNum(elig?.remaining_free_updates, -1);
+    var freeTotal  = toNum(elig?.free_update_limit_yearly, 3);
+    var freeUsed   = toNum(elig?.used_update_count_yearly, 0);
+
+    var isUnlimitedCard = txt(item?.update_limit_override_enabled) === "TRUE"
+                          && txt(item?.update_limit_override_value) === "-1";
+    if (!mode) {
+      if (isUnlimitedCard) {
+        mode = "unlimited";
+      } else {
+        if (freeRemain < 0) { freeRemain = 3; freeUsed = 0; }
+        mode = freeRemain > 0 ? "quota" : "none";
+      }
+    }
+
+    var expiresAt = txt(item?.expires_at);
+    var expDate   = expiresAt ? new Date(expiresAt) : null;
+    var now       = new Date();
+
+    if (mode === "unlimited") {
+      if (badge) { badge.textContent = "無限更新"; badge.className = "update-status-badge unlimited"; }
+      var expStr = (expDate && !isNaN(expDate.getTime()))
+        ? "到期日 <strong>" + fmtDate(expiresAt) + "</strong> 前有效"
+        : "效期內有效";
+      if (body) body.innerHTML = "已購買無限更新，" + expStr + "，更新不另收費。";
+      if (expDate && !isNaN(expDate.getTime())) {
+        var dLeft = Math.ceil((expDate - now) / 86400000);
+        if (dLeft > 0 && dLeft <= 60) {
+          var dColor = dLeft <= 30 ? "#c85a3a" : "var(--gold-deep)";
+          if (body) body.innerHTML +=
+            "<div style='margin-top:6px;font-size:12px;color:var(--muted)'>還有 <strong style='color:" +
+            dColor + "'>" + dLeft + " 天</strong> 到期</div>";
+        }
+      }
+      if (goBtn) { goBtn.style.display = ""; goBtn.onclick = null; goBtn.textContent = "更新名片內容"; }
+    } else if (mode === "quota" || freeRemain > 0) {
+      var remain = freeRemain >= 0 ? freeRemain : 3;
+      var total  = freeTotal  >= 1 ? freeTotal  : 3;
+      var used   = freeUsed   >= 0 ? freeUsed   : (total - remain);
+      var pct    = total > 0 ? Math.round((remain / total) * 100) : 0;
+      if (badge) { badge.textContent = "剩 " + remain + " / " + total + " 次"; badge.className = "update-status-badge has-quota"; }
+      if (body)  body.innerHTML =
+        "每年 <strong>" + total + " 次</strong> 免費更新，已使用 " + used + " 次。" +
+        "<div class='update-progress-wrap'><div class='update-progress-fill' style='width:" + pct + "%'></div></div>";
+      if (goBtn) { goBtn.style.display = ""; goBtn.onclick = null; goBtn.textContent = "更新名片內容"; }
+    } else {
+      if (badge) { badge.textContent = "次數已用完"; badge.className = "update-status-badge no-quota"; }
+      if (body)  body.innerHTML =
+        "今年免費更新次數已全部使用。" +
+        "<div style='margin-top:6px;font-size:12px;color:var(--muted)'>需付費 NT$300，由客服協助開通。</div>";
+      if (goBtn) {
+        goBtn.textContent  = "需付費，聯繫客服開通";
+        goBtn.style.display = "";
+        goBtn.onclick = function () { openDialog(q("updateFullDialog")); };
+      }
+    }
+
+    var renewalCard = q("renewalCard");
+    if (!renewalCard || !expDate || isNaN(expDate.getTime())) return;
+    var daysLeft = Math.ceil((expDate - now) / 86400000);
+    if (daysLeft > 60) { renewalCard.classList.add("hidden"); return; }
+    renewalCard.classList.remove("hidden");
+
+    var dot       = q("renewalUrgencyDot");
+    var cardTitle = q("renewalCardTitle");
+    var cardBody  = q("renewalCardBody");
+    var isExpired = daysLeft <= 0;
+    var isUrgent  = daysLeft <= 30;
+
+    if (dot) dot.classList.toggle("urgent", isUrgent || isExpired);
+    renewalCard.classList.toggle("urgent", isUrgent || isExpired);
+
+    if (isExpired) {
+      setText(cardTitle, "名片已到期");
+      if (cardBody) cardBody.innerHTML =
+        "名片已到期，目前可能無法正常顯示。<br><strong style='color:#9a3e22'>請盡快續約</strong>，恢復正常使用。";
+    } else if (isUrgent) {
+      setText(cardTitle, "名片即將到期（" + daysLeft + " 天後）");
+      if (cardBody) cardBody.innerHTML =
+        "效期到 <strong>" + fmtDate(expiresAt) + "</strong>，還有 <strong style='color:#9a3e22'>" +
+        daysLeft + " 天</strong>。<br>建議現在續約，無縫接續使用。";
+    } else {
+      setText(cardTitle, "效期提醒");
+      if (cardBody) cardBody.innerHTML =
+        "名片效期到 <strong>" + fmtDate(expiresAt) + "</strong>，還有 <strong style='color:var(--gold-deep)'>" +
+        daysLeft + " 天</strong>。";
+    }
+  }
+
+  function bindAllNewEvents() {
+    q("copyCardLinkBtn2")?.addEventListener("click", async function () {
+      if (!currentCardUrl) { setStatus("名片連結尚未建立", true); return; }
+      var ok = await copyText(currentCardUrl);
+      setStatus(ok ? "名片連結已複製" : "複製失敗", !ok);
+      clearStatusSoon();
+    });
+    q("shareCardLinkBtn2")?.addEventListener("click", function () {
+      _nativeShare(currentCardUrl, txt(currentItem?.name) + " 的智慧名片",
+        "這是我的智慧名片，歡迎認識我。", "名片連結已複製");
+    });
+    q("copyRefLinkBtn2")?.addEventListener("click", async function () {
+      if (!currentRefUrl) { setStatus("推薦連結尚未建立", true); return; }
+      var ok = await copyText(currentRefUrl);
+      setStatus(ok ? "推薦連結已複製" : "複製失敗", !ok);
+      clearStatusSoon();
+    });
+    q("shareRefLinkBtn2")?.addEventListener("click", function () {
+      _nativeShare(currentRefUrl, txt(currentItem?.name) + " 的推薦連結",
+        "朋友從這裡進來建卡，推薦會自動記錄。", "推薦連結已複製");
+    });
+    q("goUpdateBtn")?.addEventListener("click", function () {
+      if (this.onclick) return;
+      onOpenUpdate();
+    });
+    q("goRenewalBtn")?.addEventListener("click", function () {
+      if (currentRenewalUrl) window.open(currentRenewalUrl, "_blank", "noopener");
+      else openUrl(lineOA);
+    });
+    q("askRenewalBtn")?.addEventListener("click", function () { openUrl(lineOA); });
+    q("updateFullLineBtn")?.addEventListener("click", function () {
+      closeDialog(q("updateFullDialog")); openUrl(lineOA);
+    });
+    q("updateFullCloseBtn")?.addEventListener("click", function () {
+      closeDialog(q("updateFullDialog"));
+    });
+    q("updateFullDialog")?.addEventListener("click", function (e) {
+      if (e.target === this) closeDialog(this);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeDialog(q("updateFullDialog"));
+    });
+  }
+
+  function _nativeShare(url, title, text, copySuccessMsg) {
+    if (!url) { setStatus("連結尚未建立", true); clearStatusSoon(); return; }
+    if (navigator.share) {
+      navigator.share({ title: title, text: text, url: url })
+        .catch(function (err) {
+          if (err?.name !== "AbortError") _fallbackCopy(url, copySuccessMsg);
+        });
+      return;
+    }
+    _fallbackCopy(url, copySuccessMsg);
+  }
+
+  async function _fallbackCopy(url, successMsg) {
+    var ok = await copyText(url);
+    setStatus(ok ? successMsg : "複製失敗，請手動複製", !ok);
+    clearStatusSoon();
+  }
+
 })();
