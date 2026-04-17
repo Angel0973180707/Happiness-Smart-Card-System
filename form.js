@@ -1,6 +1,6 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   完整修正版 v2
+   完整修正版 v2.1-update-sync
 
    修正項目：
    1. resetSuccessPanel() 補上重設 countdown-box hidden + 觸發 refresh
@@ -333,8 +333,8 @@
 
     if (state.mode === "update") {
       if (h1) h1.textContent = "智慧名片更新表單";
-      if (heroDesc) heroDesc.textContent = "可查看原資料、確認更新資格後送出。";
-      if (submitBtn) submitBtn.textContent = "送出更新申請";
+      if (heroDesc) heroDesc.textContent = "可查看原資料、依更新資格自動切換可送出或客服索取流程。";
+      if (submitBtn) submitBtn.textContent = "送出更新資料";
     } else if (state.mode === "renew") {
       if (h1) h1.textContent = "智慧名片續約表單";
       if (heroDesc) heroDesc.textContent = "可續約、調整方案與加購內容。";
@@ -351,6 +351,9 @@
       els["mode-info-card"].classList.toggle("hidden", !(isUpdate || isRenew));
     if (els["renew-controls-card"])
       els["renew-controls-card"].classList.toggle("hidden", !isRenew);
+
+    const addonLayout = document.querySelector(".addon-layout");
+    if (addonLayout) addonLayout.classList.toggle("hidden", isUpdate);
 
     const modePill = els["dev-current-mode-pill"];
     if (modePill) {
@@ -689,8 +692,30 @@
     syncSummary(limits);
     syncQuoteByMode();
     syncModePanels();
+    syncUpdateSubmitUi();
     updatePreview();
     saveDraftSilently();
+  }
+
+  function syncUpdateSubmitUi() {
+    const submitBtn = els["btn-submit-form"];
+    const serviceBtn = els["btn-contact-service"];
+    if (!submitBtn || state.mode !== "update") return;
+    if (state.updateFlow.cardExpired) {
+      submitBtn.textContent = "請先續約後再更新";
+      submitBtn.disabled = true;
+      submitBtn.onclick = null;
+      return;
+    }
+    if (state.updateFlow.requiresPayment) {
+      submitBtn.textContent = "找客服索取更新連結";
+      submitBtn.disabled = false;
+      submitBtn.onclick = function (e) { e.preventDefault(); openUpdatePaidServiceFlow(); };
+      return;
+    }
+    submitBtn.textContent = "送出更新資料";
+    submitBtn.disabled = false;
+    submitBtn.onclick = null;
   }
 
   function syncPlanCards() {
@@ -706,33 +731,41 @@
   function syncAddonInputs(limits) {
     const bundleChecked = isAddonChecked("addon_bundle");
     const createOnly = state.mode === "create" || state.mode === "renew";
+    const isUpdate = state.mode === "update";
+    const addonLayout = document.querySelector(".addon-layout");
+    if (addonLayout) addonLayout.classList.toggle("hidden", isUpdate);
 
     if (els["addon_photo_qty"]) {
       const enabled = isAddonChecked("addon_photo");
       const maxExtra = Math.max(0, CONFIG.MAX_WALL_PHOTOS - limits.baseWallPhotos);
       els["addon_photo_qty"].disabled = !enabled || !createOnly;
       els["addon_photo_qty"].max = String(maxExtra);
-      if (!enabled) els["addon_photo_qty"].value = "0";
+      if (!enabled || isUpdate) els["addon_photo_qty"].value = "0";
     }
     if (els["addon_cta_qty"]) {
       const enabled = isAddonChecked("addon_cta");
       const maxExtra = Math.max(0, CONFIG.MAX_CTAS - (CONFIG.BASE_LIMITS[limits.plan]?.ctas || 3));
       els["addon_cta_qty"].disabled = !enabled || !createOnly;
       els["addon_cta_qty"].max = String(maxExtra);
-      if (!enabled) els["addon_cta_qty"].value = "0";
+      if (!enabled || isUpdate) els["addon_cta_qty"].value = "0";
     }
     if (els["addon_marquee_enabled"]) {
       els["addon_marquee_enabled"].disabled = bundleChecked || !createOnly;
-      if (bundleChecked) els["addon_marquee_enabled"].checked = false;
+      if (bundleChecked || isUpdate) els["addon_marquee_enabled"].checked = false;
     }
     if (els["addon_update_unlimited_enabled"]) {
       els["addon_update_unlimited_enabled"].disabled = bundleChecked || !createOnly;
-      if (bundleChecked) els["addon_update_unlimited_enabled"].checked = false;
+      if (bundleChecked || isUpdate) els["addon_update_unlimited_enabled"].checked = false;
     }
     if (state.mode === "update") {
       ["addon_photo_enabled","addon_cta_enabled","addon_marquee_enabled",
        "addon_update_unlimited_enabled","addon_bundle_enabled","addon_agent_upgrade_enabled"]
-        .forEach(id => { if (els[id]) els[id].disabled = true; });
+        .forEach(id => {
+          if (els[id]) {
+            els[id].disabled = true;
+            if ("checked" in els[id]) els[id].checked = false;
+          }
+        });
     }
   }
 
@@ -1301,7 +1334,11 @@
       setStatus("卡片已到期，請先續約。", "error");
       return false;
     }
-    if (!state.updateFlow.canSubmitDirectly && !state.updateFlow.requiresPayment) {
+    if (state.updateFlow.requiresPayment) {
+      setStatus("本次更新需付費，請先聯繫客服索取更新連結。", "warn");
+      return false;
+    }
+    if (!state.updateFlow.canSubmitDirectly) {
       setStatus("目前無法判斷更新資格，請重新整理後再試。", "error");
       return false;
     }
@@ -1496,24 +1533,29 @@
     let canSubmitDirectly = false;
     let deductFreeCount = false;
     let reasonText = "";
-    let updateFeeAmount = 0;
+    let updateFeeAmount = Number(eligData?.update_fee_amount || 300);
+    let mode = "quota";
 
     if (expired) {
+      mode = "expired";
       reasonText = "卡片已到期，請先續約後再更新。";
     } else if (isUnlimited) {
+      mode = "unlimited";
       canSubmitDirectly = true;
-      reasonText = "無限更新資格有效，可直接更新。";
+      reasonText = "不限次數更新資格有效，效期內可直接更新。";
     } else if (freeRemaining > 0) {
+      mode = "quota";
       canSubmitDirectly = true;
       deductFreeCount = true;
       reasonText = `尚有 ${freeRemaining} 次免費更新次數，可直接更新。`;
     } else {
+      mode = "paid";
       requiresPayment = true;
-      updateFeeAmount = eligData?.update_fee_amount || 300;
-      reasonText = `免費更新次數已用完，需付費 ${money(updateFeeAmount)} 進行單次更新。`;
+      reasonText = `免費更新次數已用完，請先聯繫客服索取付費更新連結（${money(updateFeeAmount)}／次）。`;
     }
 
     state.updateFlow = {
+      mode,
       cardExpired: expired,
       freeRemaining,
       isUnlimited,
@@ -1530,16 +1572,28 @@
     const panel = els["mode-info-panel"];
     if (!panel) return;
     const f = state.updateFlow;
+    const suggestion = f.cardExpired
+      ? "請先辦理續約後，再回來更新內容。"
+      : f.requiresPayment
+        ? "本次不開放直接送出，請先聯繫客服索取付費更新連結。"
+        : "確認內容無誤後，可直接送出更新。";
+    const freeDisplay = f.isUnlimited ? "不限次數" : String(Math.max(0, f.freeRemaining || 0));
     panel.innerHTML = `
       <div class="mode-info-block"><div class="mode-info-label">卡片狀態</div><div class="mode-info-value">${f.cardExpired ? "⚠️ 已到期" : "✅ 有效期內"}</div></div>
-      <div class="mode-info-block"><div class="mode-info-label">免費更新次數</div><div class="mode-info-value">${f.isUnlimited ? "無限次" : f.freeRemaining}</div></div>
-      <div class="mode-info-block"><div class="mode-info-label">更新資格</div><div class="mode-info-value">${f.reasonText}</div></div>
-      <div class="mode-info-block"><div class="mode-info-label">建議操作</div><div class="mode-info-value">${f.canSubmitDirectly ? "可直接送出更新" : f.requiresPayment ? "先建立付款資訊" : "請先續約"}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">更新類型</div><div class="mode-info-value">${f.mode === "unlimited" ? "不限次數更新" : f.mode === "quota" ? "免費更新" : f.mode === "paid" ? "付費更新" : "續約後可更新"}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">免費更新次數</div><div class="mode-info-value">${freeDisplay}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">建議操作</div><div class="mode-info-value">${suggestion}</div></div>
     `;
     if (els["mode-info-kicker"]) els["mode-info-kicker"].textContent = "更新資訊";
     if (els["mode-info-title"]) els["mode-info-title"].textContent = "更新資格摘要";
     if (els["mode-info-desc"]) els["mode-info-desc"].textContent = f.reasonText;
-    if (els["mode-inline-tip"]) els["mode-inline-tip"].textContent = f.canSubmitDirectly ? "確認內容無誤後，可直接送出更新。" : "若本次需付費，系統會先建立付款資訊。";
+    if (els["mode-inline-tip"]) {
+      els["mode-inline-tip"].textContent = f.cardExpired
+        ? "此卡片已到期，請先完成續約。"
+        : f.requiresPayment
+          ? "付費更新一律先聯繫客服索取更新連結。"
+          : "送出後系統會自動整理並套用更新內容。";
+    }
   }
 
   async function createUpdatePaymentIfNeeded() {
@@ -1565,27 +1619,7 @@
       const token = state.modeContext.updateToken;
 
       if (state.updateFlow.cardExpired) throw new Error("卡片已到期，無法更新。");
-
-      if (state.updateFlow.requiresPayment) {
-        setProgressStep(2, "建立付款資訊…");
-        const paymentRes = await createUpdatePaymentIfNeeded();
-        const paymentId = paymentRes?.payment_id || "";
-        const dueAt = paymentRes?.due_at || fallback3Days();
-        const dueAtObj = parseDateSafe(dueAt) || parseDateSafe(fallback3Days());
-        const result = {
-          cardId, paymentId,
-          paymentDueAt: dueAtObj.toISOString(),
-          dueDateStr: formatDateTime(dueAtObj),
-          updateFeeAmount: state.updateFlow.updateFeeAmount,
-          requiresPayment: true,
-          customerName: valueOf("display_name") || "您"
-        };
-        state.lastSubmitResult = result;
-        setProgressStep(5, "付款資訊已建立");
-        showUpdateSuccessPanel(result);
-        setStatus("已建立更新付款資訊，請完成付款後再進行更新。", "success");
-        return;
-      }
+      if (state.updateFlow.requiresPayment) throw new Error("本次更新需付費，請先聯繫客服索取更新連結。");
 
       setProgressStep(2, "送出更新資料…");
       const updatePayload = buildUpdatePayload();
@@ -1593,15 +1627,17 @@
       if (!updateRes.ok) throw new Error(updateRes.error || "更新失敗");
 
       const result = {
-        cardId, updatedCard: updateRes.card || updateRes,
+        cardId,
+        updatedCard: updateRes.card || updateRes,
         deductFreeCount: state.updateFlow.deductFreeCount,
         isUnlimited: state.updateFlow.isUnlimited,
+        freeRemaining: state.updateFlow.freeRemaining,
         customerName: valueOf("display_name") || "您"
       };
       state.lastSubmitResult = result;
       setProgressStep(5, "更新完成");
       showUpdateSuccessPanel(result);
-      setStatus("名片已成功更新！", "success");
+      setStatus("更新資料已送出，系統將自動整理並套用內容。", "success");
 
     } catch (err) {
       console.error(err);
@@ -1610,7 +1646,7 @@
       if (state.lastSubmitResult) {
         els.progressSteps?.forEach(s => s.classList.remove("is-active"));
         if (els["progress-fill"]) els["progress-fill"].style.width = "100%";
-        if (els["progress-text"]) els["progress-text"].textContent = "✅ 完成";
+        if (els["progress-text"]) els["progress-text"].textContent = "✅ 更新資料已送出";
         if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
       } else {
         showProgress(false);
@@ -1652,6 +1688,28 @@
 
   function buildUpdateSummaryText(result) {
     return `更新摘要：${result.isUnlimited ? "無限更新" : result.deductFreeCount ? "使用免費次數" : "單次付費更新"}`;
+  }
+
+  function buildUpdateRequestText() {
+    const cardId = state.modeContext.cardId || state.runtime.updateCard?.id || state.runtime.updateCard?.card_id || "";
+    const name = valueOf("display_name") || state.runtime.updateCard?.name || "";
+    return `我想進行智慧名片更新
+
+名片序號：${cardId}
+姓名：${name}
+
+目前已無免費更新次數，想申請付費更新（NT$300）
+
+請提供更新連結與付款資訊，謝謝`;
+  }
+
+  function openUpdatePaidServiceFlow() {
+    copyText(buildUpdateRequestText()).then(() => {
+      setStatus("已複製索取文案，請貼給客服。", "success");
+      window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
+    }).catch(() => {
+      window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
+    });
   }
 
   function renderRenewSummaryPanel() {
@@ -1846,11 +1904,17 @@
     if (els["success-summary-box"]) els["success-summary-box"].classList.add("hidden");
     if (els["success-footer-note"]) els["success-footer-note"].innerHTML = "";
     if (els["btn-copy-secondary-notice"]) els["btn-copy-secondary-notice"].classList.add("hidden");
-    if (els["btn-copy-primary-notice"]) els["btn-copy-primary-notice"].textContent = "📋 複製通知";
+    if (els["btn-copy-primary-notice"]) {
+      els["btn-copy-primary-notice"].textContent = "📋 回覆客服文案";
+      els["btn-copy-primary-notice"].classList.remove("hidden");
+    }
+    if (els["progress-contact-service"]) {
+      els["progress-contact-service"].textContent = "💬 客服窗口";
+      els["progress-contact-service"].classList.remove("hidden");
+    }
     const previewBtn = document.getElementById("btn-open-preview");
     if (previewBtn) previewBtn.classList.add("hidden");
     if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
-    // 重設倒數
     if (window.HSCFormCountdownBridge?.refresh) window.HSCFormCountdownBridge.refresh();
   }
 
@@ -1978,57 +2042,32 @@
 
   function showUpdateSuccessPanel(result) {
     resetSuccessPanel();
-    if (result.requiresPayment) {
-      if (els["success-header-icon"]) els["success-header-icon"].textContent = "💳";
-      if (els["success-header-title"]) els["success-header-title"].textContent = "已建立更新付款資訊";
-      if (els["success-header-sub"]) els["success-header-sub"].textContent = "請先完成本次單次更新付款。";
-      if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
-      if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
-      if (els["success-info-rows"]) {
-        els["success-info-rows"].innerHTML = `
-          <div class="success-info-row"><span class="label">付款單號</span><span class="value">${escapeHtml(result.paymentId)}</span></div>
-          <div class="success-info-row"><span class="label">更新方式</span><span class="value">單次付費更新</span></div>
-          <div class="success-info-row"><span class="label">應付金額</span><span class="value">${money(result.updateFeeAmount)}</span></div>
-        `;
-      }
-      if (els["success-due-alert"]) {
-        els["success-due-alert"].classList.remove("hidden");
-        if (els["success-due-text"])
-          els["success-due-text"].textContent = `付款期限：${result.dueDateStr || "—"}`;
-      }
-      if (els["success-countdown-box"]) {
-        els["success-countdown-box"].classList.remove("hidden");
-      }
-      if (window.HSCFormCountdownBridge?.refresh) window.HSCFormCountdownBridge.refresh();
-      if (els["success-summary-box"]) {
-        els["success-summary-box"].classList.remove("hidden");
-        if (els["success-summary-content"])
-          els["success-summary-content"].innerHTML = `<div class="quote-breakdown-row"><span>本次更新費用</span><strong>${money(result.updateFeeAmount)}</strong></div>`;
-      }
-      setSuccessActionLabels("update_payment", result);
-    } else {
-      if (els["success-header-icon"]) els["success-header-icon"].textContent = "🛠️";
-      if (els["success-header-title"]) els["success-header-title"].textContent = "名片更新完成";
-      if (els["success-header-sub"]) els["success-header-sub"].textContent = "更新內容已套用到名片。";
-      if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
-      if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
-      if (els["success-info-rows"]) {
-        els["success-info-rows"].innerHTML = `
-          <div class="success-info-row"><span class="label">是否需付款</span><span class="value">否</span></div>
-          <div class="success-info-row"><span class="label">扣減次數</span><span class="value">${result.deductFreeCount ? "是" : "否"}</span></div>
-          <div class="success-info-row"><span class="label">無限更新</span><span class="value">${result.isUnlimited ? "是" : "否"}</span></div>
-        `;
-      }
-      if (els["success-preview-row"]) {
-        els["success-preview-row"].classList.remove("hidden");
-        const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(result.cardId)}&view=1`;
-        if (els["progress-preview-link"]) {
-          els["progress-preview-link"].href = previewUrl;
-          els["progress-preview-link"].textContent = previewUrl;
-        }
-      }
-      setSuccessActionLabels("update_done", result);
+    ensurePreviewActionButton();
+
+    if (els["success-header-icon"]) els["success-header-icon"].textContent = "🛠️";
+    if (els["success-header-title"]) els["success-header-title"].textContent = "已送出更新資料";
+    if (els["success-header-sub"]) els["success-header-sub"].textContent = "系統將自動整理並套用更新內容。";
+    if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
+    if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
+    if (els["success-info-rows"]) {
+      els["success-info-rows"].innerHTML = `
+        <div class="success-info-row"><span class="label">更新方式</span><span class="value">${result.isUnlimited ? "不限次數更新（效期內）" : `免費更新（剩餘 ${Math.max(0, result.freeRemaining || 0)} 次）`}</span></div>
+        <div class="success-info-row"><span class="label">狀態</span><span class="value">系統整理中</span></div>
+      `;
     }
+    if (els["success-summary-box"]) {
+      els["success-summary-box"].classList.remove("hidden");
+      if (els["success-summary-content"]) {
+        els["success-summary-content"].innerHTML = `
+          <div class="quote-breakdown-row"><span>更新方式</span><strong>${result.isUnlimited ? "不限次數更新（效期內）" : `免費更新（剩餘 ${Math.max(0, result.freeRemaining || 0)} 次）`}</strong></div>
+          <div class="quote-breakdown-row"><span>系統提示</span><strong>若未即時顯示，請重新整理頁面</strong></div>
+        `;
+      }
+    }
+    if (els["success-footer-note"]) {
+      els["success-footer-note"].innerHTML = "系統將自動整理並套用更新內容，請稍候查看名片成品。<br>若未即時顯示，請重新整理頁面。<br>若有任何問題，請再聯繫客服。";
+    }
+    setSuccessActionLabels("update_auto", result);
   }
 
   function showRenewSuccessPanel(result) {
@@ -2071,12 +2110,19 @@
   // ── setSuccessActionLabels（修正：freshBtn + addEventListener）──
 
   function setSuccessActionLabels(mode, result) {
-    const primaryBtn   = freshBtn("btn-copy-primary-notice");
+    const primaryBtn = freshBtn("btn-copy-primary-notice");
     const secondaryBtn = freshBtn("btn-copy-secondary-notice");
-    if (!primaryBtn) return;
+    const contactBtn = freshBtn("progress-contact-service");
+    if (!primaryBtn || !contactBtn) return;
+
+    primaryBtn.classList.remove("hidden");
+    contactBtn.classList.remove("hidden");
+    if (secondaryBtn) secondaryBtn.classList.add("hidden");
+    contactBtn.textContent = "💬 客服窗口";
+    contactBtn.addEventListener("click", () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
 
     if (mode === "create") {
-      primaryBtn.textContent = "📋 複製客服完整文案";
+      primaryBtn.textContent = "📋 回覆客服文案";
       primaryBtn.addEventListener("click", async () => {
         await copyText(buildCreatePrimaryNoticeText(result));
         setStatus("已複製客服完整文案。", "success");
@@ -2091,41 +2137,28 @@
         });
       }
 
-      // 成品連結按鈕（clone 清 listener）
       const previewBtn = document.getElementById("btn-open-preview");
       if (previewBtn && result?.previewUrl) {
         previewBtn.classList.remove("hidden");
         const freshPreview = previewBtn.cloneNode(true);
         previewBtn.parentNode?.replaceChild(freshPreview, previewBtn);
-        freshPreview.addEventListener("click",
-          () => window.open(result.previewUrl, "_blank", "noopener"));
+        freshPreview.addEventListener("click", () => window.open(result.previewUrl, "_blank", "noopener"));
       }
 
-    } else if (mode === "update_done") {
-      primaryBtn.textContent = "📋 複製更新完成通知";
-      primaryBtn.addEventListener("click", async () => {
-        await copyText(buildUpdateDoneText(result));
-        setStatus("已複製通知。", "success");
-      });
+    } else if (mode === "update_auto") {
+      primaryBtn.classList.add("hidden");
       if (secondaryBtn) secondaryBtn.classList.add("hidden");
-
-    } else if (mode === "update_payment") {
-      primaryBtn.textContent = "📋 複製更新付款通知";
-      primaryBtn.addEventListener("click", async () => {
-        await copyText(buildUpdatePaymentText(result));
-        setStatus("已複製通知。", "success");
-      });
-      if (secondaryBtn) {
-        secondaryBtn.classList.remove("hidden");
-        secondaryBtn.textContent = "📄 複製更新摘要";
-        secondaryBtn.addEventListener("click", async () => {
-          await copyText(buildUpdateSummaryText(result));
-          setStatus("已複製摘要。", "success");
-        });
+      const previewBtn = document.getElementById("btn-open-preview");
+      const previewUrl = result?.updatedCard?.url || result?.updatedCard?.card_url || (result?.cardId ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(result.cardId)}&view=1` : "");
+      if (previewBtn && previewUrl) {
+        previewBtn.classList.remove("hidden");
+        const freshPreview = previewBtn.cloneNode(true);
+        previewBtn.parentNode?.replaceChild(freshPreview, previewBtn);
+        freshPreview.addEventListener("click", () => window.open(previewUrl, "_blank", "noopener"));
       }
 
     } else if (mode === "renew") {
-      primaryBtn.textContent = "📋 複製續約付款通知";
+      primaryBtn.textContent = "📋 回覆客服文案";
       primaryBtn.addEventListener("click", async () => {
         await copyText(buildRenewPaymentText(result));
         setStatus("已複製通知。", "success");
@@ -2134,14 +2167,12 @@
         secondaryBtn.classList.remove("hidden");
         secondaryBtn.textContent = "📄 複製續約報價摘要";
         secondaryBtn.addEventListener("click", async () => {
-          await copyText(buildRenewQuoteText(result));
+          await copyText(buildRenewSummaryText(result));
           setStatus("已複製摘要。", "success");
         });
       }
     }
   }
-
-  // ─────────────────────────────────────────────────────────────
 
   function showProgress(show) {
     if (!els["submit-progress-overlay"]) return;
@@ -2279,7 +2310,13 @@
     bindButton(els["btn-toggle-mode"], () => {
       els["dev-mode-switcher"]?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-    bindButton(els["btn-contact-service"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
+    bindButton(els["btn-contact-service"], () => {
+      if (state.mode === "update" && state.updateFlow.requiresPayment) {
+        openUpdatePaidServiceFlow();
+        return;
+      }
+      window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
+    });
     bindButton(els["progress-contact-service"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
     bindButton(els["btn-gold-contact"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
     bindButton(els["btn-gold-info"], () => alert("金牌級會員請聯繫客服瞭解完整權益。"));
