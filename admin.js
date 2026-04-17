@@ -204,7 +204,7 @@
   // ── 文案產生器 ──
 
   // 建卡完成通知（第一次發送）
-  function buildCardCreatedNotice(card) {
+function buildCardCreatedNotice(card) {
     const name = textOf(card.name || card.owner_name) || '您';
     const cardId = textOf(card.id || card.card_id);
     const amount = card.amount || card.plan_price || '請洽客服';
