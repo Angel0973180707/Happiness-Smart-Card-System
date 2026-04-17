@@ -8,15 +8,14 @@
     HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
     DEFAULT_RENEW_DAYS: 365,
-    API_TIMEOUT_MS: 10000,
+    API_TIMEOUT_MS: 25000,
     API_RETRY: 1,
     // 銀行資訊
     BANK_NAME: "玉山銀行",
     BANK_CODE: "808",
     BANK_ACCOUNT: "0738968051590",
     BANK_HOLDER: "李秀芳",
-    BANK_ACCOUNT_LAST5: "51590",
-    CONTACT_LINE: "@hsc_service",
+     CONTACT_LINE: "@hsc_service",
   };
 
   // ── KEY STORAGE ──
