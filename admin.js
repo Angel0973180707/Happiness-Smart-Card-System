@@ -232,11 +232,11 @@ function buildCardCreatedNotice(card) {
   }
 
   // 催繳提醒文案
-  function buildPaymentReminderNotice(card) {
+function buildPaymentReminderNotice(card) {
     const name = textOf(card.name || card.owner_name) || '您';
     const cardId = textOf(card.id || card.card_id);
-    const deadline = formatDeadlineStr(card);
     const amount = card.amount || card.plan_price || '請洽客服';
+    const deadline = formatDeadlineStr(card);
     const payUrl = `${CONFIG.HUB_URL}renew.html?id=${encodeURIComponent(cardId)}`;
     const base = calcDeadline(card);
     let urgencyPrefix = '';
@@ -244,7 +244,6 @@ function buildCardCreatedNotice(card) {
       const hLeft = Math.floor((base - new Date()) / 3600000);
       if (hLeft < 0) urgencyPrefix = '⚠️ 您的付款已逾期，';
       else if (hLeft < 24) urgencyPrefix = `🔴 付款截止時間剩不到 ${hLeft} 小時，`;
-      else urgencyPrefix = '';
     }
 
     return `您好 ${name}，
@@ -262,13 +261,12 @@ ${urgencyPrefix}提醒您完成 HSC 智慧名片付款以正式啟用服務。
 ⏰ 付款截止：${deadline || '請盡快完成'}
 
 📋【注意事項】
-・付款後請回覆帳號後 5 碼（${CONFIG.BANK_ACCOUNT_LAST5}）
+・付款完成後請回傳您的匯款帳號末 5 碼供對帳
 ・確認後 1 個工作天內啟用
 ・如需延期請提前告知
 
 📩 聯繫客服：${CONFIG.CONTACT_LINE}`;
   }
-
 
   // ── 付款確認回覆文案 ──
   function buildPaymentConfirmedNotice(card, paymentAmount) {
