@@ -1,6 +1,6 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   完整修正版 v2.1-update-sync
+   完整修正版 v2
 
    修正項目：
    1. resetSuccessPanel() 補上重設 countdown-box hidden + 觸發 refresh
@@ -333,8 +333,8 @@
 
     if (state.mode === "update") {
       if (h1) h1.textContent = "智慧名片更新表單";
-      if (heroDesc) heroDesc.textContent = "可查看原資料、依更新資格自動切換可送出或客服索取流程。";
-      if (submitBtn) submitBtn.textContent = "送出更新資料";
+      if (heroDesc) heroDesc.textContent = "系統會依卡片效期與更新資格，自動判斷可直接更新或需先聯繫客服。";
+      if (submitBtn) submitBtn.textContent = "送出更新申請";
     } else if (state.mode === "renew") {
       if (h1) h1.textContent = "智慧名片續約表單";
       if (heroDesc) heroDesc.textContent = "可續約、調整方案與加購內容。";
@@ -352,9 +352,6 @@
     if (els["renew-controls-card"])
       els["renew-controls-card"].classList.toggle("hidden", !isRenew);
 
-    const addonLayout = document.querySelector(".addon-layout");
-    if (addonLayout) addonLayout.classList.toggle("hidden", isUpdate);
-
     const modePill = els["dev-current-mode-pill"];
     if (modePill) {
       if (state.mode === "update") modePill.textContent = "目前模式：更新內容";
@@ -364,6 +361,14 @@
     }
 
     document.body.setAttribute("data-form-mode", state.mode);
+    toggleUpdateAddonUi();
+  }
+
+
+  function toggleUpdateAddonUi() {
+    const addonWrap = document.querySelector(".addon-layout");
+    if (!addonWrap) return;
+    addonWrap.classList.toggle("hidden", state.mode === "update");
   }
 
   function switchModeByUrl(mode) {
@@ -692,30 +697,9 @@
     syncSummary(limits);
     syncQuoteByMode();
     syncModePanels();
-    syncUpdateSubmitUi();
+    renderUpdateModeActionState();
     updatePreview();
     saveDraftSilently();
-  }
-
-  function syncUpdateSubmitUi() {
-    const submitBtn = els["btn-submit-form"];
-    const serviceBtn = els["btn-contact-service"];
-    if (!submitBtn || state.mode !== "update") return;
-    if (state.updateFlow.cardExpired) {
-      submitBtn.textContent = "請先續約後再更新";
-      submitBtn.disabled = true;
-      submitBtn.onclick = null;
-      return;
-    }
-    if (state.updateFlow.requiresPayment) {
-      submitBtn.textContent = "找客服索取更新連結";
-      submitBtn.disabled = false;
-      submitBtn.onclick = function (e) { e.preventDefault(); openUpdatePaidServiceFlow(); };
-      return;
-    }
-    submitBtn.textContent = "送出更新資料";
-    submitBtn.disabled = false;
-    submitBtn.onclick = null;
   }
 
   function syncPlanCards() {
@@ -731,41 +715,33 @@
   function syncAddonInputs(limits) {
     const bundleChecked = isAddonChecked("addon_bundle");
     const createOnly = state.mode === "create" || state.mode === "renew";
-    const isUpdate = state.mode === "update";
-    const addonLayout = document.querySelector(".addon-layout");
-    if (addonLayout) addonLayout.classList.toggle("hidden", isUpdate);
 
     if (els["addon_photo_qty"]) {
       const enabled = isAddonChecked("addon_photo");
       const maxExtra = Math.max(0, CONFIG.MAX_WALL_PHOTOS - limits.baseWallPhotos);
       els["addon_photo_qty"].disabled = !enabled || !createOnly;
       els["addon_photo_qty"].max = String(maxExtra);
-      if (!enabled || isUpdate) els["addon_photo_qty"].value = "0";
+      if (!enabled) els["addon_photo_qty"].value = "0";
     }
     if (els["addon_cta_qty"]) {
       const enabled = isAddonChecked("addon_cta");
       const maxExtra = Math.max(0, CONFIG.MAX_CTAS - (CONFIG.BASE_LIMITS[limits.plan]?.ctas || 3));
       els["addon_cta_qty"].disabled = !enabled || !createOnly;
       els["addon_cta_qty"].max = String(maxExtra);
-      if (!enabled || isUpdate) els["addon_cta_qty"].value = "0";
+      if (!enabled) els["addon_cta_qty"].value = "0";
     }
     if (els["addon_marquee_enabled"]) {
       els["addon_marquee_enabled"].disabled = bundleChecked || !createOnly;
-      if (bundleChecked || isUpdate) els["addon_marquee_enabled"].checked = false;
+      if (bundleChecked) els["addon_marquee_enabled"].checked = false;
     }
     if (els["addon_update_unlimited_enabled"]) {
       els["addon_update_unlimited_enabled"].disabled = bundleChecked || !createOnly;
-      if (bundleChecked || isUpdate) els["addon_update_unlimited_enabled"].checked = false;
+      if (bundleChecked) els["addon_update_unlimited_enabled"].checked = false;
     }
     if (state.mode === "update") {
       ["addon_photo_enabled","addon_cta_enabled","addon_marquee_enabled",
        "addon_update_unlimited_enabled","addon_bundle_enabled","addon_agent_upgrade_enabled"]
-        .forEach(id => {
-          if (els[id]) {
-            els[id].disabled = true;
-            if ("checked" in els[id]) els[id].checked = false;
-          }
-        });
+        .forEach(id => { if (els[id]) els[id].disabled = true; });
     }
   }
 
@@ -1335,7 +1311,7 @@
       return false;
     }
     if (state.updateFlow.requiresPayment) {
-      setStatus("本次更新需付費，請先聯繫客服索取更新連結。", "warn");
+      setStatus("目前已無免費更新次數，請先聯繫客服索取付費更新連結。", "warn");
       return false;
     }
     if (!state.updateFlow.canSubmitDirectly) {
@@ -1534,28 +1510,27 @@
     let deductFreeCount = false;
     let reasonText = "";
     let updateFeeAmount = Number(eligData?.update_fee_amount || 300);
-    let mode = "quota";
+    let updateMode = "quota";
 
     if (expired) {
-      mode = "expired";
+      updateMode = "expired";
       reasonText = "卡片已到期，請先續約後再更新。";
     } else if (isUnlimited) {
-      mode = "unlimited";
+      updateMode = "unlimited";
       canSubmitDirectly = true;
-      reasonText = "不限次數更新資格有效，效期內可直接更新。";
+      reasonText = "不限次數更新資格有效，可直接更新。";
     } else if (freeRemaining > 0) {
-      mode = "quota";
+      updateMode = "quota";
       canSubmitDirectly = true;
       deductFreeCount = true;
       reasonText = `尚有 ${freeRemaining} 次免費更新次數，可直接更新。`;
     } else {
-      mode = "paid";
+      updateMode = "paid";
       requiresPayment = true;
-      reasonText = `免費更新次數已用完，請先聯繫客服索取付費更新連結（${money(updateFeeAmount)}／次）。`;
+      reasonText = `免費更新次數已用完，請先聯繫客服索取付費更新連結（${money(updateFeeAmount)}）。`;
     }
 
     state.updateFlow = {
-      mode,
       cardExpired: expired,
       freeRemaining,
       isUnlimited,
@@ -1564,7 +1539,8 @@
       deductFreeCount,
       updateFeeAmount,
       expiresAt: expiresAt || "",
-      reasonText
+      reasonText,
+      updateMode
     };
   }
 
@@ -1572,27 +1548,34 @@
     const panel = els["mode-info-panel"];
     if (!panel) return;
     const f = state.updateFlow;
-    const suggestion = f.cardExpired
-      ? "請先辦理續約後，再回來更新內容。"
-      : f.requiresPayment
-        ? "本次不開放直接送出，請先聯繫客服索取付費更新連結。"
-        : "確認內容無誤後，可直接送出更新。";
-    const freeDisplay = f.isUnlimited ? "不限次數" : String(Math.max(0, f.freeRemaining || 0));
+    const updateModeLabel = f.updateMode === "expired"
+      ? "需先續約"
+      : f.updateMode === "unlimited"
+        ? "不限次數更新"
+        : f.updateMode === "quota"
+          ? "免費次數更新"
+          : "付費更新";
+    const actionLabel = f.updateMode === "expired"
+      ? "請先辦理續約"
+      : f.updateMode === "paid"
+        ? "請先聯繫客服索取更新連結"
+        : "可直接送出更新";
     panel.innerHTML = `
       <div class="mode-info-block"><div class="mode-info-label">卡片狀態</div><div class="mode-info-value">${f.cardExpired ? "⚠️ 已到期" : "✅ 有效期內"}</div></div>
-      <div class="mode-info-block"><div class="mode-info-label">更新類型</div><div class="mode-info-value">${f.mode === "unlimited" ? "不限次數更新" : f.mode === "quota" ? "免費更新" : f.mode === "paid" ? "付費更新" : "續約後可更新"}</div></div>
-      <div class="mode-info-block"><div class="mode-info-label">免費更新次數</div><div class="mode-info-value">${freeDisplay}</div></div>
-      <div class="mode-info-block"><div class="mode-info-label">建議操作</div><div class="mode-info-value">${suggestion}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">更新資格</div><div class="mode-info-value">${escapeHtml(updateModeLabel)}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">免費更新次數</div><div class="mode-info-value">${f.isUnlimited ? "不限次數" : String(f.freeRemaining)}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">建議操作</div><div class="mode-info-value">${escapeHtml(actionLabel)}</div></div>
     `;
     if (els["mode-info-kicker"]) els["mode-info-kicker"].textContent = "更新資訊";
     if (els["mode-info-title"]) els["mode-info-title"].textContent = "更新資格摘要";
     if (els["mode-info-desc"]) els["mode-info-desc"].textContent = f.reasonText;
     if (els["mode-inline-tip"]) {
-      els["mode-inline-tip"].textContent = f.cardExpired
-        ? "此卡片已到期，請先完成續約。"
-        : f.requiresPayment
-          ? "付費更新一律先聯繫客服索取更新連結。"
-          : "送出後系統會自動整理並套用更新內容。";
+      els["mode-inline-tip"].textContent =
+        f.updateMode === "expired"
+          ? "卡片已到期，請先續約後再回來更新。"
+          : f.updateMode === "paid"
+            ? "目前已無免費更新次數，請先找客服索取付費更新連結。"
+            : "確認內容無誤後，可直接送出更新。";
     }
   }
 
@@ -1619,7 +1602,7 @@
       const token = state.modeContext.updateToken;
 
       if (state.updateFlow.cardExpired) throw new Error("卡片已到期，無法更新。");
-      if (state.updateFlow.requiresPayment) throw new Error("本次更新需付費，請先聯繫客服索取更新連結。");
+      if (state.updateFlow.requiresPayment) throw new Error("目前已無免費更新次數，請先聯繫客服索取付費更新連結。");
 
       setProgressStep(2, "送出更新資料…");
       const updatePayload = buildUpdatePayload();
@@ -1631,13 +1614,12 @@
         updatedCard: updateRes.card || updateRes,
         deductFreeCount: state.updateFlow.deductFreeCount,
         isUnlimited: state.updateFlow.isUnlimited,
-        freeRemaining: state.updateFlow.freeRemaining,
         customerName: valueOf("display_name") || "您"
       };
       state.lastSubmitResult = result;
       setProgressStep(5, "更新完成");
       showUpdateSuccessPanel(result);
-      setStatus("更新資料已送出，系統將自動整理並套用內容。", "success");
+      setStatus("名片已成功更新！", "success");
 
     } catch (err) {
       console.error(err);
@@ -1646,7 +1628,7 @@
       if (state.lastSubmitResult) {
         els.progressSteps?.forEach(s => s.classList.remove("is-active"));
         if (els["progress-fill"]) els["progress-fill"].style.width = "100%";
-        if (els["progress-text"]) els["progress-text"].textContent = "✅ 更新資料已送出";
+        if (els["progress-text"]) els["progress-text"].textContent = "✅ 完成";
         if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
       } else {
         showProgress(false);
@@ -1679,19 +1661,15 @@
   }
 
   function buildUpdateDoneText(result) {
-    return `【名片更新完成通知】\n名片序號：${result.cardId}\n更新方式：${result.isUnlimited ? "無限更新" : result.deductFreeCount ? "免費次數更新" : "付費更新"}\n已成功套用最新內容。`;
+    return `已送出更新資料
+
+系統將自動整理並套用更新內容，請稍候查看名片成品。
+若未即時顯示，請重新整理頁面。
+若有任何問題，請再聯繫客服。`;
   }
 
-  function buildUpdatePaymentText(result) {
-    return `【更新付款通知】\n名片序號：${result.cardId}\n付款單號：${result.paymentId}\n應付金額：${money(result.updateFeeAmount)}\n付款期限：${result.dueDateStr}\n請完成付款後通知客服進行更新。`;
-  }
-
-  function buildUpdateSummaryText(result) {
-    return `更新摘要：${result.isUnlimited ? "無限更新" : result.deductFreeCount ? "使用免費次數" : "單次付費更新"}`;
-  }
-
-  function buildUpdateRequestText() {
-    const cardId = state.modeContext.cardId || state.runtime.updateCard?.id || state.runtime.updateCard?.card_id || "";
+  function buildUpdateRequestLinkText() {
+    const cardId = state.identity.cardId || state.modeContext.cardId || state.runtime.updateCard?.card_id || "";
     const name = valueOf("display_name") || state.runtime.updateCard?.name || "";
     return `我想進行智慧名片更新
 
@@ -1703,14 +1681,6 @@
 請提供更新連結與付款資訊，謝謝`;
   }
 
-  function openUpdatePaidServiceFlow() {
-    copyText(buildUpdateRequestText()).then(() => {
-      setStatus("已複製索取文案，請貼給客服。", "success");
-      window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
-    }).catch(() => {
-      window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
-    });
-  }
 
   function renderRenewSummaryPanel() {
     const panel = els["mode-info-panel"];
@@ -1904,17 +1874,12 @@
     if (els["success-summary-box"]) els["success-summary-box"].classList.add("hidden");
     if (els["success-footer-note"]) els["success-footer-note"].innerHTML = "";
     if (els["btn-copy-secondary-notice"]) els["btn-copy-secondary-notice"].classList.add("hidden");
-    if (els["btn-copy-primary-notice"]) {
-      els["btn-copy-primary-notice"].textContent = "📋 回覆客服文案";
-      els["btn-copy-primary-notice"].classList.remove("hidden");
-    }
-    if (els["progress-contact-service"]) {
-      els["progress-contact-service"].textContent = "💬 客服窗口";
-      els["progress-contact-service"].classList.remove("hidden");
-    }
+    if (els["progress-contact-service"]) els["progress-contact-service"].textContent = "客服窗口";
+    if (els["btn-copy-primary-notice"]) { els["btn-copy-primary-notice"].textContent = "回覆客服文案"; els["btn-copy-primary-notice"].classList.remove("hidden"); }
     const previewBtn = document.getElementById("btn-open-preview");
     if (previewBtn) previewBtn.classList.add("hidden");
     if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
+    // 重設倒數
     if (window.HSCFormCountdownBridge?.refresh) window.HSCFormCountdownBridge.refresh();
   }
 
@@ -2042,32 +2007,39 @@
 
   function showUpdateSuccessPanel(result) {
     resetSuccessPanel();
-    ensurePreviewActionButton();
-
     if (els["success-header-icon"]) els["success-header-icon"].textContent = "🛠️";
     if (els["success-header-title"]) els["success-header-title"].textContent = "已送出更新資料";
-    if (els["success-header-sub"]) els["success-header-sub"].textContent = "系統將自動整理並套用更新內容。";
+    if (els["success-header-sub"]) els["success-header-sub"].textContent = "";
     if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
     if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
     if (els["success-info-rows"]) {
       els["success-info-rows"].innerHTML = `
-        <div class="success-info-row"><span class="label">更新方式</span><span class="value">${result.isUnlimited ? "不限次數更新（效期內）" : `免費更新（剩餘 ${Math.max(0, result.freeRemaining || 0)} 次）`}</span></div>
-        <div class="success-info-row"><span class="label">狀態</span><span class="value">系統整理中</span></div>
+        <div class="success-info-row"><span class="label">更新方式</span><span class="value">${result.isUnlimited ? "不限次數更新" : "免費次數更新"}</span></div>
+        <div class="success-info-row"><span class="label">需人工付款</span><span class="value">否</span></div>
       `;
+    }
+    if (els["success-preview-row"]) {
+      els["success-preview-row"].classList.remove("hidden");
+      const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(result.cardId)}&view=1`;
+      if (els["progress-preview-link"]) {
+        els["progress-preview-link"].href = previewUrl;
+        els["progress-preview-link"].textContent = previewUrl;
+      }
     }
     if (els["success-summary-box"]) {
       els["success-summary-box"].classList.remove("hidden");
       if (els["success-summary-content"]) {
         els["success-summary-content"].innerHTML = `
-          <div class="quote-breakdown-row"><span>更新方式</span><strong>${result.isUnlimited ? "不限次數更新（效期內）" : `免費更新（剩餘 ${Math.max(0, result.freeRemaining || 0)} 次）`}</strong></div>
-          <div class="quote-breakdown-row"><span>系統提示</span><strong>若未即時顯示，請重新整理頁面</strong></div>
+          <div class="quote-breakdown-row"><span>系統提示</span><strong>自動套用中</strong></div>
+          <div style="font-size:12px;line-height:1.8;color:var(--muted);font-weight:700;">
+            系統將自動整理並套用更新內容，請稍候查看名片成品。<br>
+            若未即時顯示，請重新整理頁面。<br>
+            若有任何問題，請再聯繫客服。
+          </div>
         `;
       }
     }
-    if (els["success-footer-note"]) {
-      els["success-footer-note"].innerHTML = "系統將自動整理並套用更新內容，請稍候查看名片成品。<br>若未即時顯示，請重新整理頁面。<br>若有任何問題，請再聯繫客服。";
-    }
-    setSuccessActionLabels("update_auto", result);
+    setSuccessActionLabels("update_done", result);
   }
 
   function showRenewSuccessPanel(result) {
@@ -2110,67 +2082,106 @@
   // ── setSuccessActionLabels（修正：freshBtn + addEventListener）──
 
   function setSuccessActionLabels(mode, result) {
-    const primaryBtn = freshBtn("btn-copy-primary-notice");
+    const primaryBtn   = freshBtn("btn-copy-primary-notice");
     const secondaryBtn = freshBtn("btn-copy-secondary-notice");
-    const contactBtn = freshBtn("progress-contact-service");
-    if (!primaryBtn || !contactBtn) return;
-
-    primaryBtn.classList.remove("hidden");
-    contactBtn.classList.remove("hidden");
-    if (secondaryBtn) secondaryBtn.classList.add("hidden");
-    contactBtn.textContent = "💬 客服窗口";
-    contactBtn.addEventListener("click", () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
+    const contactBtn   = freshBtn("progress-contact-service");
+    if (!primaryBtn) return;
 
     if (mode === "create") {
-      primaryBtn.textContent = "📋 回覆客服文案";
+      primaryBtn.classList.remove("hidden");
+      primaryBtn.textContent = "回覆客服文案";
       primaryBtn.addEventListener("click", async () => {
         await copyText(buildCreatePrimaryNoticeText(result));
         setStatus("已複製客服完整文案。", "success");
       });
 
       if (secondaryBtn) {
-        secondaryBtn.classList.remove("hidden");
-        secondaryBtn.textContent = "📄 複製客服摘要";
-        secondaryBtn.addEventListener("click", async () => {
-          await copyText(buildCreateSecondaryNoticeText(result));
-          setStatus("已複製客服摘要。", "success");
-        });
+        secondaryBtn.classList.add("hidden");
       }
+      if (contactBtn) contactBtn.textContent = "客服窗口";
 
       const previewBtn = document.getElementById("btn-open-preview");
       if (previewBtn && result?.previewUrl) {
         previewBtn.classList.remove("hidden");
         const freshPreview = previewBtn.cloneNode(true);
         previewBtn.parentNode?.replaceChild(freshPreview, previewBtn);
-        freshPreview.addEventListener("click", () => window.open(result.previewUrl, "_blank", "noopener"));
+        freshPreview.addEventListener("click",
+          () => window.open(result.previewUrl, "_blank", "noopener"));
       }
 
-    } else if (mode === "update_auto") {
+    } else if (mode === "update_done") {
       primaryBtn.classList.add("hidden");
       if (secondaryBtn) secondaryBtn.classList.add("hidden");
-      const previewBtn = document.getElementById("btn-open-preview");
-      const previewUrl = result?.updatedCard?.url || result?.updatedCard?.card_url || (result?.cardId ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(result.cardId)}&view=1` : "");
-      if (previewBtn && previewUrl) {
-        previewBtn.classList.remove("hidden");
-        const freshPreview = previewBtn.cloneNode(true);
-        previewBtn.parentNode?.replaceChild(freshPreview, previewBtn);
-        freshPreview.addEventListener("click", () => window.open(previewUrl, "_blank", "noopener"));
-      }
+      if (contactBtn) contactBtn.textContent = "客服窗口";
 
     } else if (mode === "renew") {
-      primaryBtn.textContent = "📋 回覆客服文案";
+      primaryBtn.classList.remove("hidden");
+      primaryBtn.textContent = "回覆客服文案";
       primaryBtn.addEventListener("click", async () => {
         await copyText(buildRenewPaymentText(result));
-        setStatus("已複製通知。", "success");
+        setStatus("已複製續約客服文案。", "success");
       });
-      if (secondaryBtn) {
-        secondaryBtn.classList.remove("hidden");
-        secondaryBtn.textContent = "📄 複製續約報價摘要";
-        secondaryBtn.addEventListener("click", async () => {
-          await copyText(buildRenewSummaryText(result));
-          setStatus("已複製摘要。", "success");
-        });
-      }
+      if (secondaryBtn) secondaryBtn.classList.add("hidden");
+      if (contactBtn) contactBtn.textContent = "客服窗口";
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+
+
+  function ensureUpdateAssistButtons() {
+    const actionRow = document.querySelector('section.form-card .action-row');
+    if (!actionRow) return {};
+    let copyBtn = document.getElementById("btn-update-copy-request");
+    let serviceBtn = document.getElementById("btn-update-get-link");
+    if (!copyBtn) {
+      copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.id = "btn-update-copy-request";
+      copyBtn.className = "ghost-btn hidden";
+      copyBtn.textContent = "複製索取文案";
+      actionRow.insertBefore(copyBtn, els["btn-submit-form"]);
+      bindButton(copyBtn, async () => {
+        await copyText(buildUpdateRequestLinkText());
+        setStatus("已複製更新連結索取文案。", "success");
+      });
+    }
+    if (!serviceBtn) {
+      serviceBtn = document.createElement("button");
+      serviceBtn.type = "button";
+      serviceBtn.id = "btn-update-get-link";
+      serviceBtn.className = "line-btn hidden";
+      serviceBtn.textContent = "找客服索取更新連結";
+      actionRow.insertBefore(serviceBtn, els["btn-submit-form"]);
+      bindButton(serviceBtn, () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
+    }
+    return { copyBtn, serviceBtn };
+  }
+
+  function renderUpdateModeActionState() {
+    if (state.mode !== "update") return;
+    const submitBtn = els["btn-submit-form"];
+    const { copyBtn, serviceBtn } = ensureUpdateAssistButtons();
+    const f = state.updateFlow;
+    if (!submitBtn) return;
+
+    if (f.updateMode === "paid") {
+      submitBtn.classList.add("hidden");
+      copyBtn?.classList.remove("hidden");
+      serviceBtn?.classList.remove("hidden");
+      if (els["mode-inline-tip"]) els["mode-inline-tip"].textContent = "目前已無免費更新次數，請先複製索取文案，再找客服索取付費更新連結。";
+    } else if (f.updateMode === "expired") {
+      submitBtn.classList.add("hidden");
+      copyBtn?.classList.add("hidden");
+      serviceBtn?.classList.remove("hidden");
+      serviceBtn.textContent = "先找客服辦理續約";
+      if (els["mode-inline-tip"]) els["mode-inline-tip"].textContent = "卡片已到期，請先續約後再更新。";
+    } else {
+      submitBtn.classList.remove("hidden");
+      submitBtn.textContent = "送出更新申請";
+      copyBtn?.classList.add("hidden");
+      serviceBtn?.classList.add("hidden");
+      if (serviceBtn) serviceBtn.textContent = "找客服索取更新連結";
     }
   }
 
@@ -2310,13 +2321,7 @@
     bindButton(els["btn-toggle-mode"], () => {
       els["dev-mode-switcher"]?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-    bindButton(els["btn-contact-service"], () => {
-      if (state.mode === "update" && state.updateFlow.requiresPayment) {
-        openUpdatePaidServiceFlow();
-        return;
-      }
-      window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
-    });
+    bindButton(els["btn-contact-service"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
     bindButton(els["progress-contact-service"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
     bindButton(els["btn-gold-contact"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
     bindButton(els["btn-gold-info"], () => alert("金牌級會員請聯繫客服瞭解完整權益。"));
