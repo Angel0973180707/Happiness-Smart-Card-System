@@ -1211,7 +1211,7 @@
         preview
       );
 
-      initPhotoCarousel_(wall, { interval: 3200 });
+      initPhotoCarousel_(wall, { interval:4500});
 
     } else {
       grid.style.display = "";
