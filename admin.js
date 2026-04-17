@@ -2,7 +2,7 @@
   "use strict";
 
   const CONFIG = {
-    VERSION: "v6.5.4-fixed-v1.5.1",
+    VERSION: "v6.6.0-bootstrap-sync-stable",
     KEY_PREFIX: "ANGEL2026",          // 寫死前段，清快取後只需輸入後段
     GAS_BASE_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
@@ -107,26 +107,6 @@
     const idx = list.findIndex(r => String(r?.[idKey] || "").trim() === String(idVal || "").trim());
     if (idx >= 0) Object.assign(list[idx], patch);
   }
-  function setPaymentCollections(rows) {
-    const list = Array.isArray(rows) ? rows.slice() : [];
-    state.payments = list.slice();
-    state.paymentList = list.slice();
-  }
-
-  function upsertPaymentAcrossState(payment) {
-    if (!payment) return;
-    const pid = String(payment.payment_id || payment.id || '').trim();
-    if (!pid) return;
-    const apply = (list) => {
-      if (!Array.isArray(list)) return;
-      const idx = list.findIndex(r => String(r?.payment_id || r?.id || '').trim() === pid);
-      if (idx >= 0) list[idx] = { ...list[idx], ...payment };
-      else list.unshift({ ...payment });
-    };
-    apply(state.payments);
-    apply(state.paymentList);
-  }
-
 
   function toast(message) {
     if (typeof window._hscToast === 'function') { window._hscToast(message); return; }
@@ -823,7 +803,7 @@ ${updateDesc}
     const needRenewal = state.cards.filter(c => needsRenewal(c) || isExpiringSoon(c, 30)).length;
     const addonPending = state.addons.filter(i => { const s = textOf(i.status).toLowerCase(); return s !== "paid" && s !== "cancelled"; }).length;
     const todayStr = new Date().toISOString().slice(0, 10);
-    const todayPayments = state.payments.filter(p => textOf(p.paid_at || p.created_at || "").startsWith(todayStr)).length;
+    const todayPayments = state.paymentList.filter(p => textOf(p.paid_at || p.created_at || "").startsWith(todayStr)).length;
 
     safeSetText("#statUnpaid", unpaid);
     safeSetText("#statNeedDelivery", needDelivery);
@@ -934,44 +914,43 @@ ${updateDesc}
   }
 
   async function confirmPaymentFromUi(paymentId) {
-    if (!confirm(`確認付款單 ${paymentId} 已付款？`)) return;
-    if (!doubleConfirmId(paymentId, "付款單")) return;
-    try {
-      const res = await apiPost("confirmPayment", { payment_id: paymentId });
-      toast("✅ 付款已確認");
-      const paidAt = res?.payment?.paid_at || new Date().toISOString();
-      const cardId = res?.card?.id || res?.card_id;
-      const nextPayment = {
-        ...(state.paymentList.find(x => String(x.payment_id || x.id || '') === String(paymentId)) || {}),
-        ...(res?.payment || {}),
-        payment_id: paymentId,
-        status: 'paid',
-        billing_status: 'paid',
-        paid_at: paidAt,
-        card_id: cardId || (res?.payment?.card_id || '')
-      };
-      upsertPaymentAcrossState(nextPayment);
-      if (cardId) {
-        patchListItem(state.cards, "id", cardId, {
-          ...(res?.card || {}),
-          billing_status: "paid",
-          payment_paid_at: paidAt
-        });
-        patchListItem(state.cards, "card_id", cardId, {
-          ...(res?.card || {}),
-          billing_status: "paid",
-          payment_paid_at: paidAt
-        });
-      }
+  if (!confirm(`確認付款單 ${paymentId} 已付款？`)) return;
+  if (!doubleConfirmId(paymentId, "付款單")) return;
+  try {
+    const res = await apiPost("confirmPayment", { payment_id: paymentId });
+    const payment = res?.payment || {};
+    const paidAt = payment.paid_at || new Date().toISOString();
+    const nextPayment = {
+      ...payment,
+      payment_id: payment.payment_id || paymentId,
+      status: payment.status || "paid",
+      billing_status: payment.billing_status || payment.billing_status_after || "paid",
+      paid_at: paidAt
+    };
 
-      renderPayments();
-      renderDashboard();
-      const cardsSection = $('#cardSection');
-      if (cardsSection?.classList.contains('active')) renderCards();
-      const ledgerSection = $('#ledgerSection');
-      if (ledgerSection?.classList.contains('active')) renderLedger();
-    } catch (err) { toast(`確認失敗：${err.message}`); }
-  }
+    patchListItem(state.paymentList, "payment_id", paymentId, nextPayment);
+    patchListItem(state.payments, "payment_id", paymentId, nextPayment);
+
+    const cardId = res?.card?.id || res?.card?.card_id || res?.card_id || payment.card_id;
+    const cardPatch = {
+      billing_status: "paid",
+      payment_paid_at: paidAt,
+      payment_due_at: ""
+    };
+    if (res?.card?.expires_at) cardPatch.expires_at = res.card.expires_at;
+    if (cardId) {
+      patchListItem(state.cards, "id", cardId, cardPatch);
+      patchListItem(state.cards, "card_id", cardId, cardPatch);
+    }
+
+    toast("✅ 付款已確認");
+    renderPayments();
+    renderDashboard();
+
+    const ledgerSection = $('#ledgerSection');
+    if (ledgerSection?.classList.contains('active')) renderLedger();
+  } catch (err) { toast(`確認失敗：${err.message}`); }
+}
 
   async function markPaymentRefundedFromUi(paymentId) {
     if (!confirm("⚠️ 退款操作無法自動撤銷，確定？")) return;
@@ -982,9 +961,6 @@ ${updateDesc}
       patchListItem(state.paymentList, "payment_id", paymentId, { status: "refunded" });
       patchListItem(state.payments, "payment_id", paymentId, { status: "refunded" });
       renderPayments();
-      renderDashboard();
-      const ledgerSection = $('#ledgerSection');
-      if (ledgerSection?.classList.contains('active')) renderLedger();
     } catch (err) { toast(`退款失敗：${err.message}`); }
   }
 
@@ -1415,235 +1391,222 @@ ${updateDesc}
     return 'NT$ ' + n.toLocaleString('zh-TW');
   }
 
-  function buildLedgerPaymentRecords() {
-    return (state.paymentList || [])
-      .filter(p => textOf(p.status).toLowerCase() === 'paid')
-      .map(p => {
-        const cardId = textOf(p.card_id);
-        const card = (state.cards || []).find(c => String(c.id || c.card_id || '').trim() === cardId) || {};
-        return {
-          ledger_id: `PY_${textOf(p.payment_id || p.id)}`,
-          source_type: 'payment',
-          type: 'income',
-          payment_id: textOf(p.payment_id || p.id),
-          card_id: cardId,
-          card_name: textOf(card.name || card.owner_name),
-          amount: Number(p.amount || p.total_amount || 0),
-          commission: 0,
-          withdrawn: 0,
-          paid_at: p.paid_at || p.created_at || '',
-          note: `付款 ${textOf(p.event_type || p.order_type || '')}`.trim(),
-          created_at: p.created_at || '',
-        };
-      });
-  }
-
-  function buildLedgerCommissionRecords() {
-    return (state.commissionItems || [])
-      .filter(c => ['paid','done','settled'].includes(textOf(c.status).toLowerCase()))
-      .map(c => ({
-        ledger_id: `CM_${c.commission_id || c.id}`,
-        source_type: 'commission',
-        type: 'commission_paid',
-        payment_id: c.payment_id || '',
-        card_id: c.card_id || '',
-        card_name: '',
-        amount: 0,
-        commission: Number(c.reward_amount || c.amount || 0),
-        withdrawn: Number(c.paid_amount || c.reward_amount || c.amount || 0),
-        paid_at: c.paid_at || c.created_at || '',
-        note: `分潤 ${textOf(c.beneficiary_agent_id || c.agent_id || '')}`.trim(),
-        created_at: c.created_at || '',
-      }));
-  }
-
-  function getMergedLedgerRecords() {
-    const localRecords = getLedgerRecords().map(r => ({ ...r, source_type: 'local' }));
-    const systemRecords = [...buildLedgerPaymentRecords(), ...buildLedgerCommissionRecords()];
-    const localIds = new Set(localRecords.map(r => r.ledger_id));
-    return [
-      ...systemRecords.filter(r => !localIds.has(r.ledger_id)),
-      ...localRecords
-    ].sort((a, b) => new Date(b.paid_at || b.created_at || 0) - new Date(a.paid_at || a.created_at || 0));
-  }
-
-  function renderLedger() {
-    const container = $('#ledgerSection');
-    if (!container) return;
-
-    const merged = getMergedLedgerRecords();
-
-    // 統計
-    const totalIncome = merged.filter(r => r.type === 'income').reduce((s, r) => s + Number(r.amount || 0), 0);
-    const totalCommission = merged.reduce((s, r) => s + Number(r.commission || 0), 0);
-    const totalWithdrawn = merged.reduce((s, r) => s + Number(r.withdrawn || 0), 0);
-    const totalManual = merged.filter(r => r.type === 'manual').reduce((s, r) => s + Number(r.amount || 0), 0);
-
-    // 月報 map
-    const monthMap = {};
-    merged.forEach(r => {
-      const dt = r.paid_at || r.created_at || '';
-      const key = dt.slice(0, 7) || '未知';
-      if (!monthMap[key]) monthMap[key] = { income: 0, commission: 0, withdrawn: 0 };
-      if (r.type === 'income') monthMap[key].income += Number(r.amount || 0);
-      monthMap[key].commission += Number(r.commission || 0);
-      monthMap[key].withdrawn += Number(r.withdrawn || 0);
+  function buildLedgerFromPayments() {
+  return state.paymentList
+    .filter(p => textOf(p.status).toLowerCase() === 'paid')
+    .map(p => {
+      const card = state.cards.find(c => String(c.id || c.card_id) === String(p.card_id || '')) || {};
+      return {
+        ledger_id: `PM_${p.payment_id || p.id}`,
+        type: 'income',
+        payment_id: p.payment_id || '',
+        card_id: p.card_id || '',
+        card_name: card.name || card.owner_name || '',
+        amount: Number(p.amount || p.total_amount || 0),
+        commission: 0,
+        withdrawn: 0,
+        paid_at: p.paid_at || p.updated_at || p.created_at || '',
+        note: `${p.event_type || 'payment'} / ${p.order_type || ''}`.trim(),
+        created_at: p.created_at || ''
+      };
     });
-    const months = Object.entries(monthMap).sort((a, b) => b[0].localeCompare(a[0]));
+}
 
-    const wrap = $('#ledgerContentWrap');
-    if (!wrap) return;
+function buildLedgerFromCommissions() {
+  return state.commissionItems
+    .filter(c => {
+      const status = textOf(c.status).toLowerCase();
+      return status === 'paid' || status === 'processed';
+    })
+    .map(c => ({
+      ledger_id: `CM_${c.commission_id || c.id}`,
+      type: 'commission_paid',
+      payment_id: c.payment_id || '',
+      card_id: c.card_id || '',
+      card_name: '',
+      amount: 0,
+      commission: Number(c.reward_amount || c.amount || 0),
+      withdrawn: Number(c.commission_paid_total || c.reward_amount || c.amount || 0),
+      paid_at: c.paid_at || c.updated_at || c.created_at || '',
+      note: `分潤 代理：${c.beneficiary_agent_id || c.agent_id || ''}`,
+      created_at: c.created_at || ''
+    }));
+}
 
-    wrap.innerHTML = `
-      <!-- 統計磚 -->
-      <div class="stats-row" style="margin-bottom:16px;">
-        <div class="stat-tile ok">
-          <div class="stat-label">總收款</div>
-          <div class="stat-value" style="font-size:18px;">${formatMoney(totalIncome)}</div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-label">總分潤</div>
-          <div class="stat-value" style="font-size:18px;">${formatMoney(totalCommission)}</div>
-        </div>
-        <div class="stat-tile warn">
-          <div class="stat-label">已取款</div>
-          <div class="stat-value" style="font-size:18px;">${formatMoney(totalWithdrawn)}</div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-label">手動調整</div>
-          <div class="stat-value" style="font-size:18px;">${formatMoney(totalManual)}</div>
-        </div>
+function renderLedger() {
+  const container = $('#ledgerSection');
+  if (!container) return;
+
+  const localRecords = getLedgerRecords().map(r => ({
+    ...r,
+    type: r.type || 'manual',
+    amount: Number(r.amount || 0),
+    commission: Number(r.commission || 0),
+    withdrawn: Number(r.withdrawn || 0)
+  }));
+  const paymentRecords = buildLedgerFromPayments();
+  const commissionRecords = buildLedgerFromCommissions();
+
+  const localIds = new Set(localRecords.map(r => r.ledger_id));
+  const merged = [
+    ...paymentRecords.filter(r => !localIds.has(r.ledger_id)),
+    ...commissionRecords.filter(r => !localIds.has(r.ledger_id)),
+    ...localRecords
+  ].sort((a, b) => new Date(b.paid_at || b.created_at || 0) - new Date(a.paid_at || a.created_at || 0));
+
+  const totalIncome = merged.filter(r => r.type === 'income').reduce((s, r) => s + Number(r.amount || 0), 0);
+  const totalCommission = merged.reduce((s, r) => s + Number(r.commission || 0), 0);
+  const totalWithdrawn = merged.reduce((s, r) => s + Number(r.withdrawn || 0), 0);
+  const totalManual = merged.filter(r => r.type === 'manual').reduce((s, r) => s + Number(r.amount || 0), 0);
+
+  const monthMap = {};
+  merged.forEach(r => {
+    const dt = r.paid_at || r.created_at || '';
+    const key = dt.slice(0, 7) || '未知';
+    if (!monthMap[key]) monthMap[key] = { income: 0, commission: 0, withdrawn: 0 };
+    if (r.type === 'income') monthMap[key].income += Number(r.amount || 0);
+    monthMap[key].commission += Number(r.commission || 0);
+    monthMap[key].withdrawn += Number(r.withdrawn || 0);
+  });
+  const months = Object.entries(monthMap).sort((a, b) => b[0].localeCompare(a[0]));
+
+  const wrap = $('#ledgerContentWrap');
+  if (!wrap) return;
+
+  wrap.innerHTML = `
+    <!-- 統計磚 -->
+    <div class="stats-row" style="margin-bottom:16px;">
+      <div class="stat-tile ok">
+        <div class="stat-label">總收款</div>
+        <div class="stat-value" style="font-size:18px;">${formatMoney(totalIncome)}</div>
       </div>
-
-      <!-- 月報 -->
-      <div class="section-label">📅 月報表</div>
-      <div class="card" style="margin-bottom:14px;overflow:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead>
-            <tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
-              <th style="padding:10px 12px;text-align:left;font-weight:900;color:var(--ink2);">月份</th>
-              <th style="padding:10px 12px;text-align:right;font-weight:900;color:var(--ok);">收款</th>
-              <th style="padding:10px 12px;text-align:right;font-weight:900;color:var(--ink3);">分潤</th>
-              <th style="padding:10px 12px;text-align:right;font-weight:900;color:var(--warn);">取款</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${months.length ? months.map(([month, d]) => `
-              <tr style="border-bottom:1px solid var(--border);">
-                <td style="padding:9px 12px;font-weight:800;">${escapeHtml(month)}</td>
-                <td style="padding:9px 12px;text-align:right;color:var(--ok);font-weight:700;">${formatMoney(d.income)}</td>
-                <td style="padding:9px 12px;text-align:right;color:var(--ink2);font-weight:700;">${formatMoney(d.commission)}</td>
-                <td style="padding:9px 12px;text-align:right;color:var(--warn);font-weight:700;">${formatMoney(d.withdrawn)}</td>
-              </tr>`).join('') : '<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--ink3);">尚無資料</td></tr>'}
-          </tbody>
-        </table>
+      <div class="stat-tile">
+        <div class="stat-label">總分潤</div>
+        <div class="stat-value" style="font-size:18px;">${formatMoney(totalCommission)}</div>
       </div>
+      <div class="stat-tile warn">
+        <div class="stat-label">已取款</div>
+        <div class="stat-value" style="font-size:18px;">${formatMoney(totalWithdrawn)}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">手動調整</div>
+        <div class="stat-value" style="font-size:18px;">${formatMoney(totalManual)}</div>
+      </div>
+    </div>
 
-      <!-- 手動新增 -->
-      <div class="collapsible" id="ledgerAddCollapsible">
-        <div class="collapsible-head" id="ledgerAddHead">
-          <span>➕ 手動新增記錄</span>
-          <span class="chevron">›</span>
-        </div>
-        <div class="collapsible-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div class="field">
-              <label>類型</label>
-              <select id="ledgerAddType">
-                <option value="income">收款</option>
-                <option value="commission_paid">分潤取款</option>
-                <option value="manual">手動調整</option>
-                <option value="withdrawal">取款</option>
-              </select>
+    <!-- 月報 -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-body">
+        <div style="font-weight:900;margin-bottom:10px;">月報概況</div>
+        ${months.length ? months.map(([m, v]) => `
+          <div class="copy-row">
+            <div class="copy-row-label">${escapeHtml(m)}</div>
+            <div class="copy-row-value">
+              收款 ${formatMoney(v.income)} ／ 分潤 ${formatMoney(v.commission)} ／ 已取 ${formatMoney(v.withdrawn)}
             </div>
-            <div class="field">
-              <label>金額</label>
-              <input type="number" id="ledgerAddAmount" placeholder="0" min="0">
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div class="field">
-              <label>分潤金額</label>
-              <input type="number" id="ledgerAddCommission" placeholder="0" min="0">
-            </div>
-            <div class="field">
-              <label>取款金額</label>
-              <input type="number" id="ledgerAddWithdrawn" placeholder="0" min="0">
-            </div>
+          </div>`).join('') : `<div class="empty-state">尚無資料</div>`}
+      </div>
+    </div>
+
+    <!-- 手動記帳 -->
+    <div class="collapsible" id="ledgerAddCollapsible">
+      <div class="collapsible-head" id="ledgerAddHead">
+        <span>➕ 新增手動記帳</span>
+        <span class="chevron">›</span>
+      </div>
+      <div class="collapsible-body">
+        <div class="detail-grid" style="margin-top:0;">
+          <div class="field">
+            <label>類型</label>
+            <select id="ledgerAddType">
+              <option value="manual">手動調整</option>
+              <option value="expense">支出</option>
+            </select>
           </div>
           <div class="field">
-            <label>卡片 ID（選填）</label>
+            <label>金額</label>
+            <input type="number" id="ledgerAddAmount" placeholder="0" min="0">
+          </div>
+          <div class="field">
+            <label>分潤</label>
+            <input type="number" id="ledgerAddCommission" placeholder="0" min="0">
+          </div>
+          <div class="field">
+            <label>已取款</label>
+            <input type="number" id="ledgerAddWithdrawn" placeholder="0" min="0">
+          </div>
+          <div class="field">
+            <label>卡片 ID</label>
             <input type="text" id="ledgerAddCardId" placeholder="選填">
           </div>
           <div class="field">
             <label>日期</label>
             <input type="datetime-local" id="ledgerAddDate">
           </div>
-          <div class="field">
+          <div class="field" style="grid-column:1 / -1;">
             <label>備註</label>
             <input type="text" id="ledgerAddNote" placeholder="選填">
           </div>
-          <button class="btn btn-primary btn-full" id="btnLedgerAdd">新增</button>
+        </div>
+        <div class="action-strip">
+          <button class="btn btn-primary btn-sm" id="btnLedgerAddSave">儲存</button>
         </div>
       </div>
+    </div>
 
-      <!-- 明細列表 -->
-      <div class="section-label">📋 收支明細</div>
-      <div id="ledgerDetailList">
-        ${merged.length === 0 ? '<div class="empty-state">尚無記帳資料</div>' :
-          merged.map(r => renderLedgerRow(r)).join('')}
+    <!-- 詳細紀錄 -->
+    <div class="card">
+      <div class="card-body">
+        <div style="font-weight:900;margin-bottom:10px;">詳細紀錄</div>
+        <div id="ledgerDetailList">
+          ${merged.length ? merged.map(r => renderLedgerRow(r)).join('') : `<div class="empty-state">尚無資料</div>`}
+        </div>
       </div>
-    `;
+    </div>`;
 
-    // 綁定月報收合
-    wrap.querySelector('#ledgerAddHead')?.addEventListener('click', () => {
-      wrap.querySelector('#ledgerAddCollapsible')?.classList.toggle('open');
-    });
+  wrap.querySelector('#ledgerAddHead')?.addEventListener('click', () => {
+    wrap.querySelector('#ledgerAddCollapsible')?.classList.toggle('open');
+  });
 
-    // 預設日期為現在
-    const dateInput = wrap.querySelector('#ledgerAddDate');
-    if (dateInput) {
-      const now = new Date();
-      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      dateInput.value = local;
-    }
-
-    // 新增按鈕
-    wrap.querySelector('#btnLedgerAdd')?.addEventListener('click', () => {
-      const type = wrap.querySelector('#ledgerAddType')?.value || 'income';
-      const amount = Number(wrap.querySelector('#ledgerAddAmount')?.value || 0);
-      const commission = Number(wrap.querySelector('#ledgerAddCommission')?.value || 0);
-      const withdrawn = Number(wrap.querySelector('#ledgerAddWithdrawn')?.value || 0);
-      const cardId = textOf(wrap.querySelector('#ledgerAddCardId')?.value);
-      const note = textOf(wrap.querySelector('#ledgerAddNote')?.value);
-      const dateVal = wrap.querySelector('#ledgerAddDate')?.value;
-      const paid_at = dateVal ? new Date(dateVal).toISOString() : new Date().toISOString();
-      if (!amount && !commission && !withdrawn) return toast('請輸入金額');
-      addLedgerRecord({ type, amount, commission, withdrawn, card_id: cardId, note, paid_at });
-      toast('✅ 已新增記錄');
-      renderLedger();
-    });
-
-    // 編輯 / 刪除 事件委派
-    wrap.querySelector('#ledgerDetailList')?.addEventListener('click', e => {
-      const editBtn = e.target.closest('[data-ledger-edit]');
-      if (editBtn) { openLedgerEditModal(editBtn.dataset.ledgerEdit); return; }
-      const delBtn = e.target.closest('[data-ledger-del]');
-      if (delBtn) {
-        if (!confirm('確定刪除此筆記錄？')) return;
-        const records = getLedgerRecords().filter(r => r.ledger_id !== delBtn.dataset.ledgerDel);
-        saveLedgerRecords(records);
-        toast('已刪除');
-        renderLedger();
-      }
-    });
+  const dateInput = wrap.querySelector('#ledgerAddDate');
+  if (dateInput && !dateInput.value) {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    dateInput.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
   }
 
-  function renderLedgerRow(r) {
+  wrap.querySelector('#btnLedgerAddSave')?.addEventListener('click', () => {
+    const type = wrap.querySelector('#ledgerAddType')?.value || 'manual';
+    const amount = Number(wrap.querySelector('#ledgerAddAmount')?.value || 0);
+    const commission = Number(wrap.querySelector('#ledgerAddCommission')?.value || 0);
+    const withdrawn = Number(wrap.querySelector('#ledgerAddWithdrawn')?.value || 0);
+    const cardId = textOf(wrap.querySelector('#ledgerAddCardId')?.value);
+    const note = textOf(wrap.querySelector('#ledgerAddNote')?.value);
+    const dateVal = wrap.querySelector('#ledgerAddDate')?.value;
+    const paidAt = dateVal ? new Date(dateVal).toISOString() : new Date().toISOString();
+    addLedgerRecord({ type, amount, commission, withdrawn, card_id: cardId, paid_at: paidAt, note });
+    toast('✅ 已新增記帳紀錄');
+    renderLedger();
+  });
+
+  wrap.querySelector('#ledgerDetailList')?.addEventListener('click', e => {
+    const editBtn = e.target.closest('[data-ledger-edit]');
+    if (editBtn) { openLedgerEditModal(editBtn.dataset.ledgerEdit); return; }
+    const delBtn = e.target.closest('[data-ledger-del]');
+    if (!delBtn) return;
+    if (!confirm('確定刪除此手動記帳？')) return;
+    const records = getLedgerRecords().filter(r => r.ledger_id !== delBtn.dataset.ledgerDel);
+    saveLedgerRecords(records);
+    toast('✅ 已刪除');
+    renderLedger();
+  });
+}
+
+function renderLedgerRow(r) {
     const typeLabel = { income: '💰 收款', commission_paid: '💵 分潤取款', manual: '✏️ 手動', withdrawal: '🏦 取款' }[r.type] || r.type;
     const typeColor = { income: 'var(--ok)', commission_paid: 'var(--warn)', manual: 'var(--info)', withdrawal: 'var(--ink3)' }[r.type] || 'var(--ink)';
     const dt = (r.paid_at || r.created_at || '').slice(0, 10);
-    const isLocal = r.source_type === 'local';
+    const isLocal = !/^CM_|^PM_/.test(String(r.ledger_id || ''));
     return `
       <div class="list-row" style="margin-bottom:6px;">
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;">
@@ -1714,7 +1677,7 @@ ${updateDesc}
     main.appendChild(sec);
 
     document.getElementById('btnRefreshLedger')?.addEventListener('click', async () => {
-      await Promise.allSettled([loadPaymentList(), loadCommissionList()]);
+      await Promise.allSettled([loadPayments(), loadCommissionList()]);
       renderLedger();
     });
 
@@ -1728,9 +1691,10 @@ ${updateDesc}
       // 插入在「更多」按鈕前
       const moreBtn = document.getElementById('btnMore');
       tabnav.insertBefore(tabBtn, moreBtn);
-      tabBtn.addEventListener('click', () => {
+      tabBtn.addEventListener('click', async () => {
         if (typeof window.activateAdminSection === 'function') window.activateAdminSection('ledgerSection');
-        Promise.allSettled([loadPaymentList(), loadCommissionList()]).finally(() => renderLedger());
+        if (!state.commissionItems.length) await loadCommissionList();
+        renderLedger();
       });
     }
 
@@ -1741,9 +1705,10 @@ ${updateDesc}
       moreBtn.className = 'more-menu-btn';
       moreBtn.dataset.section = 'ledgerSection';
       moreBtn.textContent = '📒 記帳';
-      moreBtn.addEventListener('click', () => {
+      moreBtn.addEventListener('click', async () => {
         if (typeof window.activateAdminSection === 'function') window.activateAdminSection('ledgerSection');
-        Promise.allSettled([loadPaymentList(), loadCommissionList()]).finally(() => renderLedger());
+        if (!state.commissionItems.length) await loadCommissionList();
+        renderLedger();
         document.getElementById('moreMenu')?.classList.remove('open');
       });
       moreGrid.appendChild(moreBtn);
@@ -1757,22 +1722,20 @@ ${updateDesc}
   }
   async function loadPayments() {
     try {
-      const data = await apiGet("getPayments", { limit: 100, offset: 0, light: true });
-      const rows = normalizeList(data, ["payments", "rows", "items"]);
+      const data = await apiGet("getPaymentList", { limit: 200, light: true });
+      const rows = normalizeList(data, ["payment_list", "payments", "rows", "items"]);
       state.payments = rows;
-    } catch {
+      state.paymentList = rows;
+      renderPayments();
+    }
+    catch {
       state.payments = [];
+      state.paymentList = [];
+      renderPayments();
     }
   }
   async function loadPaymentList() {
-    try {
-      const data = await apiGet("getPayments", { limit: 200, offset: 0, light: true });
-      setPaymentCollections(normalizeList(data, ["payments", "rows", "items"]));
-      renderPayments();
-    } catch {
-      setPaymentCollections([]);
-      renderPayments();
-    }
+    return loadPayments();
   }
   async function loadAddons() {
     try { const data = await apiGet("getAddonOrders"); state.addons = normalizeList(data, ["addons", "orders", "items"]); renderAddons(); }
@@ -1941,7 +1904,7 @@ ${updateDesc}
         boot = await apiGet("getAdminBootstrap", {
           requests_limit: 50,
           cards_limit: 100,
-          payments_limit: 200,
+          payments_limit: 100,
           ops_limit: 20,
           include_renewals: true,
           include_addons: true,
@@ -1950,33 +1913,39 @@ ${updateDesc}
         });
       } catch (bootErr) {
         console.warn("[refreshAll] bootstrap failed, fallback:", bootErr);
-        await Promise.allSettled([loadRequests(), loadCards(), loadPaymentList(), loadAddons(), loadAgents(), loadAnnouncements(), loadRenewalList(), loadRecentOpsLogs()]);
-        renderRequests();
-        renderCards();
-        renderPayments();
-        renderDashboard();
+        await Promise.allSettled([loadRequests(), loadCards(), loadPayments(), loadAddons(), loadAgents()]);
+        renderRequests(); renderCards(); renderDashboard();
         return;
       }
 
       if (boot.requests)      state.requests          = normalizeList(boot.requests,       ["requests", "items"]);
       if (boot.cards)         state.cards             = normalizeList(boot.cards,          ["cards", "items"]);
-      if (boot.payments || boot.payment_list) setPaymentCollections(normalizeList(boot.payment_list || boot.payments, ["payments", "rows", "items"]));
+      if (boot.payments)      state.payments          = normalizeList(boot.payments,       ["payments", "items"]);
       if (boot.announcements) state.announcementItems = normalizeList(boot.announcements,  ["announcements", "items"]);
-      if (boot.ops_logs)      state.opsLogs           = normalizeList(boot.ops_logs,       ["ops_logs", "logs", "items"]);
+      if (boot.ops_logs)      state.opsLogs           = normalizeList(boot.ops_logs,       ["ops_logs", "items"]);
       if (boot.renewals)      state.renewalItems      = normalizeList(boot.renewals,       ["renewals", "items"]);
       if (boot.addons)        state.addons            = normalizeList(boot.addons,         ["addon_orders", "addons", "items"]);
       if (boot.agents)        state.agents            = normalizeList(boot.agents,         ["agents", "items"]);
 
       renderRequests();
       renderCards();
-      renderPayments();
-      renderRenewalList();
-      renderAnnouncements();
-      renderAddons();
-      renderAgents();
+      if (state.renewalItems?.length)      renderRenewalList();
+      if (state.announcementItems?.length) renderAnnouncements();
+      if (state.addons?.length)            renderAddons();
+      if (state.agents?.length)            renderAgents();
       renderDashboard();
       renderDashboardOpsLogs();
-      if ($('#ledgerSection')?.classList.contains('active')) renderLedger();
+
+      const lazyLoads = [];
+      if (!state.renewalItems?.length)      lazyLoads.push(loadRenewalList());
+      if (!state.announcementItems?.length) lazyLoads.push(loadAnnouncements());
+      if (!state.addons?.length)            lazyLoads.push(loadAddons());
+      if (!state.agents?.length)            lazyLoads.push(loadAgents());
+      if (!state.commissionItems?.length)   lazyLoads.push(loadCommissionList());
+      if (lazyLoads.length) {
+        await Promise.allSettled(lazyLoads);
+        renderDashboard();
+      }
     } finally { setLoading(false); }
   }
 
