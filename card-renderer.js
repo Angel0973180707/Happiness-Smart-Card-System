@@ -1318,53 +1318,65 @@
     });
   }
 
-  function applyCarouselRatioStyles_(carousel, track, preview) {
-    if (!carousel || !track) return;
+ function applyCarouselRatioStyles_(carousel, track, preview) {
+  if (!carousel || !track) return;
 
-    var is169   = preview && preview.aspect_ratio === "16:9";
-    var fitMode = preview && preview.fit_mode === "contain" ? "contain" : "cover";
+  var is169 = preview && preview.aspect_ratio === "16:9";
+  var fitMode = preview && preview.fit_mode === "contain" ? "contain" : "cover";
 
-    carousel.classList.remove("ratio-1-1", "ratio-16-9", "fit-cover", "fit-contain");
-    carousel.classList.add(is169 ? "ratio-16-9" : "ratio-1-1");
-    carousel.classList.add(fitMode === "contain" ? "fit-contain" : "fit-cover");
+  carousel.classList.remove("ratio-1-1", "ratio-16-9", "fit-cover", "fit-contain");
+  carousel.classList.add(is169 ? "ratio-16-9" : "ratio-1-1");
+  carousel.classList.add(fitMode === "contain" ? "fit-contain" : "fit-cover");
 
-    carousel.style.position = "relative";
-    carousel.style.width = "100%";
-    carousel.style.maxWidth = "100%";
-    carousel.style.overflowX = "auto";
-    carousel.style.overflowY = "hidden";
-    carousel.style.borderRadius = "18px";
-    carousel.style.aspectRatio = is169 ? "16 / 9" : "1 / 1";
-    carousel.style.scrollSnapType = "x mandatory";
-    carousel.style.WebkitOverflowScrolling = "touch";
-    carousel.style.scrollBehavior = "smooth";
-    carousel.style.scrollbarWidth = "none";
+  carousel.style.position = "relative";
+  carousel.style.width = "100%";
+  carousel.style.maxWidth = "100%";
+  carousel.style.overflowX = "auto";
+  carousel.style.overflowY = "hidden";
+  carousel.style.borderRadius = "18px";
+  carousel.style.aspectRatio = is169 ? "16 / 9" : "1 / 1";
+  carousel.style.scrollSnapType = "x mandatory";
+  carousel.style.WebkitOverflowScrolling = "touch";
+  carousel.style.scrollBehavior = "smooth";
+  carousel.style.scrollbarWidth = "none";
+  carousel.style.msOverflowStyle = "none";
 
-    track.style.display = "flex";
-    track.style.width = "100%";
-    track.style.height = "100%";
-    track.style.minHeight = "100%";
-    track.style.overflow = "visible";
+  track.style.display = "flex";
+  track.style.width = "100%";
+  track.style.height = "100%";
+  track.style.minHeight = "100%";
+  track.style.overflow = "hidden";
+  track.style.margin = "0";
+  track.style.padding = "0";
+  track.style.alignItems = "stretch";
 
-    Array.from(track.children).forEach(function (tile) {
-      tile.style.flex = "0 0 100%";
-      tile.style.width = "100%";
-      tile.style.maxWidth = "100%";
-      tile.style.height = "100%";
-      tile.style.minHeight = "100%";
-      tile.style.position = "relative";
-      tile.style.overflow = "hidden";
-      tile.style.scrollSnapAlign = "start";
+  Array.from(track.children).forEach(function (tile) {
+    tile.style.flex = "0 0 100%";
+    tile.style.width = "100%";
+    tile.style.maxWidth = "100%";
+    tile.style.height = "100%";
+    tile.style.minHeight = "100%";
+    tile.style.position = "relative";
+    tile.style.overflow = "hidden";
+    tile.style.scrollSnapAlign = "start";
+    tile.style.margin = "0";
+    tile.style.padding = "0";
+    tile.style.borderRadius = "18px";
 
-      var img = tile.querySelector(".wall-img");
-      if (img) {
-        img.style.width = "100%";
-        img.style.height = "100%";
-        img.style.display = "block";
-        img.style.objectFit = fitMode;
-      }
-    });
-  }
+    var img = tile.querySelector(".wall-img");
+    if (img) {
+      img.style.position = "absolute";
+      img.style.inset = "0";
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.maxWidth = "none";
+      img.style.maxHeight = "none";
+      img.style.display = "block";
+      img.style.objectFit = fitMode;
+      img.style.margin = "0";
+    }
+  });
+}
 
   function renderCard(data, options) {
     var opts = Object.assign({}, DEFAULTS, options || {});
