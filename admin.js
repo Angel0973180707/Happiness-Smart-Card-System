@@ -57,6 +57,13 @@
   }
   function firstValue(obj, keys) { for (const key of keys) { const v = obj && obj[key]; if (v !== undefined && v !== null && String(v).trim() !== "") return v; } return ""; }
 
+  /** 直接 patch state 陣列中的一筆，不用重打 API */
+  function patchListItem(list, idKey, idVal, patch) {
+    if (!Array.isArray(list)) return;
+    const idx = list.findIndex(r => String(r?.[idKey] || "").trim() === String(idVal || "").trim());
+    if (idx >= 0) Object.assign(list[idx], patch);
+  }
+
   function toast(message) {
     // delegate to new UI shell if available
     if (typeof window._hscToast === 'function') { window._hscToast(message); return; }
@@ -483,14 +490,27 @@
   async function confirmPaymentFromUi(paymentId) {
     if (!confirm(`確認付款單 ${paymentId} 已付款？`)) return;
     if (!doubleConfirmId(paymentId, "付款單")) return;
-    try { await apiPost("confirmPayment", { payment_id: paymentId }); toast("✅ 付款已確認"); await loadPaymentList(); }
-    catch (err) { toast(`確認失敗：${err.message}`); }
+    try {
+      const res = await apiPost("confirmPayment", { payment_id: paymentId });
+      toast("✅ 付款已確認");
+      const paidAt = res?.payment?.paid_at || new Date().toISOString();
+      patchListItem(state.paymentList, "payment_id", paymentId, { status: "paid", billing_status: "paid", paid_at: paidAt });
+      patchListItem(state.payments,    "payment_id", paymentId, { status: "paid", billing_status: "paid", paid_at: paidAt });
+      const cardId = res?.card?.id || res?.card_id;
+      if (cardId) patchListItem(state.cards, "id", cardId, { billing_status: "paid", payment_paid_at: paidAt });
+      renderPayments(); renderCards(); renderDashboard();
+    } catch (err) { toast(`確認失敗：${err.message}`); }
   }
   async function markPaymentRefundedFromUi(paymentId) {
     if (!confirm("⚠️ 退款操作無法自動撤銷，確定？")) return;
     if (!doubleConfirmId(paymentId, "付款單")) return;
-    try { await apiPost("markPaymentRefunded", { payment_id: paymentId }); toast("✅ 已標記退款"); await loadPaymentList(); }
-    catch (err) { toast(`退款失敗：${err.message}`); }
+    try {
+      await apiPost("markPaymentRefunded", { payment_id: paymentId });
+      toast("✅ 已標記退款");
+      patchListItem(state.paymentList, "payment_id", paymentId, { status: "refunded" });
+      patchListItem(state.payments,    "payment_id", paymentId, { status: "refunded" });
+      renderPayments();
+    } catch (err) { toast(`退款失敗：${err.message}`); }
   }
 
   // ── RENEWALS ──
@@ -552,7 +572,12 @@
   async function markRenewalPaid(renewalId) {
     if (!confirm(`確認續約單 ${renewalId} 已付款？`)) return;
     if (!doubleConfirmId(renewalId, "續約單")) return;
-    try { await apiPost("adminMarkRenewalPaid", { renewal_id: renewalId }); toast("✅ 續約付款已確認"); await loadRenewalList(); }
+    try {
+      await apiPost("adminMarkRenewalPaid", { renewal_id: renewalId });
+      toast("✅ 續約付款已確認");
+      patchListItem(state.renewalItems, "renewal_id", renewalId, { status: "paid", billing_status: "paid" });
+      renderRenewalList(); updateRenewalStats(); renderDashboard();
+    }
     catch (err) { toast(`確認失敗：${err.message}`); }
   }
   async function triggerRenewalReminderForCard(cardId) {
@@ -629,7 +654,12 @@
     if (!confirm(`確認加購單 ${addonOrderId} 已付款？`)) return;
     if (!doubleConfirmId(addonOrderId, "加購單")) return;
     setBtnLoading(btnEl, true);
-    try { await apiPost("adminMarkAddonPaid", { addon_order_id: addonOrderId }); toast("✅ 加購單已確認付款"); await loadAddons(); }
+    try {
+      await apiPost("adminMarkAddonPaid", { addon_order_id: addonOrderId });
+      toast("✅ 加購單已確認付款");
+      patchListItem(state.addons, "addon_order_id", addonOrderId, { status: "paid" });
+      renderAddons(); renderDashboard();
+    }
     catch (err) { toast(`確認失敗：${err.message}`); }
     finally { setBtnLoading(btnEl, false); }
   }
@@ -638,7 +668,12 @@
     if (!confirm(`確定取消加購單 ${addonOrderId}？`)) return;
     if (!doubleConfirmId(addonOrderId, "加購單")) return;
     setBtnLoading(btnEl, true);
-    try { await apiPost("adminCancelAddonOrder", { addon_order_id: addonOrderId }); toast("✅ 已取消"); await loadAddons(); }
+    try {
+      await apiPost("adminCancelAddonOrder", { addon_order_id: addonOrderId });
+      toast("✅ 已取消");
+      patchListItem(state.addons, "addon_order_id", addonOrderId, { status: "cancelled" });
+      renderAddons();
+    }
     catch (err) { toast(`取消失敗：${err.message}`); }
     finally { setBtnLoading(btnEl, false); }
   }
@@ -735,7 +770,12 @@
   async function markCommissionPaid(commissionId) {
     if (!confirm(`確認分潤 ${commissionId} 已付款？`)) return;
     if (!doubleConfirmId(commissionId, "分潤單")) return;
-    try { await apiPost("markCommissionPaid", { commission_id: commissionId }); toast("✅ 已標記付款"); await loadCommissionList(); }
+    try {
+      await apiPost("markCommissionPaid", { commission_id: commissionId });
+      toast("✅ 已標記付款");
+      patchListItem(state.commissionItems, "commission_id", commissionId, { status: "paid" });
+      renderCommissionList();
+    }
     catch (err) { toast(`操作失敗：${err.message}`); }
   }
 
@@ -779,7 +819,12 @@
 
   async function toggleAnnouncement(id, currentStatus) {
     const newStatus = currentStatus === "active" ? "draft" : "active";
-    try { await apiPost("adminToggleAnnouncement", { announcement_id: id, status: newStatus }); toast(`✅ 公告已${newStatus === "active" ? "啟用" : "停用"}`); await loadAnnouncements(); }
+    try {
+      await apiPost("adminToggleAnnouncement", { announcement_id: id, status: newStatus });
+      toast(`✅ 公告已${newStatus === "active" ? "啟用" : "停用"}`);
+      patchListItem(state.announcementItems, "id", id, { status: newStatus });
+      renderAnnouncements();
+    }
     catch (err) { toast(`操作失敗：${err.message}`); }
   }
   async function saveAnnouncement() {
@@ -867,7 +912,7 @@
     catch (err) { state.payments = []; }
   }
   async function loadPaymentList() {
-    try { const data = await apiGet("adminGetPaymentList"); state.paymentList = normalizeList(data, ["payments","items"]); renderPayments(); }
+    try { const data = await apiGet("getPayments", { limit: 200, light: true }); state.paymentList = normalizeList(data, ["payments","rows","items"]); renderPayments(); }
     catch (err) { state.paymentList = []; renderPayments(); }
   }
   async function loadAddons() {
@@ -978,10 +1023,11 @@
         toast("✅ 派碼成功");
         const idx = state.requests.findIndex(r => textOf(r.request_id) === requestId);
         if (idx >= 0) state.requests[idx] = { ...state.requests[idx], ...full };
+        renderRequests();
       } else {
         toast("✅ 派碼成功，同步中…");
+        loadRequests().catch(() => {});
       }
-      loadRequests().catch(() => {});
       if (reqInput) reqInput.value = "";
       const noteInput = $("#assignInviteNote"); if (noteInput) noteInput.value = "";
     } catch (err) {
@@ -1030,29 +1076,57 @@
   async function refreshAll() {
     try {
       setLoading(true);
+      // 單一 bootstrap call 取回所有核心資料，避免多次 GAS 冷啟動
+      let boot = null;
       try {
-        const boot = await apiGet("getAdminBootstrap", { requests_limit: 50, cards_limit: 100, payments_limit: 100, ops_limit: 20 });
-        state.requests = normalizeList(boot.requests || boot, ["requests","items"]);
-        state.cards = normalizeList(boot.cards || boot, ["cards","items"]);
-        state.payments = normalizeList(boot.payments || boot, ["payments","items"]);
-        state.announcementItems = normalizeList(boot.announcements || boot, ["announcements","items"]);
-        state.opsLogs = normalizeList(boot.ops_logs || boot, ["ops_logs","items"]);
-        renderRequests();
-        renderCards();
-        renderDashboard();
+        boot = await apiGet("getAdminBootstrap", {
+          requests_limit: 50,
+          cards_limit: 100,
+          payments_limit: 100,
+          ops_limit: 20,
+          include_renewals: true,
+          include_addons: true,
+          include_agents: true,
+          include_announcements: true
+        });
       } catch (bootErr) {
         console.warn("[refreshAll] bootstrap failed, fallback:", bootErr);
-        await Promise.allSettled([loadRequests(), loadCards(), loadPayments(), loadPaymentList(), loadAddons(), loadAgents()]);
+        await Promise.allSettled([loadRequests(), loadCards(), loadPayments(), loadAddons(), loadAgents()]);
+        renderRequests(); renderCards(); renderDashboard();
+        return;
+      }
+
+      // 填充 state（bootstrap 有就用，沒有保持現有）
+      if (boot.requests)      state.requests       = normalizeList(boot.requests,       ["requests","items"]);
+      if (boot.cards)         state.cards          = normalizeList(boot.cards,          ["cards","items"]);
+      if (boot.payments)      state.payments       = normalizeList(boot.payments,       ["payments","items"]);
+      if (boot.announcements) state.announcementItems = normalizeList(boot.announcements, ["announcements","items"]);
+      if (boot.ops_logs)      state.opsLogs        = normalizeList(boot.ops_logs,       ["ops_logs","items"]);
+      if (boot.renewals)      state.renewalItems   = normalizeList(boot.renewals,       ["renewals","items"]);
+      if (boot.addons)        state.addons         = normalizeList(boot.addons,         ["addon_orders","addons","items"]);
+      if (boot.agents)        state.agents         = normalizeList(boot.agents,         ["agents","items"]);
+
+      // 立即 render 主要畫面
+      renderRequests();
+      renderCards();
+      if (state.renewalItems?.length)   renderRenewalList();
+      if (state.announcementItems?.length) renderAnnouncements();
+      if (state.addons?.length)         renderAddons();
+      if (state.agents?.length)         renderAgents();
+      renderDashboard();
+      renderDashboardOpsLogs();
+
+      // 只有真的缺資料才補打（lazy fallback）
+      const lazyLoads = [];
+      if (!state.renewalItems?.length)     lazyLoads.push(loadRenewalList());
+      if (!state.announcementItems?.length) lazyLoads.push(loadAnnouncements());
+      if (!state.addons?.length)           lazyLoads.push(loadAddons());
+      if (!state.agents?.length)           lazyLoads.push(loadAgents());
+      // tracking summary 按需載入（非啟動必要）
+      if (lazyLoads.length) {
+        await Promise.allSettled(lazyLoads);
         renderDashboard();
       }
-      setTimeout(async () => {
-        try { await loadRenewalList(); } catch {}
-        try { await loadAnnouncements(); } catch {}
-        try { await loadTrackingSummary(); } catch {}
-        try { if (!state.opsLogs?.length) await loadRecentOpsLogs(); } catch {}
-        try { await checkSchemaStatus(); } catch {}
-        renderDashboard();
-      }, 100);
     } finally { setLoading(false); }
   }
 
@@ -1216,16 +1290,16 @@
       <div id="agentLogsWrap"><div class="empty-state">載入中…</div></div>`;
     wrap.querySelector("#btnUpdateAgentD")?.addEventListener("click", async e => {
       const id = e.currentTarget.dataset.id;
-      try { await apiPost("adminUpdateAgent",{agent_id:id,owner_name:valueOf("#editAgentName"),phone:valueOf("#editAgentPhone"),email:valueOf("#editAgentEmail"),agent_type:valueOf("#editAgentType")}); toast("✅ 已更新"); await loadAgentDetail(id); await loadAgents(); }
+      try { const res = await apiPost("adminUpdateAgent",{agent_id:id,owner_name:valueOf("#editAgentName"),phone:valueOf("#editAgentPhone"),email:valueOf("#editAgentEmail"),agent_type:valueOf("#editAgentType")}); toast("✅ 已更新"); if (res?.agent) { patchListItem(state.agents,"agent_id",id,res.agent); renderAgents(); } await loadAgentDetail(id); }
       catch(e) { toast(`更新失敗：${e.message}`); }
     });
     wrap.querySelector("#btnFreezeAgentD")?.addEventListener("click", async e => {
       const id=e.currentTarget.dataset.id; if(!confirm(`凍結代理 ${id}？`)) return; if(!doubleConfirmId(id,"代理")) return;
-      try{await apiPost("adminFreezeAgent",{agent_id:id});toast("✅ 已凍結");await loadAgentDetail(id);await loadAgents();}catch(e){toast(`凍結失敗：${e.message}`);}
+      try{const res=await apiPost("adminFreezeAgent",{agent_id:id});toast("✅ 已凍結");if(res?.agent){patchListItem(state.agents,"agent_id",id,res.agent);renderAgents();}await loadAgentDetail(id);}catch(e){toast(`凍結失敗：${e.message}`);}
     });
     wrap.querySelector("#btnUnfreezeAgentD")?.addEventListener("click", async e => {
       const id=e.currentTarget.dataset.id; if(!confirm(`解凍代理 ${id}？`)) return; if(!doubleConfirmId(id,"代理")) return;
-      try{await apiPost("adminUnfreezeAgent",{agent_id:id});toast("✅ 已解凍");await loadAgentDetail(id);await loadAgents();}catch(e){toast(`解凍失敗：${e.message}`);}
+      try{const res=await apiPost("adminUnfreezeAgent",{agent_id:id});toast("✅ 已解凍");if(res?.agent){patchListItem(state.agents,"agent_id",id,res.agent);renderAgents();}await loadAgentDetail(id);}catch(e){toast(`解凍失敗：${e.message}`);}
     });
     wrap.querySelector("#btnSetUpgradeD")?.addEventListener("click", async e => {
       const id=e.currentTarget.dataset.id; const tier=valueOf("#editTargetTier"); if(!tier) return toast("請輸入目標等級");
@@ -1261,13 +1335,13 @@
     const agid=valueOf("#pointsAgentId"); const val=Number(valueOf("#pointsValue")); const note=valueOf("#pointsNote");
     if(!agid) return toast("請輸入代理 ID"); if(!Number.isFinite(val)||val<=0) return toast("點數必須大於 0");
     const points=mode==="subtract"?-Math.abs(val):Math.abs(val);
-    try{await apiPost("adminAdjustPoints",{agent_id:agid,points,note});toast(mode==="subtract"?"✅ 已扣點":"✅ 已加點");await loadAgents();await loadAgentDetail(agid);}
+    try{const res=await apiPost("adminAdjustPoints",{agent_id:agid,points,note});toast(mode==="subtract"?"✅ 已扣點":"✅ 已加點");if(res?.agent){patchListItem(state.agents,"agent_id",agid,res.agent);renderAgents();}await loadAgentDetail(agid);}
     catch(e){toast(`操作失敗：${e.message}`);}
   }
   async function adjustCommission() {
     const agid=valueOf("#commissionAgentId"); const amount=Number(valueOf("#commissionValue")); const note=valueOf("#commissionNote");
     if(!agid) return toast("請輸入代理 ID"); if(!Number.isFinite(amount)||amount<=0) return toast("金額必須大於 0");
-    try{await apiPost("adminAdjustCommission",{agent_id:agid,amount,note});toast("✅ 已補分潤");await loadAgents();await loadAgentDetail(agid);}
+    try{const res=await apiPost("adminAdjustCommission",{agent_id:agid,amount,note});toast("✅ 已補分潤");if(res?.agent){patchListItem(state.agents,"agent_id",agid,res.agent);renderAgents();}await loadAgentDetail(agid);}
     catch(e){toast(`操作失敗：${e.message}`);}
   }
   function showAgentPointsPanel(agid, name) {
