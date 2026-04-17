@@ -1298,8 +1298,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
       }
     });
   };
-
-  // 卡片列表渲染改由 admin.js 單一管理，避免雙重定義
+  // Render cards list moved to admin.js (single source of truth)
 
   // Render delivery links
   window.renderDeliveryLinks = function(cardId, referralLink) {
