@@ -317,7 +317,113 @@
       .share-link-btn-row,
       .referral-btn-row    { grid-template-columns: 1fr; }
     }
-  </style>
+    /* ── 通用分享區塊 ── */
+  .share-block {
+    background: linear-gradient(180deg, #fffefb, #fef8f0);
+    border: 1px solid rgba(191,135,87,.18);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .ref-link-block {
+    background: linear-gradient(180deg, #fffefb, #fdf5e8);
+    border-color: rgba(191,135,87,.24);
+  }
+  .share-block-label {
+    font-size: 13px; font-weight: 900;
+    letter-spacing: .03em; color: var(--gold-deep);
+    margin-bottom: 3px;
+  }
+  .share-block-desc {
+    font-size: 12px; color: var(--ink-soft);
+    line-height: 1.65; margin-bottom: 10px; font-weight: 500;
+  }
+  .share-btn-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .ref-link-note {
+    font-size: 12px; color: var(--ink-soft);
+    line-height: 1.7; margin-bottom: 10px; font-weight: 500;
+    padding: 8px 10px;
+    background: rgba(191,135,87,.07);
+    border-radius: 10px;
+  }
+  .ref-link-missing {
+    font-size: 12px; color: var(--muted);
+    line-height: 1.6; margin-top: 8px; text-align: center;
+  }
+  .update-renewal-section {
+    margin-top: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .update-status-card {
+    background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,252,247,.86));
+    border: 1px solid rgba(98,76,56,.09);
+    border-radius: 20px; padding: 14px;
+    box-shadow: 0 4px 12px rgba(88,67,48,.03);
+  }
+  .update-status-head {
+    display: flex; align-items: center;
+    gap: 8px; margin-bottom: 8px;
+  }
+  .update-status-title {
+    font-size: 14px; font-weight: 900;
+    color: var(--ink-soft); flex: 1;
+  }
+  .update-status-badge {
+    font-size: 12px; font-weight: 800;
+    padding: 3px 10px; border-radius: 999px;
+  }
+  .update-status-badge.unlimited { color: #168e46; background: rgba(22,142,70,.1); }
+  .update-status-badge.has-quota { color: #8a6e2f; background: rgba(191,158,47,.1); }
+  .update-status-badge.no-quota  { color: #b05a3d; background: rgba(176,90,61,.1);  }
+  .update-status-badge.preparing { color: var(--muted); background: rgba(98,76,56,.07); }
+  .update-status-body {
+    font-size: 13px; color: var(--ink-soft);
+    line-height: 1.75; font-weight: 500;
+  }
+  .update-progress-wrap {
+    height: 8px; background: rgba(191,135,87,.14);
+    border-radius: 999px; overflow: hidden; margin: 8px 0;
+  }
+  .update-progress-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #c38a5c, #e0aa72);
+    transition: width .5s cubic-bezier(.4,0,.2,1); min-width: 4px;
+  }
+  .renewal-card {
+    border-radius: 20px; padding: 14px;
+    border: 1px solid rgba(191,135,87,.2);
+    background: linear-gradient(135deg, #fffdf8, #fef0dc);
+  }
+  .renewal-card.urgent {
+    border-color: rgba(176,90,61,.3);
+    background: linear-gradient(135deg, #fffaf7, #fde8d8);
+  }
+  .renewal-card-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .renewal-urgency-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0; background: var(--gold-soft);
+  }
+  .renewal-urgency-dot.urgent { background: #c85a3a; }
+  .renewal-card-title {
+    font-size: 14px; font-weight: 900; color: var(--gold-deep);
+  }
+  .renewal-card.urgent .renewal-card-title { color: #9a3e22; }
+  .renewal-card-body {
+    font-size: 13px; color: var(--ink-soft);
+    line-height: 1.75; margin-bottom: 12px;
+  }
+  .renewal-card-actions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  @media (max-width: 420px) {
+    .share-btn-row,
+    .renewal-card-actions { grid-template-columns: 1fr; }
+  }
+
+</style>
 </head>
 <body>
   <main class="page">
@@ -392,11 +498,43 @@
           <div id="walletBody" class="wallet-body" role="region" aria-labelledby="walletToggle">
             <div class="wallet-inner">
 
-              <!-- ───────────────────────────────
-                   TRIAL 模式（高轉換版）
-              _______________ ─────────────── -->
+              <div id="walletNavHint" class="wallet-nav-hint hidden">
+                <strong>想讓朋友認識你</strong> → 分享我的名片<br>
+                <strong>想累積分潤點數</strong> → 分享推薦連結
+              </div>
 
-              <!-- 1. 點數進度條 -->
+              <div class="share-block">
+                <div class="share-block-label">📇 分享我的名片</div>
+                <div class="share-block-desc">讓朋友掃 QR 或點連結認識你</div>
+                <div id="cardLinkDisplay" class="share-link-display">載入中…</div>
+                <div class="share-btn-row">
+                  <button id="copyCardLinkBtn2"  class="btn btn-soft btn-sm"    type="button">一鍵複製</button>
+                  <button id="shareCardLinkBtn2" class="btn btn-primary btn-sm" type="button">直接分享</button>
+                </div>
+              </div>
+
+              <div class="wallet-divider"></div>
+
+              <div class="share-block ref-link-block">
+                <div class="share-block-label">🔗 推薦連結（帶我的序號）</div>
+                <div id="refLinkTrialNote" class="ref-link-note hidden">
+                  朋友從這個連結進來建卡，成交後自動記在你名下，累積點數。
+                </div>
+                <div id="refLinkFullNote" class="ref-link-note hidden">
+                  朋友從這個連結進來建卡，推薦與分潤會自動記錄。
+                </div>
+                <div id="refLinkDisplay" class="share-link-display">載入中…</div>
+                <div id="refLinkBtnRow" class="share-btn-row">
+                  <button id="copyRefLinkBtn2"  class="btn btn-soft btn-sm"    type="button">一鍵複製</button>
+                  <button id="shareRefLinkBtn2" class="btn btn-primary btn-sm" type="button">直接分享</button>
+                </div>
+                <div id="refLinkMissingNote" class="ref-link-missing hidden">
+                  推薦序號尚未建立，請聯繫客服開通。
+                </div>
+              </div>
+
+              <div class="wallet-divider"></div>
+
               <div id="trialProgressBlock" class="trial-progress-block hidden">
                 <div class="trial-progress-header">
                   <span class="trial-progress-label">🌱 解鎖進度</span>
@@ -408,60 +546,12 @@
                   <div id="trialProgressFill" class="trial-progress-bar-fill" style="width:0%"></div>
                 </div>
                 <div id="trialProgressCaption" class="trial-progress-caption">
-                  再推薦 1 位，就會開始累積你的成果
+                  累積 5 點後，自動升級為推薦代理，開啟完整服務荷包
                 </div>
               </div>
 
-              <!-- 2. 主說明 -->
-              <div id="trialExplainBlock" class="trial-explain-block hidden">
-                <div class="trial-explain-text">
-                  每成功推薦 <strong>1 位朋友完成建卡</strong>，你就能獲得 <strong>1 點</strong>。<br>
-                  累積 <strong>5 點</strong>，就會開啟完整服務荷包。
-                </div>
-                <div class="trial-explain-note">
-                  只有完成建卡，才會計入點數喔。
-                </div>
-              </div>
-
-              <!-- 3. 客戶分享連結（trial 專用，?share=） -->
-              <div id="shareLinkBlock" class="share-link-block hidden">
-                <div class="share-link-label">🔗 我的專屬分享連結</div>
-                <div class="share-link-desc">
-                  把這個連結分享出去，<br>
-                  朋友從這裡進來並完成建卡，<br>
-                  系統就會幫你累積點數。
-                </div>
-                <div id="shareLinkDisplay" class="share-link-display">載入中…</div>
-                <div class="share-link-btn-row">
-                  <button id="copyShareLinkBtn"  class="btn btn-soft btn-sm"    type="button">一鍵複製</button>
-                  <button id="shareShareLinkBtn" class="btn btn-primary btn-sm" type="button">直接分享</button>
-                </div>
-              </div>
-
-              <!-- 4. 鼓勵文案（trial） -->
-              <div id="trialEncourageBlock" class="wallet-encourage hidden">
-                先分享給一位朋友試試看 👇
-              </div>
-
-              <!-- ───────────────────────────────
-                   REFERRAL / PARTNER 完整版
-              ─────────────────────────────── -->
-
-              <!-- 導引提示 -->
-              <div id="walletNavHint" class="wallet-nav-hint hidden">
-                <strong>想交流</strong> → 用名片區的分享功能<br>
-                <strong>想經營</strong> → 用下方的專屬入口
-              </div>
-
-              <!-- 鼓勵文案（referral / partner） -->
-              <div id="fullEncourageBlock" class="trial-explain-block hidden">
-                <div id="fullEncourageText" class="trial-explain-text"></div>
-              </div>
-
-              <!-- 成果統計 -->
               <div id="walletStatsBlock" class="hidden">
-                <div class="service-log-label" style="margin-bottom:6px;">慢慢累積的成果</div>
-                <div id="walletStatsIntro" class="wallet-stats-intro"></div>
+                <div class="service-log-label" style="margin-bottom:6px;">累積成果</div>
                 <div class="wallet-stats-grid">
                   <div class="wallet-stat-item">
                     <div class="wallet-stat-label">已推薦</div>
@@ -476,6 +566,33 @@
                     <div id="statConvertedCount" class="wallet-stat-value">0</div>
                   </div>
                 </div>
+                <div id="partnerEarningsBlock" class="wallet-stats-grid hidden" style="margin-top:8px;">
+                  <div class="wallet-stat-item">
+                    <div class="wallet-stat-label">本月分潤</div>
+                    <div id="statCommissionMonthly" class="wallet-stat-value">0</div>
+                  </div>
+                  <div class="wallet-stat-item">
+                    <div class="wallet-stat-label">累計分潤</div>
+                    <div id="statCommissionTotal" class="wallet-stat-value">0</div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="serviceLogBlock" class="service-log-block hidden">
+                <div class="service-log-label">記一下今天的服務</div>
+                <div class="service-log-hint">服務完，點一下就好</div>
+                <button id="logServiceBtn" class="btn btn-soft btn-sm" type="button">開始記錄</button>
+              </div>
+
+              <div id="serviceLogsViewBlock" class="hidden">
+                <button id="viewServiceLogsBtn" class="btn btn-soft btn-sm" type="button">看看我做了哪些服務</button>
+              </div>
+
+              <button id="openCollabBtn" class="btn btn-soft btn-sm" type="button">看看怎麼一起合作</button>
+
+            </div>
+          </div>
+        </div>
                 <!-- 金牌收益 -->
                 <div id="partnerEarningsBlock" class="wallet-stats-grid hidden" style="margin-top:8px;">
                   <div class="wallet-stat-item">
@@ -543,10 +660,47 @@
               <div class="info-label">使用到期</div>
               <div id="statusExpireDate" class="info-value">--</div>
             </div>
+
+            <div class="info-item">
+              <div class="info-label">名片瀏覽</div>
+              <div id="statusViewCount" class="info-value">--</div>
+            </div>
+
+            <div id="expireCountdownItem" class="info-item hidden">
+              <div class="info-label">距離到期</div>
+              <div id="statusExpireCountdown" class="info-value">--</div>
+            </div>
           </div>
         </section>
 
         <!-- 客服區 -->
+        <section id="updateRenewalSection" class="update-renewal-section hidden" aria-label="更新與續約">
+
+          <div class="update-status-card">
+            <div class="update-status-head">
+              <span class="update-status-title">✎ 名片更新</span>
+              <span id="updateStatusBadge" class="update-status-badge preparing">讀取中</span>
+            </div>
+            <div id="updateStatusBody" class="update-status-body"></div>
+            <div style="margin-top:10px;">
+              <button id="goUpdateBtn" class="btn btn-soft btn-sm" type="button">更新名片內容</button>
+            </div>
+          </div>
+
+          <div id="renewalCard" class="renewal-card hidden">
+            <div class="renewal-card-head">
+              <span id="renewalUrgencyDot" class="renewal-urgency-dot"></span>
+              <span id="renewalCardTitle" class="renewal-card-title">續約提醒</span>
+            </div>
+            <div id="renewalCardBody" class="renewal-card-body"></div>
+            <div class="renewal-card-actions">
+              <button id="goRenewalBtn"  class="btn btn-primary btn-sm" type="button">我要續約</button>
+              <button id="askRenewalBtn" class="btn btn-soft btn-sm"    type="button">問問看</button>
+            </div>
+          </div>
+
+        </section>
+
         <section class="action-group" aria-label="客服">
           <div class="actions">
             <button id="lineOABtn" class="btn btn-support" type="button">需要幫忙，找我</button>
@@ -602,6 +756,25 @@
       <div class="dialog-actions" style="gap:8px;display:flex;">
         <button id="shareCardCopyBtn"        class="btn btn-soft"    type="button" style="flex:1;">複製連結</button>
         <button id="shareCardDialogCloseBtn" class="btn btn-primary dialog-close" type="button">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialog：更新次數用完 -->
+  <div id="updateFullDialog" class="dialog-mask" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="updateFullTitle">
+      <h3 id="updateFullTitle" class="dialog-title">免費更新次數已用完</h3>
+      <div class="dialog-body">
+        <p>你已使用完今年的 3 次免費更新。</p>
+        <p>如需再次更新，每次收費 <strong style="color:var(--gold-deep)">NT$300</strong>，請聯繫客服協助開通。</p>
+        <div style="background:rgba(191,135,87,.08);border:1px solid rgba(191,135,87,.16);border-radius:14px;padding:12px 14px;margin-top:6px;">
+          <div style="font-size:13px;font-weight:900;color:var(--gold-deep);margin-bottom:4px;">💡 加購無限更新</div>
+          <div style="font-size:13px;color:var(--ink-soft);line-height:1.75;">購買無限更新方案，效期內不限次數更新，不另外收費。</div>
+        </div>
+      </div>
+      <div class="dialog-actions" style="gap:8px;display:flex;">
+        <button id="updateFullLineBtn"  class="btn btn-primary" type="button" style="flex:1;">聯繫客服開通</button>
+        <button id="updateFullCloseBtn" class="btn btn-soft"    type="button">關閉</button>
       </div>
     </div>
   </div>
