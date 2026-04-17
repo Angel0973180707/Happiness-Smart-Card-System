@@ -8,9 +8,17 @@
     FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
     DEFAULT_RENEW_DAYS: 365,
     API_TIMEOUT_MS: 10000,
-    API_RETRY: 1
+    API_RETRY: 1,
+    // 銀行資訊
+    BANK_NAME: "玉山銀行",
+    BANK_CODE: "808",
+    BANK_ACCOUNT: "0738968051590",
+    BANK_HOLDER: "李秀芳",
+    BANK_ACCOUNT_LAST5: "51590",
+    CONTACT_LINE: "@hsc_service",
   };
 
+  // ── KEY STORAGE ──
   const KEY_STORAGE = "hsc_admin_key";
   function getAdminKey() { return localStorage.getItem(KEY_STORAGE) || ""; }
   function saveAdminKey(key) { if (!key || !key.trim()) return false; localStorage.setItem(KEY_STORAGE, key.trim()); return true; }
@@ -22,7 +30,25 @@
     el.className = key ? "key-dot ok" : "key-dot warn";
   }
 
-  let inviteGlobalBound = false;
+  // ── LEDGER STORAGE ──
+  const LEDGER_KEY = "hsc_ledger_records";
+  function getLedgerRecords() {
+    try { return JSON.parse(localStorage.getItem(LEDGER_KEY) || "[]"); }
+    catch { return []; }
+  }
+  function saveLedgerRecords(records) {
+    localStorage.setItem(LEDGER_KEY, JSON.stringify(records));
+  }
+  function addLedgerRecord(record) {
+    const records = getLedgerRecords();
+    // 避免重複（同 payment_id）
+    if (record.payment_id) {
+      const exists = records.find(r => r.payment_id === record.payment_id);
+      if (exists) return;
+    }
+    records.unshift({ ...record, ledger_id: `L${Date.now()}`, created_at: new Date().toISOString() });
+    saveLedgerRecords(records);
+  }
 
   const state = {
     cards: [], payments: [], addons: [], agents: [],
@@ -35,8 +61,12 @@
     currentRecognitionType: "renewal",
     currentPaymentDetail: null, currentRecognitionDetail: null, currentRenewalDetail: null,
     requests: [], requestFilter: '', currentRequest: null,
-    currentRequestTrace: null, currentSelectedRequestForInvite: null
+    currentRequestTrace: null, currentSelectedRequestForInvite: null,
+    ledgerRecords: []
   };
+
+  // expose state globally for shell script access
+  window._hscState = state;
 
   function $(selector) { return document.querySelector(selector); }
   function $$(selector, root = document) { return Array.from(root.querySelectorAll(selector)); }
@@ -44,7 +74,11 @@
   function valueOf(selector) { const el = $(selector); return el ? textOf(el.value) : ""; }
   function formatValue(value) { return value === undefined || value === null || value === "" ? "-" : String(value); }
   function parseDate(value) { if (!value) return null; const d = new Date(value); return isNaN(d.getTime()) ? null : d; }
-  function escapeHtml(str) { return String(str ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;"); }
+  function escapeHtml(str) {
+    return String(str ?? "")
+      .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+  }
   function parseJsonSafe(text) { try { return text ? JSON.parse(text) : {}; } catch { throw new Error("GAS 回傳不是合法 JSON"); } }
   function normalizeList(data, preferredKeys = []) {
     if (Array.isArray(data)) return data;
@@ -55,9 +89,7 @@
     if (Array.isArray(data?.data)) return data.data;
     return [];
   }
-  function firstValue(obj, keys) { for (const key of keys) { const v = obj && obj[key]; if (v !== undefined && v !== null && String(v).trim() !== "") return v; } return ""; }
 
-  /** 直接 patch state 陣列中的一筆，不用重打 API */
   function patchListItem(list, idKey, idVal, patch) {
     if (!Array.isArray(list)) return;
     const idx = list.findIndex(r => String(r?.[idKey] || "").trim() === String(idVal || "").trim());
@@ -65,7 +97,6 @@
   }
 
   function toast(message) {
-    // delegate to new UI shell if available
     if (typeof window._hscToast === 'function') { window._hscToast(message); return; }
     const el = $("#toast");
     if (!el) return;
@@ -75,7 +106,6 @@
     toast._timer = setTimeout(() => el.classList.add("hidden"), 2200);
   }
   function setLoading(show) { const el = $("#loadingMask"); if (el) el.classList.toggle("hidden", !show); }
-  function setGasStatus(text, type) {}
   function setBtnLoading(btnEl, isLoading) {
     if (!btnEl) return;
     if (isLoading) { btnEl.dataset.originalText = btnEl.dataset.originalText || btnEl.textContent; btnEl.textContent = "處理中…"; btnEl.disabled = true; }
@@ -97,8 +127,9 @@
   function copyText(value, message = "已複製") {
     const val = String(value || "");
     if (!val) return alert("沒有可複製的內容");
-    if (navigator.clipboard?.writeText) { navigator.clipboard.writeText(val).then(() => toast(message)).catch(() => fallbackCopy(val, message)); }
-    else fallbackCopy(val, message);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(val).then(() => toast(message)).catch(() => fallbackCopy(val, message));
+    } else fallbackCopy(val, message);
   }
   function fallbackCopy(value, message) {
     const ta = document.createElement("textarea");
@@ -107,7 +138,116 @@
     try { document.execCommand("copy"); toast(message); } catch { alert("複製失敗，請手動複製"); }
     finally { ta.remove(); }
   }
-  function copyFromField(selector, msg) { const text = valueOf(selector); if (!text) return alert("目前沒有可複製內容"); copyText(text, msg); }
+
+  // ── 付款倒數計算 ──
+  function calcDeadline(card) {
+    const due = card.due_at || card.payment_due_at;
+    const createdAt = card.created_at;
+    if (due) return new Date(due);
+    if (createdAt) return new Date(new Date(createdAt).getTime() + 24 * 3600 * 1000);
+    return null;
+  }
+
+  function renderCountdownBadge(card) {
+    if (billingBadge(card.billing_status) === 'badge-ok') return '';
+    const base = calcDeadline(card);
+    if (!base || isNaN(base)) return '';
+    const msLeft = base - new Date();
+    if (msLeft < 0) return '<span class="badge badge-danger" style="margin-top:3px;">🔴 逾期未付</span>';
+    const hLeft = Math.floor(msLeft / 3600000);
+    const dLeft = Math.floor(hLeft / 24);
+    const label = dLeft > 0 ? `⏰ 剩 ${dLeft} 天` : `⏰ 剩 ${hLeft} 時`;
+    const cls = hLeft < 24 ? 'badge-danger' : hLeft < 72 ? 'badge-warn' : 'badge-info';
+    return `<span class="badge ${cls}" style="margin-top:3px;">${escapeHtml(label)}</span>`;
+  }
+
+  function formatDeadlineStr(card) {
+    const base = calcDeadline(card);
+    if (!base || isNaN(base)) return '';
+    const y = base.getFullYear();
+    const m = String(base.getMonth() + 1).padStart(2, '0');
+    const d = String(base.getDate()).padStart(2, '0');
+    const hh = String(base.getHours()).padStart(2, '0');
+    const mm = String(base.getMinutes()).padStart(2, '0');
+    return `${y}/${m}/${d} ${hh}:${mm}`;
+  }
+
+  // ── 文案產生器 ──
+
+  // 建卡完成通知（第一次發送）
+  function buildCardCreatedNotice(card) {
+    const name = textOf(card.name || card.owner_name) || '您';
+    const cardId = textOf(card.id || card.card_id);
+    const deadline = formatDeadlineStr(card);
+    const amount = card.amount || card.plan_price || '請洽客服';
+    const previewUrl = `${CONFIG.HUB_URL}index.html?id=${encodeURIComponent(cardId)}`;
+
+    return `您好 ${name}，
+
+🎉 您的 HSC 智慧名片已建立完成！
+
+請依照以下步驟完成付款，名片即可正式啟用：
+
+━━━━━━━━━━━━━━━━━
+💳【付款資訊】
+銀行：${CONFIG.BANK_NAME}（${CONFIG.BANK_CODE}）
+帳號：${CONFIG.BANK_ACCOUNT}
+戶名：${CONFIG.BANK_HOLDER}
+金額：NT$ ${amount}
+━━━━━━━━━━━━━━━━━
+
+📋【付款注意事項】
+1. 付款後請提供後 5 碼（${CONFIG.BANK_ACCOUNT_LAST5}）對帳確認
+2. 付款截止時間：${deadline || '請盡快完成'}
+3. 付款確認後 1 個工作天內啟用
+4. 啟用後將發送名片連結至您
+
+🔗 名片預覽：
+${previewUrl}
+
+📩 如有任何問題，請透過 LINE 官方帳號聯繫：
+${CONFIG.CONTACT_LINE}
+
+感謝您的支持！`;
+  }
+
+  // 催繳提醒文案
+  function buildPaymentReminderNotice(card) {
+    const name = textOf(card.name || card.owner_name) || '您';
+    const cardId = textOf(card.id || card.card_id);
+    const deadline = formatDeadlineStr(card);
+    const amount = card.amount || card.plan_price || '請洽客服';
+    const payUrl = `${CONFIG.HUB_URL}renew.html?id=${encodeURIComponent(cardId)}`;
+    const base = calcDeadline(card);
+    let urgencyPrefix = '';
+    if (base) {
+      const hLeft = Math.floor((base - new Date()) / 3600000);
+      if (hLeft < 0) urgencyPrefix = '⚠️ 您的付款已逾期，';
+      else if (hLeft < 24) urgencyPrefix = `🔴 付款截止時間剩不到 ${hLeft} 小時，`;
+      else urgencyPrefix = '';
+    }
+
+    return `您好 ${name}，
+
+${urgencyPrefix}提醒您完成 HSC 智慧名片付款以正式啟用服務。
+
+━━━━━━━━━━━━━━━━━
+💳【付款資訊】
+銀行：${CONFIG.BANK_NAME}（${CONFIG.BANK_CODE}）
+帳號：${CONFIG.BANK_ACCOUNT}
+戶名：${CONFIG.BANK_HOLDER}
+金額：NT$ ${amount}
+━━━━━━━━━━━━━━━━━
+
+⏰ 付款截止：${deadline || '請盡快完成'}
+
+📋【注意事項】
+・付款後請回覆帳號後 5 碼（${CONFIG.BANK_ACCOUNT_LAST5}）
+・確認後 1 個工作天內啟用
+・如需延期請提前告知
+
+📩 聯繫客服：${CONFIG.CONTACT_LINE}`;
+  }
 
   // ── INVITE HELPERS ──
   function buildInviteFormUrl(inviteCode, backendFormUrl = "") {
@@ -138,7 +278,9 @@
     const url = new URL(CONFIG.GAS_BASE_URL);
     url.searchParams.set("action", action);
     url.searchParams.set("admin_key", key);
-    Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && String(v).trim() !== "") url.searchParams.set(k, v); });
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v).trim() !== "") url.searchParams.set(k, v);
+    });
     return _apiCall("GET", url.toString(), null, action);
   }
   async function apiPost(action, params = {}) {
@@ -201,13 +343,39 @@
     return state.payments.some(p => textOf(p.card_id) === cardId && textOf(p.status).toLowerCase() === "paid");
   }
   function isExpired(card) { const d = parseDate(card.expires_at); return !!(d && d < new Date()); }
-  function isExpiringSoon(card, days) { const d = parseDate(card.expires_at); if (!d) return false; const now = new Date(); const end = new Date(now.getTime() + days * 24 * 60 * 60 * 1000); return d >= now && d <= end; }
+  function isExpiringSoon(card, days) {
+    const d = parseDate(card.expires_at);
+    if (!d) return false;
+    const now = new Date();
+    const end = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    return d >= now && d <= end;
+  }
   function needsRenewal(card) { return isExpired(card) || isExpiringSoon(card, 30); }
-  function getRenewalStateText(card) { if (isExpired(card)) return "已到期"; if (isExpiringSoon(card, 30)) return "30天內到期"; return "正常"; }
-  function billingStatusText(value) { const v = textOf(value).toLowerCase(); if (v === "paid") return "已付款"; if (v === "unpaid") return "未付款"; if (v === "locked") return "已鎖卡"; return value ? String(value) : "-"; }
-  function planText(value) { const v = textOf(value).toLowerCase(); if (v === "free" || v === "plan_free") return "自由配款"; if (v === "premium" || v === "plan_premium") return "精品設計款"; return value ? String(value) : "-"; }
+  function getRenewalStateText(card) {
+    if (isExpired(card)) return "已到期";
+    if (isExpiringSoon(card, 30)) return "30天內到期";
+    return "正常";
+  }
+  function billingStatusText(value) {
+    const v = textOf(value).toLowerCase();
+    if (v === "paid") return "已付款"; if (v === "unpaid") return "未付款"; if (v === "locked") return "已鎖卡";
+    return value ? String(value) : "-";
+  }
+  function billingBadge(v) {
+    const s = String(v || '').toLowerCase();
+    if (s === 'paid') return 'badge-ok';
+    if (s === 'unpaid') return 'badge-warn';
+    if (s === 'locked') return 'badge-danger';
+    return 'badge-neutral';
+  }
+  function planText(value) {
+    const v = textOf(value).toLowerCase();
+    if (v === "free" || v === "plan_free") return "自由配款";
+    if (v === "premium" || v === "plan_premium") return "精品設計款";
+    return value ? String(value) : "-";
+  }
 
-  // ── INVITE UI HELPERS (exposed globally) ──
+  // ── INVITE UI HELPERS ──
   window.copyInviteCodeByRequest = function(requestId) {
     const r = state.requests.find(x => x.request_id === requestId);
     if (!r || !r.assigned_invite_code) return toast("尚未派發");
@@ -256,19 +424,18 @@
     wrap.innerHTML = `<div class="result-box">${escapeHtml(JSON.stringify(request, null, 2))}</div>`;
   }
 
-  // ── RENDER REQUESTS (new UI) ──
+  // ── RENDER REQUESTS ──
   function renderRequests() {
     if (typeof window.renderRequestsNew === 'function') {
       window.renderRequestsNew(state.requests, state);
     }
-    // also update selected panel if current selection still valid
     if (state.currentSelectedRequestForInvite) {
       const updated = state.requests.find(r => r.request_id === state.currentSelectedRequestForInvite.request_id);
       if (updated && typeof window.updateInviteSelectedPanel === 'function') window.updateInviteSelectedPanel(updated);
     }
   }
 
-  // ── RENDER CARDS (new UI) ──
+  // ── RENDER CARDS ──
   function renderCards() {
     const keyword = valueOf("#cardSearch");
     if (typeof window.renderCardsNew === 'function') {
@@ -309,40 +476,156 @@
       if (inp) inp.value = cid;
       if (typeof window.activateAdminSection === 'function') window.activateAdminSection('deliverySection');
       loadCardDetail(cid);
-      $('#deliveryContent').style.display = 'block';
-      $('#deliveryEmpty').style.display = 'none';
+      const dc = $('#deliveryContent'); if (dc) dc.style.display = 'block';
+      const de = $('#deliveryEmpty'); if (de) de.style.display = 'none';
     });
     wrap.querySelector('#btnOpenPreview')?.addEventListener('click', e => {
       window.open(buildPreviewLink(e.currentTarget.dataset.cid), '_blank');
     });
   }
 
-  // ── SYNC DELIVERY PANEL (new UI) ──
+  // ── CARDS LIST (new UI with countdown + notice buttons) ──
+  window.renderCardsNew = function(cards, keyword) {
+    const container = $('#cardsListContainer');
+    if (!container) return;
+    const kw = (keyword || '').toLowerCase();
+    const rows = cards.filter(c => {
+      if (!kw) return true;
+      return [c.id || c.card_id, c.name || c.owner_name, c.phone, c.email]
+        .map(v => String(v || '')).join(' ').toLowerCase().includes(kw);
+    });
+    if (!rows.length) { container.innerHTML = '<div class="empty-state">查無卡片</div>'; return; }
+
+    container.innerHTML = rows.map(c => {
+      const id = escapeHtml(String(c.id || c.card_id || ''));
+      const name = escapeHtml(String(c.name || c.owner_name || '-'));
+      const billing = billingStatusText(c.billing_status);
+      const bClass = billingBadge(c.billing_status);
+      const statusLabel = escapeHtml(String(c.status || '-'));
+      const unpaid = bClass !== 'badge-ok';
+
+      return `
+        <div class="list-row" id="crow-${id}">
+          <div class="list-row-head" data-row="${id}" data-type="card">
+            <div class="list-row-icon icon-neutral">💳</div>
+            <div class="list-row-info">
+              <div class="list-row-title">${name}</div>
+              <div class="list-row-sub">${id} · ${statusLabel}</div>
+            </div>
+            <div class="list-row-right">
+              <span class="badge ${bClass}">${escapeHtml(billing)}</span>
+              ${renderCountdownBadge(c)}
+              <span style="font-size:11px;color:var(--ink3);margin-top:3px;">${escapeHtml(String(c.expires_at || ''))}</span>
+            </div>
+            <span class="chevron" style="margin-left:6px;">›</span>
+          </div>
+          <div class="list-row-body">
+            <div class="detail-grid">
+              ${renderDetailItem("卡片 ID", id)}
+              ${renderDetailItem("電話", c.phone || '-')}
+              ${renderDetailItem("方案", planText(c.plan))}
+              ${renderDetailItem("到期日", c.expires_at || '-')}
+            </div>
+            <div class="action-strip" style="flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" data-action="cardDetail" data-cid="${id}">完整詳情</button>
+              <button class="btn btn-soft btn-sm" data-action="goDelivery" data-cid="${id}">前往交付</button>
+              ${unpaid ? `
+              <button class="btn btn-ok btn-sm" data-action="copyCardCreated" data-cid="${id}">🎉 建卡通知</button>
+              <button class="btn btn-warn btn-sm" data-action="copyPayNotice" data-cid="${id}">📋 催繳文案</button>
+              ` : ''}
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    container.querySelectorAll('.list-row-head[data-type="card"]').forEach(head => {
+      head.addEventListener('click', () => {
+        const row = document.getElementById(`crow-${head.dataset.row}`);
+        if (row) row.classList.toggle('open');
+      });
+    });
+
+    container.addEventListener('click', e => {
+      // 完整詳情
+      const detailBtn = e.target.closest('[data-action="cardDetail"]');
+      if (detailBtn) {
+        e.stopPropagation();
+        if (typeof window.loadCardDetail === 'function') window.loadCardDetail(detailBtn.dataset.cid);
+        return;
+      }
+      // 前往交付
+      const goBtn = e.target.closest('[data-action="goDelivery"]');
+      if (goBtn) {
+        e.stopPropagation();
+        const cid = goBtn.dataset.cid;
+        const inp = $('#deliveryCardIdInput');
+        if (inp) inp.value = cid;
+        if (typeof window.activateAdminSection === 'function') window.activateAdminSection('deliverySection');
+        if (typeof window.loadCardDetail === 'function') window.loadCardDetail(cid);
+        const dc = $('#deliveryContent'); if (dc) dc.style.display = 'block';
+        const de = $('#deliveryEmpty'); if (de) de.style.display = 'none';
+        return;
+      }
+      // 建卡通知
+      const createdBtn = e.target.closest('[data-action="copyCardCreated"]');
+      if (createdBtn) {
+        e.stopPropagation();
+        const cid = createdBtn.dataset.cid;
+        const card = state.cards.find(c => String(c.id || c.card_id) === cid) || {};
+        copyText(buildCardCreatedNotice(card), '✅ 已複製建卡通知文案');
+        return;
+      }
+      // 催繳文案
+      const payBtn = e.target.closest('[data-action="copyPayNotice"]');
+      if (payBtn) {
+        e.stopPropagation();
+        const cid = payBtn.dataset.cid;
+        const card = state.cards.find(c => String(c.id || c.card_id) === cid) || {};
+        copyText(buildPaymentReminderNotice(card), '✅ 已複製催繳文案');
+        return;
+      }
+    });
+  };
+
+  // ── DELIVERY PANEL ──
   function syncDeliveryControlPanel(card) {
     if (!card) return;
     const id = textOf(card.id || card.card_id);
     const meta = buildWalletModeMeta(card);
     const mode = resolveWalletModeFromMeta(meta);
+    const unpaid = !isPaid(card);
 
-    // Card summary
     const summaryEl = $('#deliveryCardSummary');
     if (summaryEl) {
       summaryEl.innerHTML = `<div class="card-body">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <div style="font-weight:900;font-size:16px;">${escapeHtml(textOf(card.name||card.owner_name)||'-')}</div>
-          <span class="badge ${isPaid(card)?'badge-ok':'badge-warn'}">${isPaid(card)?'已付款':'未付款'}</span>
+          <div style="font-weight:900;font-size:16px;">${escapeHtml(textOf(card.name || card.owner_name) || '-')}</div>
+          <span class="badge ${isPaid(card) ? 'badge-ok' : 'badge-warn'}">${isPaid(card) ? '已付款' : '未付款'}</span>
         </div>
         <div style="font-size:12px;color:var(--ink3);">${escapeHtml(id)} · ${escapeHtml(planText(card.plan))} · 到期 ${escapeHtml(formatValue(card.expires_at))}</div>
-        <div style="margin-top:8px;"><span class="badge badge-info">${escapeHtml(mode.toUpperCase())}</span></div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-info">${escapeHtml(mode.toUpperCase())}</span>
+          ${renderCountdownBadge(card)}
+        </div>
+        ${unpaid ? `
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ok btn-sm" id="btnDeliveryCardCreated">🎉 複製建卡通知</button>
+          <button class="btn btn-warn btn-sm" id="btnDeliveryPayReminder">📋 複製催繳文案</button>
+        </div>` : ''}
       </div>`;
+
+      summaryEl.querySelector('#btnDeliveryCardCreated')?.addEventListener('click', () => {
+        copyText(buildCardCreatedNotice(card), '✅ 已複製建卡通知文案');
+      });
+      summaryEl.querySelector('#btnDeliveryPayReminder')?.addEventListener('click', () => {
+        copyText(buildPaymentReminderNotice(card), '✅ 已複製催繳文案');
+      });
     }
 
-    // Links
     if (typeof window.renderDeliveryLinks === 'function') {
       window.renderDeliveryLinks(id, meta.referral_link);
     }
 
-    // Copy texts
     if (typeof window.renderDeliveryCopyTexts === 'function') {
       const texts = [
         { label: 'Trial 分享文案', value: `🎉 體驗 HSC 智慧名片！點擊連結搶先試用：${buildPreviewLink(id)}` },
@@ -353,7 +636,6 @@
       window.renderDeliveryCopyTexts(texts);
     }
 
-    // Wallet observer
     const walletWrap = $('#walletObserverWrap');
     if (walletWrap) {
       walletWrap.innerHTML = `<div class="detail-grid" style="margin-top:0;">
@@ -367,16 +649,13 @@
       </div>`;
     }
 
-    // Warnings
     const warnings = detectDeliveryWarnings(card, meta);
     const warningsWrap = $('#deliveryWarningsWrap');
     if (warningsWrap) {
-      if (warnings.length) {
-        warningsWrap.innerHTML = `<div class="section-label" style="margin-top:12px;">⚠️ 異常提示</div>` +
-          warnings.map(w => `<div class="risk-item danger" style="margin-bottom:6px;">${escapeHtml(w)}</div>`).join('');
-      } else {
-        warningsWrap.innerHTML = `<div class="risk-item ok" style="margin-top:12px;">✅ 無異常</div>`;
-      }
+      warningsWrap.innerHTML = warnings.length
+        ? `<div class="section-label" style="margin-top:12px;">⚠️ 異常提示</div>` +
+          warnings.map(w => `<div class="risk-item danger" style="margin-bottom:6px;">${escapeHtml(w)}</div>`).join('')
+        : `<div class="risk-item ok" style="margin-top:12px;">✅ 無異常</div>`;
     }
   }
 
@@ -395,7 +674,6 @@
     safeSetText("#statAddonPending", addonPending);
     safeSetText("#statTodayPayments", todayPayments);
 
-    // tile colouring
     const tileUnpaid = $('#tileUnpaid');
     if (tileUnpaid) tileUnpaid.className = `stat-tile ${unpaid > 0 ? 'urgent' : 'ok'}`;
     const tileDelivery = $('#tileDelivery');
@@ -459,13 +737,13 @@
               <div class="list-row-sub">${pid} · $${escapeHtml(formatValue(p.amount))}</div>
             </div>
             <div class="list-row-right">
-              <span class="badge ${badgeClass}">${escapeHtml(textOf(p.status)||'pending')}</span>
+              <span class="badge ${badgeClass}">${escapeHtml(textOf(p.status) || 'pending')}</span>
             </div>
             <span class="chevron" style="margin-left:6px;">›</span>
           </div>
           <div class="list-row-body">
             <div class="detail-grid" style="margin-top:0;">
-              ${renderDetailItem("付款ID", p.payment_id||p.id)}
+              ${renderDetailItem("付款ID", p.payment_id || p.id)}
               ${renderDetailItem("卡片ID", p.card_id)}
               ${renderDetailItem("金額", p.amount)}
               ${renderDetailItem("應付日", p.due_at)}
@@ -483,8 +761,10 @@
     container.querySelectorAll('.list-row-head[data-type="payment"]').forEach(head => {
       head.addEventListener('click', () => document.getElementById(`prow-${head.dataset.row}`)?.classList.toggle('open'));
     });
-    container.querySelectorAll('.btn-pay-confirm').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); confirmPaymentFromUi(btn.dataset.pid); }));
-    container.querySelectorAll('.btn-pay-refund').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); markPaymentRefundedFromUi(btn.dataset.pid); }));
+    container.querySelectorAll('.btn-pay-confirm').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); confirmPaymentFromUi(btn.dataset.pid); }));
+    container.querySelectorAll('.btn-pay-refund').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); markPaymentRefundedFromUi(btn.dataset.pid); }));
   }
 
   async function confirmPaymentFromUi(paymentId) {
@@ -495,12 +775,33 @@
       toast("✅ 付款已確認");
       const paidAt = res?.payment?.paid_at || new Date().toISOString();
       patchListItem(state.paymentList, "payment_id", paymentId, { status: "paid", billing_status: "paid", paid_at: paidAt });
-      patchListItem(state.payments,    "payment_id", paymentId, { status: "paid", billing_status: "paid", paid_at: paidAt });
+      patchListItem(state.payments, "payment_id", paymentId, { status: "paid", billing_status: "paid", paid_at: paidAt });
       const cardId = res?.card?.id || res?.card_id;
+      const amount = res?.payment?.amount || res?.amount;
       if (cardId) patchListItem(state.cards, "id", cardId, { billing_status: "paid", payment_paid_at: paidAt });
+
+      // 自動記帳
+      const card = cardId ? state.cards.find(c => String(c.id || c.card_id) === String(cardId)) : null;
+      addLedgerRecord({
+        type: 'income',
+        payment_id: paymentId,
+        card_id: cardId || '',
+        card_name: card ? (card.name || card.owner_name || '') : '',
+        amount: amount || 0,
+        paid_at: paidAt,
+        note: '付款確認自動記帳',
+        commission: 0,
+        withdrawn: 0,
+      });
+
+      // 若記帳頁面正在顯示，更新它
+      const ledgerSection = $('#ledgerSection');
+      if (ledgerSection?.classList.contains('active')) renderLedger();
+
       renderPayments(); renderCards(); renderDashboard();
     } catch (err) { toast(`確認失敗：${err.message}`); }
   }
+
   async function markPaymentRefundedFromUi(paymentId) {
     if (!confirm("⚠️ 退款操作無法自動撤銷，確定？")) return;
     if (!doubleConfirmId(paymentId, "付款單")) return;
@@ -508,7 +809,7 @@
       await apiPost("markPaymentRefunded", { payment_id: paymentId });
       toast("✅ 已標記退款");
       patchListItem(state.paymentList, "payment_id", paymentId, { status: "refunded" });
-      patchListItem(state.payments,    "payment_id", paymentId, { status: "refunded" });
+      patchListItem(state.payments, "payment_id", paymentId, { status: "refunded" });
       renderPayments();
     } catch (err) { toast(`退款失敗：${err.message}`); }
   }
@@ -531,7 +832,7 @@
               <div class="list-row-sub">${rid} · ${escapeHtml(formatValue(item.renew_days))} 天 · $${escapeHtml(formatValue(item.amount))}</div>
             </div>
             <div class="list-row-right">
-              <span class="badge ${badgeClass}">${escapeHtml(status||'pending')}</span>
+              <span class="badge ${badgeClass}">${escapeHtml(status || 'pending')}</span>
               <span style="font-size:11px;color:var(--ink3);margin-top:3px;">${escapeHtml(formatValue(item.expires_at))}</span>
             </div>
             <span class="chevron" style="margin-left:6px;">›</span>
@@ -556,8 +857,10 @@
     container.querySelectorAll('.list-row-head[data-type="renewal"]').forEach(head => {
       head.addEventListener('click', () => document.getElementById(`rrow-${head.dataset.row}`)?.classList.toggle('open'));
     });
-    container.querySelectorAll('.btn-renewal-paid').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); markRenewalPaid(btn.dataset.id); }));
-    container.querySelectorAll('.btn-renewal-reminder').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); triggerRenewalReminderForCard(btn.dataset.cid); }));
+    container.querySelectorAll('.btn-renewal-paid').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); markRenewalPaid(btn.dataset.id); }));
+    container.querySelectorAll('.btn-renewal-reminder').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); triggerRenewalReminderForCard(btn.dataset.cid); }));
   }
 
   function updateRenewalStats() {
@@ -577,8 +880,7 @@
       toast("✅ 續約付款已確認");
       patchListItem(state.renewalItems, "renewal_id", renewalId, { status: "paid", billing_status: "paid" });
       renderRenewalList(); updateRenewalStats(); renderDashboard();
-    }
-    catch (err) { toast(`確認失敗：${err.message}`); }
+    } catch (err) { toast(`確認失敗：${err.message}`); }
   }
   async function triggerRenewalReminderForCard(cardId) {
     try { await apiPost("triggerRenewalReminder", { card_id: cardId }); toast("✅ 提醒已觸發"); }
@@ -608,7 +910,7 @@
               <div class="list-row-sub">${aid} · $${escapeHtml(formatValue(item.amount))}</div>
             </div>
             <div class="list-row-right">
-              <span class="badge ${badgeClass}">${escapeHtml(status||'-')}</span>
+              <span class="badge ${badgeClass}">${escapeHtml(status || '-')}</span>
             </div>
             <span class="chevron" style="margin-left:6px;">›</span>
           </div>
@@ -617,7 +919,7 @@
               ${renderDetailItem("加購單ID", item.addon_order_id)}
               ${renderDetailItem("卡片ID", item.card_id)}
               ${renderDetailItem("類型", item.addon_type)}
-              ${renderDetailItem("數量", item.qty||1)}
+              ${renderDetailItem("數量", item.qty || 1)}
               ${renderDetailItem("金額", item.amount)}
               ${renderDetailItem("應付日", item.due_at)}
             </div>
@@ -633,9 +935,12 @@
     container.querySelectorAll('.list-row-head[data-type="addon"]').forEach(head => {
       head.addEventListener('click', () => document.getElementById(`arow-${head.dataset.row}`)?.classList.toggle('open'));
     });
-    container.querySelectorAll('.btn-addon-paid').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); confirmAddonPaid(btn.dataset.id, btn.dataset.cid, btn); }));
-    container.querySelectorAll('.btn-addon-remind').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); buildAddonReminderFromApi(btn.dataset.id); }));
-    container.querySelectorAll('.btn-addon-cancel').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); cancelAddon(btn.dataset.id, btn); }));
+    container.querySelectorAll('.btn-addon-paid').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); confirmAddonPaid(btn.dataset.id, btn.dataset.cid, btn); }));
+    container.querySelectorAll('.btn-addon-remind').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); buildAddonReminderFromApi(btn.dataset.id); }));
+    container.querySelectorAll('.btn-addon-cancel').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); cancelAddon(btn.dataset.id, btn); }));
   }
 
   async function buildAddonReminderFromApi(addonOrderId) {
@@ -643,7 +948,7 @@
       const data = await apiGet("buildAddonPaymentNoticeText", { addon_order_id: addonOrderId });
       const text = data.text || data.message || "";
       copyText(text, "✅ 加購提醒已複製");
-    } catch (err) {
+    } catch {
       const fallback = state.addons.find(a => textOf(a.addon_order_id) === addonOrderId);
       if (fallback) copyText(`提醒您，加購單 ${textOf(fallback.addon_order_id)} 金額 ${formatValue(fallback.amount)} 待付款。`, "⚠️ 已複製備用文案");
       else toast("無法產生提醒文案");
@@ -659,8 +964,7 @@
       toast("✅ 加購單已確認付款");
       patchListItem(state.addons, "addon_order_id", addonOrderId, { status: "paid" });
       renderAddons(); renderDashboard();
-    }
-    catch (err) { toast(`確認失敗：${err.message}`); }
+    } catch (err) { toast(`確認失敗：${err.message}`); }
     finally { setBtnLoading(btnEl, false); }
   }
 
@@ -673,8 +977,7 @@
       toast("✅ 已取消");
       patchListItem(state.addons, "addon_order_id", addonOrderId, { status: "cancelled" });
       renderAddons();
-    }
-    catch (err) { toast(`取消失敗：${err.message}`); }
+    } catch (err) { toast(`取消失敗：${err.message}`); }
     finally { setBtnLoading(btnEl, false); }
   }
 
@@ -690,14 +993,14 @@
     if (!rows.length) { container.innerHTML = '<div class="empty-state">查無代理資料</div>'; return; }
     container.innerHTML = rows.map(item => {
       const agid = escapeHtml(textOf(item.agent_id));
-      const status = textOf(item.status||'active');
+      const status = textOf(item.status || 'active');
       return `
         <div class="list-row" id="agrow-${agid}">
           <div class="list-row-head" data-row="${agid}" data-type="agent">
             <div class="list-row-icon icon-neutral">🤝</div>
             <div class="list-row-info">
-              <div class="list-row-title">${escapeHtml(textOf(item.owner_name)||'-')}</div>
-              <div class="list-row-sub">${agid} · ${escapeHtml(textOf(item.agent_type)||'-')} · ${escapeHtml(textOf(item.member_tier)||'-')}</div>
+              <div class="list-row-title">${escapeHtml(textOf(item.owner_name) || '-')}</div>
+              <div class="list-row-sub">${agid} · ${escapeHtml(textOf(item.agent_type) || '-')} · ${escapeHtml(textOf(item.member_tier) || '-')}</div>
             </div>
             <div class="list-row-right">
               <span class="badge ${status === 'active' ? 'badge-ok' : 'badge-warn'}">${escapeHtml(status)}</span>
@@ -723,7 +1026,8 @@
     container.querySelectorAll('.list-row-head[data-type="agent"]').forEach(head => {
       head.addEventListener('click', () => document.getElementById(`agrow-${head.dataset.row}`)?.classList.toggle('open'));
     });
-    container.querySelectorAll('.btn-agent-detail').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); loadAgentDetail(btn.dataset.id); }));
+    container.querySelectorAll('.btn-agent-detail').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); loadAgentDetail(btn.dataset.id); }));
   }
 
   // ── COMMISSIONS ──
@@ -743,13 +1047,13 @@
               <div class="list-row-sub">${cid} · $${escapeHtml(formatValue(item.amount))}</div>
             </div>
             <div class="list-row-right">
-              <span class="badge ${status === 'paid' ? 'badge-ok' : 'badge-warn'}">${escapeHtml(status||'pending')}</span>
+              <span class="badge ${status === 'paid' ? 'badge-ok' : 'badge-warn'}">${escapeHtml(status || 'pending')}</span>
             </div>
             <span class="chevron" style="margin-left:6px;">›</span>
           </div>
           <div class="list-row-body">
             <div class="detail-grid" style="margin-top:0;">
-              ${renderDetailItem("分潤ID", item.commission_id||item.id)}
+              ${renderDetailItem("分潤ID", item.commission_id || item.id)}
               ${renderDetailItem("代理ID", item.agent_id)}
               ${renderDetailItem("金額", item.amount)}
               ${renderDetailItem("付款單", item.payment_id)}
@@ -764,7 +1068,8 @@
     container.querySelectorAll('.list-row-head[data-type="commission"]').forEach(head => {
       head.addEventListener('click', () => document.getElementById(`cmrow-${head.dataset.row}`)?.classList.toggle('open'));
     });
-    container.querySelectorAll('.btn-commission-paid').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); markCommissionPaid(btn.dataset.id); }));
+    container.querySelectorAll('.btn-commission-paid').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); markCommissionPaid(btn.dataset.id); }));
   }
 
   async function markCommissionPaid(commissionId) {
@@ -774,9 +1079,27 @@
       await apiPost("markCommissionPaid", { commission_id: commissionId });
       toast("✅ 已標記付款");
       patchListItem(state.commissionItems, "commission_id", commissionId, { status: "paid" });
+
+      // 記帳：分潤取款紀錄
+      const item = state.commissionItems.find(c => String(c.commission_id || c.id) === commissionId);
+      if (item) {
+        addLedgerRecord({
+          type: 'commission_paid',
+          payment_id: item.payment_id || '',
+          card_id: item.card_id || '',
+          card_name: '',
+          amount: item.amount || 0,
+          paid_at: new Date().toISOString(),
+          note: `分潤付款 代理：${item.agent_id || ''}`,
+          commission: item.amount || 0,
+          withdrawn: item.amount || 0,
+        });
+      }
+
       renderCommissionList();
-    }
-    catch (err) { toast(`操作失敗：${err.message}`); }
+      const ledgerSection = $('#ledgerSection');
+      if (ledgerSection?.classList.contains('active')) renderLedger();
+    } catch (err) { toast(`操作失敗：${err.message}`); }
   }
 
   // ── ANNOUNCEMENTS ──
@@ -793,7 +1116,7 @@
             <div class="list-row-icon ${status === 'active' ? 'icon-done' : 'icon-neutral'}">📢</div>
             <div class="list-row-info">
               <div class="list-row-title">${escapeHtml(textOf(a.title))}</div>
-              <div class="list-row-sub">${escapeHtml(formatValue(a.published_at||a.created_at))}</div>
+              <div class="list-row-sub">${escapeHtml(formatValue(a.published_at || a.created_at))}</div>
             </div>
             <div class="list-row-right">
               <span class="badge ${status === 'active' ? 'badge-ok' : 'badge-neutral'}">${escapeHtml(status)}</span>
@@ -814,7 +1137,8 @@
     container.querySelectorAll('.list-row-head[data-type="announcement"]').forEach(head => {
       head.addEventListener('click', () => document.getElementById(`anrow-${head.dataset.row}`)?.classList.toggle('open'));
     });
-    container.querySelectorAll('.btn-toggle-announcement').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); toggleAnnouncement(btn.dataset.id, btn.dataset.status); }));
+    container.querySelectorAll('.btn-toggle-announcement').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); toggleAnnouncement(btn.dataset.id, btn.dataset.status); }));
   }
 
   async function toggleAnnouncement(id, currentStatus) {
@@ -824,14 +1148,20 @@
       toast(`✅ 公告已${newStatus === "active" ? "啟用" : "停用"}`);
       patchListItem(state.announcementItems, "id", id, { status: newStatus });
       renderAnnouncements();
-    }
-    catch (err) { toast(`操作失敗：${err.message}`); }
+    } catch (err) { toast(`操作失敗：${err.message}`); }
   }
   async function saveAnnouncement() {
-    const title = valueOf("#announcementTitle"); const content = valueOf("#announcementContent"); const status = valueOf("#announcementStatus");
+    const title = valueOf("#announcementTitle");
+    const content = valueOf("#announcementContent");
+    const status = valueOf("#announcementStatus");
     if (!title || !content) return toast("請填寫標題和內容");
-    try { await apiPost("adminSaveAnnouncement", { title, content, status }); toast("✅ 公告已儲存"); const wrap = $('#announcementFormCollapsible'); if (wrap) wrap.classList.remove('open'); await loadAnnouncements(); }
-    catch (err) { toast(`儲存失敗：${err.message}`); }
+    try {
+      await apiPost("adminSaveAnnouncement", { title, content, status });
+      toast("✅ 公告已儲存");
+      const wrap = $('#announcementFormCollapsible');
+      if (wrap) wrap.classList.remove('open');
+      await loadAnnouncements();
+    } catch (err) { toast(`儲存失敗：${err.message}`); }
   }
 
   // ── TRACKING ──
@@ -846,7 +1176,7 @@
   function renderTrackingDetail(wrap, data) {
     if (!wrap) return;
     if (!data || !Object.keys(data).length) { wrap.innerHTML = ''; return; }
-    wrap.innerHTML = `<div class="detail-grid" style="margin-top:0;">${Object.entries(data).map(([k,v])=>renderDetailItem(k,formatValue(v))).join('')}</div>`;
+    wrap.innerHTML = `<div class="detail-grid" style="margin-top:0;">${Object.entries(data).map(([k, v]) => renderDetailItem(k, formatValue(v))).join('')}</div>`;
   }
 
   // ── SCHEMA / OPS ──
@@ -882,7 +1212,7 @@
   }
   function resolveWalletModeFromMeta(wallet) {
     const backendMode = textOf(wallet?.wallet_mode).toLowerCase();
-    if (["trial","referral","partner"].includes(backendMode)) return backendMode;
+    if (["trial", "referral", "partner"].includes(backendMode)) return backendMode;
     const agentType = textOf(wallet?.agent_type).toLowerCase();
     if (agentType === "partner") return "partner";
     if (agentType === "referral") return "referral";
@@ -902,46 +1232,363 @@
     return warnings;
   }
 
+  // ══════════════════════════════════════════
+  // ── 記帳功能 ──
+  // ══════════════════════════════════════════
+
+  function formatMoney(v) {
+    const n = Number(v || 0);
+    return 'NT$ ' + n.toLocaleString('zh-TW');
+  }
+
+  function renderLedger() {
+    const container = $('#ledgerSection');
+    if (!container) return;
+
+    // 合併 localStorage + commission 資料
+    const localRecords = getLedgerRecords();
+
+    // 從 commission state 補入分潤紀錄（避免重複）
+    const commissionRecords = state.commissionItems
+      .filter(c => textOf(c.status).toLowerCase() === 'paid')
+      .map(c => ({
+        ledger_id: `CM_${c.commission_id || c.id}`,
+        type: 'commission_paid',
+        payment_id: c.payment_id || '',
+        card_id: c.card_id || '',
+        card_name: '',
+        amount: 0,
+        commission: Number(c.amount || 0),
+        withdrawn: Number(c.amount || 0),
+        paid_at: c.paid_at || c.created_at || '',
+        note: `分潤 代理：${c.agent_id || ''}`,
+        created_at: c.created_at || '',
+      }));
+
+    // 合併，local 優先（有相同 ledger_id 不重複）
+    const allLocalIds = new Set(localRecords.map(r => r.ledger_id));
+    const merged = [
+      ...localRecords,
+      ...commissionRecords.filter(r => !allLocalIds.has(r.ledger_id))
+    ].sort((a, b) => new Date(b.paid_at || b.created_at) - new Date(a.paid_at || a.created_at));
+
+    // 統計
+    const totalIncome = merged.filter(r => r.type === 'income').reduce((s, r) => s + Number(r.amount || 0), 0);
+    const totalCommission = merged.reduce((s, r) => s + Number(r.commission || 0), 0);
+    const totalWithdrawn = merged.reduce((s, r) => s + Number(r.withdrawn || 0), 0);
+    const totalManual = merged.filter(r => r.type === 'manual').reduce((s, r) => s + Number(r.amount || 0), 0);
+
+    // 月報 map
+    const monthMap = {};
+    merged.forEach(r => {
+      const dt = r.paid_at || r.created_at || '';
+      const key = dt.slice(0, 7) || '未知';
+      if (!monthMap[key]) monthMap[key] = { income: 0, commission: 0, withdrawn: 0 };
+      if (r.type === 'income') monthMap[key].income += Number(r.amount || 0);
+      monthMap[key].commission += Number(r.commission || 0);
+      monthMap[key].withdrawn += Number(r.withdrawn || 0);
+    });
+    const months = Object.entries(monthMap).sort((a, b) => b[0].localeCompare(a[0]));
+
+    const wrap = $('#ledgerContentWrap');
+    if (!wrap) return;
+
+    wrap.innerHTML = `
+      <!-- 統計磚 -->
+      <div class="stats-row" style="margin-bottom:16px;">
+        <div class="stat-tile ok">
+          <div class="stat-label">總收款</div>
+          <div class="stat-value" style="font-size:18px;">${formatMoney(totalIncome)}</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">總分潤</div>
+          <div class="stat-value" style="font-size:18px;">${formatMoney(totalCommission)}</div>
+        </div>
+        <div class="stat-tile warn">
+          <div class="stat-label">已取款</div>
+          <div class="stat-value" style="font-size:18px;">${formatMoney(totalWithdrawn)}</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">手動調整</div>
+          <div class="stat-value" style="font-size:18px;">${formatMoney(totalManual)}</div>
+        </div>
+      </div>
+
+      <!-- 月報 -->
+      <div class="section-label">📅 月報表</div>
+      <div class="card" style="margin-bottom:14px;overflow:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
+              <th style="padding:10px 12px;text-align:left;font-weight:900;color:var(--ink2);">月份</th>
+              <th style="padding:10px 12px;text-align:right;font-weight:900;color:var(--ok);">收款</th>
+              <th style="padding:10px 12px;text-align:right;font-weight:900;color:var(--ink3);">分潤</th>
+              <th style="padding:10px 12px;text-align:right;font-weight:900;color:var(--warn);">取款</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${months.length ? months.map(([month, d]) => `
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:9px 12px;font-weight:800;">${escapeHtml(month)}</td>
+                <td style="padding:9px 12px;text-align:right;color:var(--ok);font-weight:700;">${formatMoney(d.income)}</td>
+                <td style="padding:9px 12px;text-align:right;color:var(--ink2);font-weight:700;">${formatMoney(d.commission)}</td>
+                <td style="padding:9px 12px;text-align:right;color:var(--warn);font-weight:700;">${formatMoney(d.withdrawn)}</td>
+              </tr>`).join('') : '<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--ink3);">尚無資料</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 手動新增 -->
+      <div class="collapsible" id="ledgerAddCollapsible">
+        <div class="collapsible-head" id="ledgerAddHead">
+          <span>➕ 手動新增記錄</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="collapsible-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="field">
+              <label>類型</label>
+              <select id="ledgerAddType">
+                <option value="income">收款</option>
+                <option value="commission_paid">分潤取款</option>
+                <option value="manual">手動調整</option>
+                <option value="withdrawal">取款</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>金額</label>
+              <input type="number" id="ledgerAddAmount" placeholder="0" min="0">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="field">
+              <label>分潤金額</label>
+              <input type="number" id="ledgerAddCommission" placeholder="0" min="0">
+            </div>
+            <div class="field">
+              <label>取款金額</label>
+              <input type="number" id="ledgerAddWithdrawn" placeholder="0" min="0">
+            </div>
+          </div>
+          <div class="field">
+            <label>卡片 ID（選填）</label>
+            <input type="text" id="ledgerAddCardId" placeholder="選填">
+          </div>
+          <div class="field">
+            <label>日期</label>
+            <input type="datetime-local" id="ledgerAddDate">
+          </div>
+          <div class="field">
+            <label>備註</label>
+            <input type="text" id="ledgerAddNote" placeholder="選填">
+          </div>
+          <button class="btn btn-primary btn-full" id="btnLedgerAdd">新增</button>
+        </div>
+      </div>
+
+      <!-- 明細列表 -->
+      <div class="section-label">📋 收支明細</div>
+      <div id="ledgerDetailList">
+        ${merged.length === 0 ? '<div class="empty-state">尚無記帳資料</div>' :
+          merged.map(r => renderLedgerRow(r)).join('')}
+      </div>
+    `;
+
+    // 綁定月報收合
+    wrap.querySelector('#ledgerAddHead')?.addEventListener('click', () => {
+      wrap.querySelector('#ledgerAddCollapsible')?.classList.toggle('open');
+    });
+
+    // 預設日期為現在
+    const dateInput = wrap.querySelector('#ledgerAddDate');
+    if (dateInput) {
+      const now = new Date();
+      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      dateInput.value = local;
+    }
+
+    // 新增按鈕
+    wrap.querySelector('#btnLedgerAdd')?.addEventListener('click', () => {
+      const type = wrap.querySelector('#ledgerAddType')?.value || 'income';
+      const amount = Number(wrap.querySelector('#ledgerAddAmount')?.value || 0);
+      const commission = Number(wrap.querySelector('#ledgerAddCommission')?.value || 0);
+      const withdrawn = Number(wrap.querySelector('#ledgerAddWithdrawn')?.value || 0);
+      const cardId = textOf(wrap.querySelector('#ledgerAddCardId')?.value);
+      const note = textOf(wrap.querySelector('#ledgerAddNote')?.value);
+      const dateVal = wrap.querySelector('#ledgerAddDate')?.value;
+      const paid_at = dateVal ? new Date(dateVal).toISOString() : new Date().toISOString();
+      if (!amount && !commission && !withdrawn) return toast('請輸入金額');
+      addLedgerRecord({ type, amount, commission, withdrawn, card_id: cardId, note, paid_at });
+      toast('✅ 已新增記錄');
+      renderLedger();
+    });
+
+    // 編輯 / 刪除 事件委派
+    wrap.querySelector('#ledgerDetailList')?.addEventListener('click', e => {
+      const editBtn = e.target.closest('[data-ledger-edit]');
+      if (editBtn) { openLedgerEditModal(editBtn.dataset.ledgerEdit); return; }
+      const delBtn = e.target.closest('[data-ledger-del]');
+      if (delBtn) {
+        if (!confirm('確定刪除此筆記錄？')) return;
+        const records = getLedgerRecords().filter(r => r.ledger_id !== delBtn.dataset.ledgerDel);
+        saveLedgerRecords(records);
+        toast('已刪除');
+        renderLedger();
+      }
+    });
+  }
+
+  function renderLedgerRow(r) {
+    const typeLabel = { income: '💰 收款', commission_paid: '💵 分潤取款', manual: '✏️ 手動', withdrawal: '🏦 取款' }[r.type] || r.type;
+    const typeColor = { income: 'var(--ok)', commission_paid: 'var(--warn)', manual: 'var(--info)', withdrawal: 'var(--ink3)' }[r.type] || 'var(--ink)';
+    const dt = (r.paid_at || r.created_at || '').slice(0, 10);
+    const isLocal = !r.ledger_id?.startsWith('CM_');
+    return `
+      <div class="list-row" style="margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:800;color:${typeColor};">${typeLabel}</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:2px;">${escapeHtml(dt)} ${escapeHtml(r.card_id || '')} ${escapeHtml(r.note || '')}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            ${r.amount ? `<div style="font-size:13px;font-weight:900;color:var(--ok);">${formatMoney(r.amount)}</div>` : ''}
+            ${r.commission ? `<div style="font-size:11px;color:var(--ink3);">分潤 ${formatMoney(r.commission)}</div>` : ''}
+            ${r.withdrawn ? `<div style="font-size:11px;color:var(--warn);">取款 ${formatMoney(r.withdrawn)}</div>` : ''}
+          </div>
+          ${isLocal ? `
+          <div style="display:flex;gap:4px;flex-shrink:0;">
+            <button class="btn btn-soft btn-sm" style="padding:0 8px;height:32px;" data-ledger-edit="${escapeHtml(r.ledger_id)}">編輯</button>
+            <button class="btn btn-danger btn-sm" style="padding:0 8px;height:32px;" data-ledger-del="${escapeHtml(r.ledger_id)}">刪</button>
+          </div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  function openLedgerEditModal(ledgerId) {
+    const records = getLedgerRecords();
+    const record = records.find(r => r.ledger_id === ledgerId);
+    if (!record) return toast('找不到記錄');
+
+    // 簡易 inline 編輯：用 prompt 系列
+    const newAmount = prompt('收款金額', record.amount || 0);
+    if (newAmount === null) return;
+    const newCommission = prompt('分潤金額', record.commission || 0);
+    if (newCommission === null) return;
+    const newWithdrawn = prompt('取款金額', record.withdrawn || 0);
+    if (newWithdrawn === null) return;
+    const newNote = prompt('備註', record.note || '');
+    if (newNote === null) return;
+
+    const idx = records.findIndex(r => r.ledger_id === ledgerId);
+    if (idx >= 0) {
+      records[idx] = {
+        ...records[idx],
+        amount: Number(newAmount) || 0,
+        commission: Number(newCommission) || 0,
+        withdrawn: Number(newWithdrawn) || 0,
+        note: newNote,
+      };
+      saveLedgerRecords(records);
+      toast('✅ 已更新');
+      renderLedger();
+    }
+  }
+
+  // 注入記帳 section 到 DOM（若不存在）
+  function injectLedgerSection() {
+    if (document.getElementById('ledgerSection')) return;
+
+    // 新增 section
+    const main = document.querySelector('.content');
+    if (!main) return;
+    const sec = document.createElement('section');
+    sec.id = 'ledgerSection';
+    sec.className = 'section';
+    sec.innerHTML = `
+      <div class="section-header">
+        <div class="section-title">記帳</div>
+        <button class="btn btn-soft btn-sm" id="btnRefreshLedger">↻ 重整</button>
+      </div>
+      <div id="ledgerContentWrap"></div>`;
+    main.appendChild(sec);
+
+    document.getElementById('btnRefreshLedger')?.addEventListener('click', async () => {
+      await loadCommissionList();
+      renderLedger();
+    });
+
+    // 注入 tab 按鈕
+    const tabnav = document.getElementById('tabNav');
+    if (tabnav) {
+      const tabBtn = document.createElement('button');
+      tabBtn.className = 'tab-btn';
+      tabBtn.dataset.section = 'ledgerSection';
+      tabBtn.textContent = '📒 記帳';
+      // 插入在「更多」按鈕前
+      const moreBtn = document.getElementById('btnMore');
+      tabnav.insertBefore(tabBtn, moreBtn);
+      tabBtn.addEventListener('click', () => {
+        if (typeof window.activateAdminSection === 'function') window.activateAdminSection('ledgerSection');
+        renderLedger();
+      });
+    }
+
+    // 也加入 more menu
+    const moreGrid = document.querySelector('.more-menu-grid');
+    if (moreGrid) {
+      const moreBtn = document.createElement('button');
+      moreBtn.className = 'more-menu-btn';
+      moreBtn.dataset.section = 'ledgerSection';
+      moreBtn.textContent = '📒 記帳';
+      moreBtn.addEventListener('click', () => {
+        if (typeof window.activateAdminSection === 'function') window.activateAdminSection('ledgerSection');
+        renderLedger();
+        document.getElementById('moreMenu')?.classList.remove('open');
+      });
+      moreGrid.appendChild(moreBtn);
+    }
+  }
+
   // ── LOAD DATA ──
   async function loadCards() {
-    try { const data = await apiGet("getCards", { limit: 100, offset: 0, light: true }); state.cards = normalizeList(data, ["cards","items"]); renderCards(); }
-    catch (err) { state.cards = []; renderCards(); }
+    try { const data = await apiGet("getCards", { limit: 100, offset: 0, light: true }); state.cards = normalizeList(data, ["cards", "items"]); renderCards(); }
+    catch { state.cards = []; renderCards(); }
   }
   async function loadPayments() {
-    try { const data = await apiGet("getPayments", { limit: 100, offset: 0, light: true }); state.payments = normalizeList(data, ["payments","items"]); }
-    catch (err) { state.payments = []; }
+    try { const data = await apiGet("getPayments", { limit: 100, offset: 0, light: true }); state.payments = normalizeList(data, ["payments", "items"]); }
+    catch { state.payments = []; }
   }
   async function loadPaymentList() {
-    try { const data = await apiGet("getPayments", { limit: 200, light: true }); state.paymentList = normalizeList(data, ["payments","rows","items"]); renderPayments(); }
-    catch (err) { state.paymentList = []; renderPayments(); }
+    try { const data = await apiGet("getPayments", { limit: 200, light: true }); state.paymentList = normalizeList(data, ["payments", "rows", "items"]); renderPayments(); }
+    catch { state.paymentList = []; renderPayments(); }
   }
   async function loadAddons() {
-    try { const data = await apiGet("getAddonOrders"); state.addons = normalizeList(data, ["addons","orders","items"]); renderAddons(); }
-    catch (err) { state.addons = []; renderAddons(); }
+    try { const data = await apiGet("getAddonOrders"); state.addons = normalizeList(data, ["addons", "orders", "items"]); renderAddons(); }
+    catch { state.addons = []; renderAddons(); }
   }
   async function loadAgents() {
-    try { const data = await apiGet("adminListAgents"); state.agents = normalizeList(data, ["agents","items"]); renderAgents(); }
-    catch (err) { state.agents = []; renderAgents(); }
+    try { const data = await apiGet("adminListAgents"); state.agents = normalizeList(data, ["agents", "items"]); renderAgents(); }
+    catch { state.agents = []; renderAgents(); }
   }
   async function loadRenewalList() {
-    try { const data = await apiGet("adminGetRenewalList"); state.renewalItems = normalizeList(data, ["renewals","items"]); renderRenewalList(); updateRenewalStats(); }
-    catch (err) { state.renewalItems = []; renderRenewalList(); }
+    try { const data = await apiGet("adminGetRenewalList"); state.renewalItems = normalizeList(data, ["renewals", "items"]); renderRenewalList(); updateRenewalStats(); }
+    catch { state.renewalItems = []; renderRenewalList(); }
   }
   async function loadAnnouncements() {
-    try { const data = await apiGet("getAnnouncements"); state.announcementItems = normalizeList(data, ["announcements","items"]); renderAnnouncements(); }
-    catch (err) { state.announcementItems = []; renderAnnouncements(); }
+    try { const data = await apiGet("getAnnouncements"); state.announcementItems = normalizeList(data, ["announcements", "items"]); renderAnnouncements(); }
+    catch { state.announcementItems = []; renderAnnouncements(); }
   }
   async function loadTrackingSummary() {
     try { const data = await apiGet("getTrackingSummary"); state.trackingSummary = data.summary || data || {}; renderTrackingSummary(); }
     catch (err) { console.error(err); }
   }
   async function loadRecentOpsLogs() {
-    try { const data = await apiGet("getRecentOpsLogs"); state.opsLogs = normalizeList(data, ["logs","items"]); renderDashboardOpsLogs(); }
-    catch (err) { state.opsLogs = []; }
+    try { const data = await apiGet("getRecentOpsLogs"); state.opsLogs = normalizeList(data, ["logs", "items"]); renderDashboardOpsLogs(); }
+    catch { state.opsLogs = []; }
   }
   async function loadCommissionList() {
-    try { const data = await apiGet("getCommissionList"); state.commissionItems = normalizeList(data, ["commissions","items"]); renderCommissionList(); }
-    catch (err) { state.commissionItems = []; renderCommissionList(); }
+    try { const data = await apiGet("getCommissionList"); state.commissionItems = normalizeList(data, ["commissions", "items"]); renderCommissionList(); }
+    catch { state.commissionItems = []; renderCommissionList(); }
   }
   async function checkSchemaStatus() {
     try { const data = await apiGet("adminCheckSchemaStatus"); state.schemaStatus = data.schema || data || {}; renderSchemaStatus(); }
@@ -960,7 +1607,6 @@
       if (detailInput) detailInput.value = cardId;
       renderCardDetail(card);
       syncDeliveryControlPanel(card);
-      // open detail collapsible
       $('#cardDetailCollapsible')?.classList.add('open');
       toast(`已載入卡片 ${cardId}`);
     } catch (err) { toast(`載入卡片失敗：${err.message}`); }
@@ -972,16 +1618,14 @@
     try {
       const data = await apiGet("adminGetAgent", { agent_id: agentId });
       state.currentAgent = data.agent || data || {};
-      // For now just toast; a full agent detail sheet can be added later
       toast(`代理 ${agentId} 已載入`);
-      console.log("[agentDetail]", state.currentAgent);
     } catch (err) { toast(`載入代理失敗：${err.message}`); }
   }
 
   async function loadRequests() {
     try {
       const data = await apiGet("getRequests", { limit: 50, offset: 0 });
-      state.requests = normalizeList(data, ["requests","items"]);
+      state.requests = normalizeList(data, ["requests", "items"]);
       renderRequests();
     } catch (err) {
       state.requests = [];
@@ -996,7 +1640,7 @@
       const trace = await getRequestTrace(requestId);
       state.currentRequestTrace = trace;
       if (container) container.innerHTML = `<div class="result-box">${escapeHtml(JSON.stringify(trace, null, 2))}</div>`;
-    } catch (err) {
+    } catch {
       const request = state.requests.find(r => r.request_id === requestId);
       if (container && request) container.innerHTML = `<div class="result-box">${escapeHtml(JSON.stringify(request, null, 2))}</div>`;
     }
@@ -1029,7 +1673,8 @@
         loadRequests().catch(() => {});
       }
       if (reqInput) reqInput.value = "";
-      const noteInput = $("#assignInviteNote"); if (noteInput) noteInput.value = "";
+      const noteInput = $("#assignInviteNote");
+      if (noteInput) noteInput.value = "";
     } catch (err) {
       toast("派碼失敗：" + err.message);
     } finally {
@@ -1068,15 +1713,17 @@
   async function runDailyOps() {
     if (!confirm("執行每日維運作業？")) return;
     if (!doubleConfirmId("daily_ops", "每日維運")) return;
-    try { await apiPost("runDailyOps"); toast("✅ 每日維運執行完成"); await Promise.allSettled([loadCards(), loadAddons(), loadRenewalList(), loadRecentOpsLogs()]); }
-    catch (err) { toast(`執行失敗：${err.message}`); }
+    try {
+      await apiPost("runDailyOps");
+      toast("✅ 每日維運執行完成");
+      await Promise.allSettled([loadCards(), loadAddons(), loadRenewalList(), loadRecentOpsLogs()]);
+    } catch (err) { toast(`執行失敗：${err.message}`); }
   }
 
   // ── REFRESH ALL ──
   async function refreshAll() {
     try {
       setLoading(true);
-      // 單一 bootstrap call 取回所有核心資料，避免多次 GAS 冷啟動
       let boot = null;
       try {
         boot = await apiGet("getAdminBootstrap", {
@@ -1096,33 +1743,30 @@
         return;
       }
 
-      // 填充 state（bootstrap 有就用，沒有保持現有）
-      if (boot.requests)      state.requests       = normalizeList(boot.requests,       ["requests","items"]);
-      if (boot.cards)         state.cards          = normalizeList(boot.cards,          ["cards","items"]);
-      if (boot.payments)      state.payments       = normalizeList(boot.payments,       ["payments","items"]);
-      if (boot.announcements) state.announcementItems = normalizeList(boot.announcements, ["announcements","items"]);
-      if (boot.ops_logs)      state.opsLogs        = normalizeList(boot.ops_logs,       ["ops_logs","items"]);
-      if (boot.renewals)      state.renewalItems   = normalizeList(boot.renewals,       ["renewals","items"]);
-      if (boot.addons)        state.addons         = normalizeList(boot.addons,         ["addon_orders","addons","items"]);
-      if (boot.agents)        state.agents         = normalizeList(boot.agents,         ["agents","items"]);
+      if (boot.requests)      state.requests          = normalizeList(boot.requests,       ["requests", "items"]);
+      if (boot.cards)         state.cards             = normalizeList(boot.cards,          ["cards", "items"]);
+      if (boot.payments)      state.payments          = normalizeList(boot.payments,       ["payments", "items"]);
+      if (boot.announcements) state.announcementItems = normalizeList(boot.announcements,  ["announcements", "items"]);
+      if (boot.ops_logs)      state.opsLogs           = normalizeList(boot.ops_logs,       ["ops_logs", "items"]);
+      if (boot.renewals)      state.renewalItems      = normalizeList(boot.renewals,       ["renewals", "items"]);
+      if (boot.addons)        state.addons            = normalizeList(boot.addons,         ["addon_orders", "addons", "items"]);
+      if (boot.agents)        state.agents            = normalizeList(boot.agents,         ["agents", "items"]);
 
-      // 立即 render 主要畫面
       renderRequests();
       renderCards();
-      if (state.renewalItems?.length)   renderRenewalList();
+      if (state.renewalItems?.length)      renderRenewalList();
       if (state.announcementItems?.length) renderAnnouncements();
-      if (state.addons?.length)         renderAddons();
-      if (state.agents?.length)         renderAgents();
+      if (state.addons?.length)            renderAddons();
+      if (state.agents?.length)            renderAgents();
       renderDashboard();
       renderDashboardOpsLogs();
 
-      // 只有真的缺資料才補打（lazy fallback）
       const lazyLoads = [];
-      if (!state.renewalItems?.length)     lazyLoads.push(loadRenewalList());
+      if (!state.renewalItems?.length)      lazyLoads.push(loadRenewalList());
       if (!state.announcementItems?.length) lazyLoads.push(loadAnnouncements());
-      if (!state.addons?.length)           lazyLoads.push(loadAddons());
-      if (!state.agents?.length)           lazyLoads.push(loadAgents());
-      // tracking summary 按需載入（非啟動必要）
+      if (!state.addons?.length)            lazyLoads.push(loadAddons());
+      if (!state.agents?.length)            lazyLoads.push(loadAgents());
+      if (!state.commissionItems?.length)   lazyLoads.push(loadCommissionList());
       if (lazyLoads.length) {
         await Promise.allSettled(lazyLoads);
         renderDashboard();
@@ -1156,12 +1800,12 @@
     on("#btnGetCardTracking", "click", async () => {
       const cardId = valueOf("#trackingCardId"); if (!cardId) return toast("請輸入卡片 ID");
       try { const data = await apiGet("getCardTrackingStats", { card_id: cardId }); state.cardTrackingDetail = data.tracking || data || {}; renderTrackingDetail($('#cardTrackingDetail'), state.cardTrackingDetail); }
-      catch (err) { toast("查詢失敗"); }
+      catch { toast("查詢失敗"); }
     });
     on("#btnGetAgentTracking", "click", async () => {
       const agentId = valueOf("#trackingAgentId"); if (!agentId) return toast("請輸入代理 ID");
       try { const data = await apiGet("getAgentTrackingStats", { agent_id: agentId }); state.agentTrackingDetail = data.tracking || data || {}; renderTrackingDetail($('#agentTrackingDetail'), state.agentTrackingDetail); }
-      catch (err) { toast("查詢失敗"); }
+      catch { toast("查詢失敗"); }
     });
     on("#btnCheckSchema", "click", checkSchemaStatus);
     on("#btnRunDailyOps", "click", runDailyOps);
@@ -1182,13 +1826,13 @@
       const e = $('#deliveryEmpty'); if (e) e.style.display = 'none';
     });
 
-    // expose renderAddons/renderAgents/renderCards globally for live search
     window.renderCards = renderCards;
     window.renderAddons = renderAddons;
     window.renderAgents = renderAgents;
   }
 
   function init() {
+    injectLedgerSection();
     bindEvents();
     renderKeyStatus();
     if (getAdminKey()) refreshAll();
@@ -1202,25 +1846,25 @@
     const con = $("#recognitionListContainer"); if (!con) return;
     if (!items.length) { con.innerHTML = '<div class="empty-state">尚無待採認項目</div>'; return; }
     con.innerHTML = items.map(item => {
-      const rid = String(item.recognition_id||item.id||"").replace(/[<>&"']/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+      const rid = escapeHtml(String(item.recognition_id || item.id || ""));
       return `<div class="list-row" id="recrow-${rid}">
         <div class="list-row-head" data-row="${rid}" data-type="recognition">
           <div class="list-row-icon icon-pending">✅</div>
           <div class="list-row-info">
-            <div class="list-row-title">${String(item.card_id||"").replace(/</g,"&lt;")} · ${String(item.event_type||"").replace(/</g,"&lt;")}</div>
-            <div class="list-row-sub">${rid} · 代理：${String(item.agent_id||"").replace(/</g,"&lt;")}</div>
+            <div class="list-row-title">${escapeHtml(String(item.card_id || ""))} · ${escapeHtml(String(item.event_type || ""))}</div>
+            <div class="list-row-sub">${rid} · 代理：${escapeHtml(String(item.agent_id || ""))}</div>
           </div>
-          <div class="list-row-right"><span class="badge badge-warn">${String(item.result||"pending").replace(/</g,"&lt;")}</span></div>
+          <div class="list-row-right"><span class="badge badge-warn">${escapeHtml(String(item.result || "pending"))}</span></div>
           <span class="chevron" style="margin-left:6px;">›</span>
         </div>
         <div class="list-row-body">
           <div class="detail-grid" style="margin-top:0;">
-            <div class="detail-item"><div class="detail-key">採認ID</div><div class="detail-val">${String(item.recognition_id||item.id||"-").replace(/</g,"&lt;")}</div></div>
-            <div class="detail-item"><div class="detail-key">事件類型</div><div class="detail-val">${String(item.event_type||"-").replace(/</g,"&lt;")}</div></div>
-            <div class="detail-item"><div class="detail-key">事件ID</div><div class="detail-val">${String(item.event_id||"-").replace(/</g,"&lt;")}</div></div>
-            <div class="detail-item"><div class="detail-key">卡片ID</div><div class="detail-val">${String(item.card_id||"-").replace(/</g,"&lt;")}</div></div>
-            <div class="detail-item"><div class="detail-key">代理ID</div><div class="detail-val">${String(item.agent_id||"-").replace(/</g,"&lt;")}</div></div>
-            <div class="detail-item"><div class="detail-key">採認時間</div><div class="detail-val">${String(item.recognized_at||"-").replace(/</g,"&lt;")}</div></div>
+            ${renderDetailItem("採認ID", item.recognition_id || item.id)}
+            ${renderDetailItem("事件類型", item.event_type)}
+            ${renderDetailItem("事件ID", item.event_id)}
+            ${renderDetailItem("卡片ID", item.card_id)}
+            ${renderDetailItem("代理ID", item.agent_id)}
+            ${renderDetailItem("採認時間", item.recognized_at)}
           </div>
           <div class="field" style="margin-top:10px;"><label>service_log_id（選填）</label>
             <input type="text" id="rLogId-${rid}" placeholder="service_log_id"></div>
@@ -1233,28 +1877,40 @@
         </div>
       </div>`;
     }).join("");
-    con.querySelectorAll(".list-row-head[data-type='recognition']").forEach(h => h.addEventListener("click", () => document.getElementById(`recrow-${h.dataset.row}`)?.classList.toggle("open")));
-    con.querySelectorAll(".btn-rec-approve").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); approveRecognitionFromUi(b.dataset.id); }));
-    con.querySelectorAll(".btn-rec-reject").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); rejectRecognitionFromUi(b.dataset.id); }));
+    con.querySelectorAll(".list-row-head[data-type='recognition']").forEach(h =>
+      h.addEventListener("click", () => document.getElementById(`recrow-${h.dataset.row}`)?.classList.toggle("open")));
+    con.querySelectorAll(".btn-rec-approve").forEach(b =>
+      b.addEventListener("click", e => { e.stopPropagation(); approveRecognitionFromUi(b.dataset.id); }));
+    con.querySelectorAll(".btn-rec-reject").forEach(b =>
+      b.addEventListener("click", e => { e.stopPropagation(); rejectRecognitionFromUi(b.dataset.id); }));
   }
   async function approveRecognitionFromUi(rid) {
-    if (!confirm("核准此採認單？")) return; if (!doubleConfirmId(rid,"採認單")) return;
+    if (!confirm("核准此採認單？")) return;
+    if (!doubleConfirmId(rid, "採認單")) return;
     const sli = document.getElementById(`rLogId-${rid}`);
     const ni = document.getElementById(`rNote-${rid}`);
-    try { await apiPost("approveRecognition",{recognition_id:rid,service_log_id:sli?.value?.trim()||undefined,note:ni?.value?.trim()||undefined}); toast("✅ 已核准"); await loadRecognitionQueues(); }
-    catch(e) { toast(`核准失敗：${e.message}`); }
+    try {
+      await apiPost("approveRecognition", { recognition_id: rid, service_log_id: sli?.value?.trim() || undefined, note: ni?.value?.trim() || undefined });
+      toast("✅ 已核准");
+      await loadRecognitionQueues();
+    } catch (e) { toast(`核准失敗：${e.message}`); }
   }
   async function rejectRecognitionFromUi(rid) {
-    if (!confirm("拒絕此採認單？")) return; if (!doubleConfirmId(rid,"採認單")) return;
+    if (!confirm("拒絕此採認單？")) return;
+    if (!doubleConfirmId(rid, "採認單")) return;
     const ni = document.getElementById(`rNote-${rid}`);
-    try { await apiPost("rejectRecognition",{recognition_id:rid,note:ni?.value?.trim()||undefined}); toast("❌ 已拒絕"); await loadRecognitionQueues(); }
-    catch(e) { toast(`拒絕失敗：${e.message}`); }
+    try {
+      await apiPost("rejectRecognition", { recognition_id: rid, note: ni?.value?.trim() || undefined });
+      toast("❌ 已拒絕");
+      await loadRecognitionQueues();
+    } catch (e) { toast(`拒絕失敗：${e.message}`); }
   }
   async function loadRecognitionQueues() {
     try {
-      const action = state.currentRecognitionType==="addon" ? "getAddonRecognitionQueue" : "getRenewalRecognitionQueue";
-      const items = normalizeList(await apiGet(action),["items","queue"]);
-      if (state.currentRecognitionType==="renewal") state.recognitionRenewalItems=items; else state.recognitionAddonItems=items;
+      const action = state.currentRecognitionType === "addon" ? "getAddonRecognitionQueue" : "getRenewalRecognitionQueue";
+      const items = normalizeList(await apiGet(action), ["items", "queue"]);
+      if (state.currentRecognitionType === "renewal") state.recognitionRenewalItems = items;
+      else state.recognitionAddonItems = items;
       renderRecognitionQueue(items);
     } catch { renderRecognitionQueue([]); }
   }
@@ -1263,16 +1919,16 @@
   function renderAgentDetail(agent) {
     const wrap = $("#agentDetailWrap"); if (!wrap) return;
     if (!agent || !Object.keys(agent).length) { wrap.innerHTML = '<div class="empty-state">查無代理詳情</div>'; return; }
-    const agid = String(agent.agent_id||"").replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
-    const dg = Object.entries(agent).map(([k,v])=>renderDetailItem(k,formatValue(v))).join("");
+    const agid = escapeHtml(String(agent.agent_id || ""));
+    const dg = Object.entries(agent).map(([k, v]) => renderDetailItem(k, formatValue(v))).join("");
     wrap.innerHTML = `
       <div class="detail-grid" style="margin-top:0;">${dg}</div>
       <div class="divider"></div>
       <div style="font-size:13px;font-weight:800;margin-bottom:10px;">編輯代理資料</div>
-      <div class="field"><label>姓名</label><input type="text" id="editAgentName" value="${String(agent.owner_name||"").replace(/"/g,"&quot;")}"></div>
-      <div class="field"><label>電話</label><input type="text" id="editAgentPhone" value="${String(agent.phone||"").replace(/"/g,"&quot;")}"></div>
-      <div class="field"><label>Email</label><input type="email" id="editAgentEmail" value="${String(agent.email||"").replace(/"/g,"&quot;")}"></div>
-      <div class="field"><label>代理類型</label><input type="text" id="editAgentType" value="${String(agent.agent_type||"").replace(/"/g,"&quot;")}"></div>
+      <div class="field"><label>姓名</label><input type="text" id="editAgentName" value="${escapeHtml(String(agent.owner_name || ''))}"></div>
+      <div class="field"><label>電話</label><input type="text" id="editAgentPhone" value="${escapeHtml(String(agent.phone || ''))}"></div>
+      <div class="field"><label>Email</label><input type="email" id="editAgentEmail" value="${escapeHtml(String(agent.email || ''))}"></div>
+      <div class="field"><label>代理類型</label><input type="text" id="editAgentType" value="${escapeHtml(String(agent.agent_type || ''))}"></div>
       <div class="action-strip">
         <button class="btn btn-primary btn-sm" id="btnUpdateAgentD" data-id="${agid}">更新資料</button>
         <button class="btn btn-danger btn-sm" id="btnFreezeAgentD" data-id="${agid}">凍結</button>
@@ -1282,116 +1938,102 @@
       <div style="font-size:13px;font-weight:800;margin-bottom:10px;">升級設定</div>
       <div class="field">
         <label>目標等級（target_tier）</label>
-        <input type="text" id="editTargetTier" placeholder="例如：silver / gold" value="${String(agent.target_tier||"").replace(/"/g,"&quot;")}">
+        <input type="text" id="editTargetTier" placeholder="例如：silver / gold" value="${escapeHtml(String(agent.target_tier || ''))}">
       </div>
       <button class="btn btn-warn btn-sm" id="btnSetUpgradeD" data-id="${agid}">設定可升級</button>
       <div class="divider"></div>
       <div style="font-size:13px;font-weight:800;margin-bottom:8px;">點數 / 分潤紀錄</div>
       <div id="agentLogsWrap"><div class="empty-state">載入中…</div></div>`;
+
     wrap.querySelector("#btnUpdateAgentD")?.addEventListener("click", async e => {
       const id = e.currentTarget.dataset.id;
-      try { const res = await apiPost("adminUpdateAgent",{agent_id:id,owner_name:valueOf("#editAgentName"),phone:valueOf("#editAgentPhone"),email:valueOf("#editAgentEmail"),agent_type:valueOf("#editAgentType")}); toast("✅ 已更新"); if (res?.agent) { patchListItem(state.agents,"agent_id",id,res.agent); renderAgents(); } await loadAgentDetail(id); }
-      catch(e) { toast(`更新失敗：${e.message}`); }
+      try {
+        const res = await apiPost("adminUpdateAgent", { agent_id: id, owner_name: valueOf("#editAgentName"), phone: valueOf("#editAgentPhone"), email: valueOf("#editAgentEmail"), agent_type: valueOf("#editAgentType") });
+        toast("✅ 已更新");
+        if (res?.agent) { patchListItem(state.agents, "agent_id", id, res.agent); renderAgents(); }
+        await loadAgentDetail(id);
+      } catch (e) { toast(`更新失敗：${e.message}`); }
     });
     wrap.querySelector("#btnFreezeAgentD")?.addEventListener("click", async e => {
-      const id=e.currentTarget.dataset.id; if(!confirm(`凍結代理 ${id}？`)) return; if(!doubleConfirmId(id,"代理")) return;
-      try{const res=await apiPost("adminFreezeAgent",{agent_id:id});toast("✅ 已凍結");if(res?.agent){patchListItem(state.agents,"agent_id",id,res.agent);renderAgents();}await loadAgentDetail(id);}catch(e){toast(`凍結失敗：${e.message}`);}
+      const id = e.currentTarget.dataset.id;
+      if (!confirm(`凍結代理 ${id}？`)) return;
+      if (!doubleConfirmId(id, "代理")) return;
+      try { const res = await apiPost("adminFreezeAgent", { agent_id: id }); toast("✅ 已凍結"); if (res?.agent) { patchListItem(state.agents, "agent_id", id, res.agent); renderAgents(); } await loadAgentDetail(id); }
+      catch (e) { toast(`凍結失敗：${e.message}`); }
     });
     wrap.querySelector("#btnUnfreezeAgentD")?.addEventListener("click", async e => {
-      const id=e.currentTarget.dataset.id; if(!confirm(`解凍代理 ${id}？`)) return; if(!doubleConfirmId(id,"代理")) return;
-      try{const res=await apiPost("adminUnfreezeAgent",{agent_id:id});toast("✅ 已解凍");if(res?.agent){patchListItem(state.agents,"agent_id",id,res.agent);renderAgents();}await loadAgentDetail(id);}catch(e){toast(`解凍失敗：${e.message}`);}
+      const id = e.currentTarget.dataset.id;
+      if (!confirm(`解凍代理 ${id}？`)) return;
+      if (!doubleConfirmId(id, "代理")) return;
+      try { const res = await apiPost("adminUnfreezeAgent", { agent_id: id }); toast("✅ 已解凍"); if (res?.agent) { patchListItem(state.agents, "agent_id", id, res.agent); renderAgents(); } await loadAgentDetail(id); }
+      catch (e) { toast(`解凍失敗：${e.message}`); }
     });
     wrap.querySelector("#btnSetUpgradeD")?.addEventListener("click", async e => {
-      const id=e.currentTarget.dataset.id; const tier=valueOf("#editTargetTier"); if(!tier) return toast("請輸入目標等級");
-      if(!doubleConfirmId(id,"代理")) return;
-      try{await apiPost("adminSetAgentUpgrade",{agent_id:id,target_tier:tier});toast("✅ 升級已設定");await loadAgentDetail(id);}catch(e){toast(`設定失敗：${e.message}`);}
+      const id = e.currentTarget.dataset.id;
+      const tier = valueOf("#editTargetTier");
+      if (!tier) return toast("請輸入目標等級");
+      if (!doubleConfirmId(id, "代理")) return;
+      try { await apiPost("adminSetAgentUpgrade", { agent_id: id, target_tier: tier }); toast("✅ 升級已設定"); await loadAgentDetail(id); }
+      catch (e) { toast(`設定失敗：${e.message}`); }
     });
-    loadAgentLogs(String(agent.agent_id||""));
+    loadAgentLogs(String(agent.agent_id || ""));
   }
+
   async function loadAgentLogs(agid) {
     const wrap = document.getElementById("agentLogsWrap"); if (!wrap) return;
     try {
-      const [pl,cl] = await Promise.all([apiGet("getAgentPointsLog",{agent_id:agid}),apiGet("getAgentCommissionLog",{agent_id:agid})]);
-      const pRows=normalizeList(pl,["logs"]); const cRows=normalizeList(cl,["logs"]);
-      function fv(v){return v===undefined||v===null||v===""?"-":String(v);}
-      function fvk(obj,keys){for(const k of keys){const v=obj&&obj[k];if(v!==undefined&&v!==null&&String(v).trim())return v;}return "";}
-      function esc(s){return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+      const [pl, cl] = await Promise.all([apiGet("getAgentPointsLog", { agent_id: agid }), apiGet("getAgentCommissionLog", { agent_id: agid })]);
+      const pRows = normalizeList(pl, ["logs"]);
+      const cRows = normalizeList(cl, ["logs"]);
+      function fvk(obj, keys) { for (const k of keys) { const v = obj && obj[k]; if (v !== undefined && v !== null && String(v).trim()) return v; } return ""; }
       wrap.innerHTML = `
         <div style="font-size:12px;font-weight:900;color:var(--ink3);margin-bottom:6px;">點數紀錄</div>
-        ${pRows.length?pRows.map(r=>`<div class="risk-item" style="background:var(--surface2);border-left-color:var(--border);color:var(--ink2);margin-bottom:4px;">
-          <span style="color:var(--ink3);font-size:11px;">${esc(fv(fvk(r,["created_at","time"])))}</span>
-          <span style="margin-left:6px;">${esc(fv(fvk(r,["type","action"])))} ${esc(fv(fvk(r,["before_balance","before"])))}→${esc(fv(fvk(r,["after_balance","after"])))}</span>
-        </div>`).join(""):"<div class='empty-state'>沒有點數紀錄</div>"}
+        ${pRows.length ? pRows.map(r => `<div class="risk-item" style="background:var(--surface2);border-left-color:var(--border);color:var(--ink2);margin-bottom:4px;">
+          <span style="color:var(--ink3);font-size:11px;">${escapeHtml(formatValue(fvk(r, ["created_at", "time"])))}</span>
+          <span style="margin-left:6px;">${escapeHtml(formatValue(fvk(r, ["type", "action"])))} ${escapeHtml(formatValue(fvk(r, ["before_balance", "before"])))}→${escapeHtml(formatValue(fvk(r, ["after_balance", "after"])))}</span>
+        </div>`).join("") : "<div class='empty-state'>沒有點數紀錄</div>"}
         <div style="font-size:12px;font-weight:900;color:var(--ink3);margin:10px 0 6px;">分潤紀錄</div>
-        ${cRows.length?cRows.map(r=>`<div class="risk-item" style="background:var(--surface2);border-left-color:var(--border);color:var(--ink2);margin-bottom:4px;">
-          <span style="color:var(--ink3);font-size:11px;">${esc(fv(fvk(r,["created_at","time"])))}</span>
-          <span style="margin-left:6px;">$${esc(fv(fvk(r,["amount"])))} ${esc(fv(fvk(r,["note","memo"])))}</span>
-        </div>`).join(""):"<div class='empty-state'>沒有分潤紀錄</div>"}`;
+        ${cRows.length ? cRows.map(r => `<div class="risk-item" style="background:var(--surface2);border-left-color:var(--border);color:var(--ink2);margin-bottom:4px;">
+          <span style="color:var(--ink3);font-size:11px;">${escapeHtml(formatValue(fvk(r, ["created_at", "time"])))}</span>
+          <span style="margin-left:6px;">$${escapeHtml(formatValue(fvk(r, ["amount"])))} ${escapeHtml(formatValue(fvk(r, ["note", "memo"])))}</span>
+        </div>`).join("") : "<div class='empty-state'>沒有分潤紀錄</div>"}`;
     } catch { wrap.innerHTML = "<div class='empty-state'>無法載入紀錄</div>"; }
   }
 
-  // ─── POINTS / COMMISSION ADJUST ───
-  async function adjustPoints(mode) {
-    const agid=valueOf("#pointsAgentId"); const val=Number(valueOf("#pointsValue")); const note=valueOf("#pointsNote");
-    if(!agid) return toast("請輸入代理 ID"); if(!Number.isFinite(val)||val<=0) return toast("點數必須大於 0");
-    const points=mode==="subtract"?-Math.abs(val):Math.abs(val);
-    try{const res=await apiPost("adminAdjustPoints",{agent_id:agid,points,note});toast(mode==="subtract"?"✅ 已扣點":"✅ 已加點");if(res?.agent){patchListItem(state.agents,"agent_id",agid,res.agent);renderAgents();}await loadAgentDetail(agid);}
-    catch(e){toast(`操作失敗：${e.message}`);}
-  }
-  async function adjustCommission() {
-    const agid=valueOf("#commissionAgentId"); const amount=Number(valueOf("#commissionValue")); const note=valueOf("#commissionNote");
-    if(!agid) return toast("請輸入代理 ID"); if(!Number.isFinite(amount)||amount<=0) return toast("金額必須大於 0");
-    try{const res=await apiPost("adminAdjustCommission",{agent_id:agid,amount,note});toast("✅ 已補分潤");if(res?.agent){patchListItem(state.agents,"agent_id",agid,res.agent);renderAgents();}await loadAgentDetail(agid);}
-    catch(e){toast(`操作失敗：${e.message}`);}
-  }
-  function showAgentPointsPanel(agid, name) {
-    const p=$("#agentPointsPanel"); if(!p) return;
-    p.style.display="block";
-    const lbl=$("#agentPointsPanelLabel"); if(lbl) lbl.textContent=`代理：${name} (${agid})`;
-    const pi=$("#pointsAgentId"); if(pi) pi.value=agid;
-    const ci=$("#commissionAgentId"); if(ci) ci.value=agid;
-    p.scrollIntoView({behavior:"smooth",block:"nearest"});
-  }
-
-  // ─── REQUEST TRACE RENDER ───
+  // ─── REQUEST TRACE ───
   function renderRequestTrace(trace) {
     const wrap = document.getElementById("requestTraceWrap"); if (!wrap) return;
     if (!trace) { wrap.innerHTML = "<div class='empty-state'>無追蹤資料</div>"; return; }
-    function esc(s){return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
     let html = "";
-    if (trace.message) html += `<div class="risk-item info" style="margin-bottom:8px;">${esc(trace.message)}</div>`;
+    if (trace.message) html += `<div class="risk-item info" style="margin-bottom:8px;">${escapeHtml(trace.message)}</div>`;
     html += `<div style="font-size:12px;font-weight:900;color:var(--ink3);margin-bottom:6px;">📌 申請單</div>`;
-    html += `<div class="result-box" style="margin-bottom:10px;">${esc(JSON.stringify(trace.request,null,2))}</div>`;
+    html += `<div class="result-box" style="margin-bottom:10px;">${escapeHtml(JSON.stringify(trace.request, null, 2))}</div>`;
     if (trace.invite) {
       html += `<div style="font-size:12px;font-weight:900;color:var(--ink3);margin-bottom:6px;">🎫 邀請碼</div>`;
-      html += `<div class="result-box" style="margin-bottom:10px;">${esc(JSON.stringify(trace.invite,null,2))}</div>`;
+      html += `<div class="result-box" style="margin-bottom:10px;">${escapeHtml(JSON.stringify(trace.invite, null, 2))}</div>`;
     } else { html += `<div class="risk-item warn" style="margin-bottom:8px;">尚未產生邀請碼</div>`; }
     if (trace.lead) {
       html += `<div style="font-size:12px;font-weight:900;color:var(--ink3);margin-bottom:6px;">👤 客戶</div>`;
-      html += `<div class="result-box" style="margin-bottom:10px;">${esc(JSON.stringify(trace.lead,null,2))}</div>`;
-      if (trace.lead.converted_card_id) html += `<button class="btn btn-primary btn-sm" id="btnTraceCard" data-cid="${esc(trace.lead.converted_card_id)}">查看卡片</button>`;
+      html += `<div class="result-box" style="margin-bottom:10px;">${escapeHtml(JSON.stringify(trace.lead, null, 2))}</div>`;
+      if (trace.lead.converted_card_id) html += `<button class="btn btn-primary btn-sm" id="btnTraceCard" data-cid="${escapeHtml(trace.lead.converted_card_id)}">查看卡片</button>`;
     } else { html += `<div class="risk-item" style="background:var(--surface2);border-left-color:var(--border);color:var(--ink3);">尚未轉換成卡片</div>`; }
     wrap.innerHTML = html;
     wrap.querySelector("#btnTraceCard")?.addEventListener("click", e => window.loadCardDetail?.(e.currentTarget.dataset.cid));
   }
 
-  // ─── PENDING COMMISSIONS ───
-  async function loadPendingCommissions() {
-    try { state.commissionItems = normalizeList(await apiGet("getCommissionList",{status:"pending"}),["commissions","items"]); renderCommissionList(); }
-    catch(e) { console.error(e); }
-  }
-
-  // ─── RENEWAL EXTRAS ───
   async function triggerPaymentReminderForCard(cid) {
-    try { await apiPost("triggerRenewalPaymentReminder",{card_id:cid}); toast("✅ 付款提醒已觸發"); }
-    catch(e) { toast(`觸發失敗：${e.message}`); }
+    try { await apiPost("triggerRenewalPaymentReminder", { card_id: cid }); toast("✅ 付款提醒已觸發"); }
+    catch (e) { toast(`觸發失敗：${e.message}`); }
   }
   async function buildAndCopyRenewalText(cid) {
     try {
-      const data = await apiGet("buildRenewalReminderText",{card_id:cid});
-      const text = data.text||data.message||"";
-      if (text) copyText(text,"✅ 已複製續約文案"); else toast("無法產生文案");
-    } catch { copyText(`您好，您的名片服務即將到期，請點擊以下連結完成續約：\nhttps://angel0973180707.github.io/Happiness-Smart-Card-System/renew.html?id=${encodeURIComponent(cid)}`,"⚠️ 已複製備用文案"); }
+      const data = await apiGet("buildRenewalReminderText", { card_id: cid });
+      const text = data.text || data.message || "";
+      if (text) copyText(text, "✅ 已複製續約文案");
+      else toast("無法產生文案");
+    } catch {
+      copyText(`您好，您的名片服務即將到期，請點擊以下連結完成續約：\n${buildRenewalLink(cid)}`, "⚠️ 已複製備用文案");
+    }
   }
 
 })();
