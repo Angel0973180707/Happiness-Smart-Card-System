@@ -2,34 +2,33 @@
   "use strict";
 
   const CONFIG = {
-    VERSION: "v6.6.0-bootstrap-sync-stable",
-    KEY_PREFIX: "ANGEL2026",          // 寫死前段，清快取後只需輸入後段
+    VERSION: "v6.7.0-perf-optimized",
+    KEY_PREFIX: "ANGEL2026",
     GAS_BASE_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
     DEFAULT_RENEW_DAYS: 365,
     API_TIMEOUT_MS: 25000,
     API_RETRY: 1,
-    // 銀行資訊
     BANK_NAME: "玉山銀行",
     BANK_CODE: "808",
     BANK_ACCOUNT: "0738968051590",
     BANK_HOLDER: "李秀芳",
-     CONTACT_LINE: "@hsc_service",
+    CONTACT_LINE: "@hsc_service",
+    // ── 分頁設定 ──
+    PAGE_SIZE: 50,
   };
 
   // ── KEY STORAGE ──
   const KEY_STORAGE = "hsc_admin_key";
   function getAdminKey() {
     const suffix = localStorage.getItem(KEY_STORAGE) || "";
-    // 若 suffix 已包含完整 prefix 則直接用（相容舊版已儲存完整 Key 的情況）
     if (suffix.startsWith(CONFIG.KEY_PREFIX)) return suffix;
     return suffix ? CONFIG.KEY_PREFIX + suffix : "";
   }
   function saveAdminKey(key) {
     if (!key || !key.trim()) return false;
     const val = key.trim();
-    // 只存後段（去掉 prefix 避免重複）
     const suffix = val.startsWith(CONFIG.KEY_PREFIX) ? val.slice(CONFIG.KEY_PREFIX.length) : val;
     localStorage.setItem(KEY_STORAGE, suffix);
     return true;
@@ -53,7 +52,6 @@
   }
   function addLedgerRecord(record) {
     const records = getLedgerRecords();
-    // 避免重複（同 payment_id）
     if (record.payment_id) {
       const exists = records.find(r => r.payment_id === record.payment_id);
       if (exists) return;
@@ -74,10 +72,12 @@
     currentPaymentDetail: null, currentRecognitionDetail: null, currentRenewalDetail: null,
     requests: [], requestFilter: '', currentRequest: null,
     currentRequestTrace: null, currentSelectedRequestForInvite: null,
-    ledgerRecords: []
+    ledgerRecords: [],
+    // ── 分頁狀態 ──
+    _cardPage: 1,
+    _paymentPage: 1,
   };
 
-  // expose state globally for shell script access
   window._hscState = state;
 
   function $(selector) { return document.querySelector(selector); }
@@ -117,6 +117,7 @@
     clearTimeout(toast._timer);
     toast._timer = setTimeout(() => el.classList.add("hidden"), 2200);
   }
+
   let _loadingCount = 0;
   let _loadingTimer = null;
   function setLoading(show) {
@@ -135,6 +136,7 @@
       }
     }
   }
+
   function setBtnLoading(btnEl, isLoading) {
     if (!btnEl) return;
     if (isLoading) { btnEl.dataset.originalText = btnEl.dataset.originalText || btnEl.textContent; btnEl.textContent = "處理中…"; btnEl.disabled = true; }
@@ -144,6 +146,15 @@
   function on(selector, event, handler) {
     const el = $(selector);
     if (el) el.addEventListener(event, handler);
+  }
+
+  // ── DEBOUNCE（防止搜尋每字觸發 render）──
+  function debounce(fn, delay = 220) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
+    };
   }
 
   function doubleConfirmId(id, label = "ID") {
@@ -202,51 +213,20 @@
   }
 
   // ── 文案產生器 ──
-
-  // 建卡完成通知（第一次發送）
-function buildCardCreatedNotice(card) {
+  function buildCardCreatedNotice(card) {
     const name = textOf(card.name || card.owner_name) || '您';
     const cardId = textOf(card.id || card.card_id);
     const amount = card.amount || card.plan_price || '請洽客服';
     const deadline = formatDeadlineStr(card);
     const previewUrl = `${CONFIG.HUB_URL}index.html?id=${encodeURIComponent(cardId)}`;
-
-    return `您好 ${name}，
-
-🎉 您的 HSC 智慧名片已建立完成！
-
-請依照以下步驟完成付款，名片即可正式啟用：
-
-━━━━━━━━━━━━━━━━━
-💳【付款資訊】
-銀行：${CONFIG.BANK_NAME}（${CONFIG.BANK_CODE}）
-帳號：${CONFIG.BANK_ACCOUNT}
-戶名：${CONFIG.BANK_HOLDER}
-金額：NT$ ${amount}
-━━━━━━━━━━━━━━━━━
-
-📋【付款注意事項】
-・付款完成後請回傳您的匯款帳號末 5 碼供對帳
-・付款截止時間：${deadline || '請盡快完成'}
-・確認後 1 個工作天內啟用
-・啟用後將發送交付卡連結給您
-
-🔗 名片預覽：
-${previewUrl}
-
-📩 如有任何問題，請透過 LINE 官方帳號聯繫：
-${CONFIG.CONTACT_LINE}
-
-感謝您的支持！`;
+    return `您好 ${name}，\n\n🎉 您的 HSC 智慧名片已建立完成！\n\n請依照以下步驟完成付款，名片即可正式啟用：\n\n━━━━━━━━━━━━━━━━━\n💳【付款資訊】\n銀行：${CONFIG.BANK_NAME}（${CONFIG.BANK_CODE}）\n帳號：${CONFIG.BANK_ACCOUNT}\n戶名：${CONFIG.BANK_HOLDER}\n金額：NT$ ${amount}\n━━━━━━━━━━━━━━━━━\n\n📋【付款注意事項】\n・付款完成後請回傳您的匯款帳號末 5 碼供對帳\n・付款截止時間：${deadline || '請盡快完成'}\n・確認後 1 個工作天內啟用\n・啟用後將發送交付卡連結給您\n\n🔗 名片預覽：\n${previewUrl}\n\n📩 如有任何問題，請透過 LINE 官方帳號聯繫：\n${CONFIG.CONTACT_LINE}\n\n感謝您的支持！`;
   }
 
-  // 催繳提醒文案
-function buildPaymentReminderNotice(card) {
+  function buildPaymentReminderNotice(card) {
     const name = textOf(card.name || card.owner_name) || '您';
     const cardId = textOf(card.id || card.card_id);
     const amount = card.amount || card.plan_price || '請洽客服';
     const deadline = formatDeadlineStr(card);
-    const payUrl = `${CONFIG.HUB_URL}renew.html?id=${encodeURIComponent(cardId)}`;
     const base = calcDeadline(card);
     let urgencyPrefix = '';
     if (base) {
@@ -254,58 +234,18 @@ function buildPaymentReminderNotice(card) {
       if (hLeft < 0) urgencyPrefix = '⚠️ 您的付款已逾期，';
       else if (hLeft < 24) urgencyPrefix = `🔴 付款截止時間剩不到 ${hLeft} 小時，`;
     }
-
-    return `您好 ${name}，
-
-${urgencyPrefix}提醒您完成 HSC 智慧名片付款以正式啟用服務。
-
-━━━━━━━━━━━━━━━━━
-💳【付款資訊】
-銀行：${CONFIG.BANK_NAME}（${CONFIG.BANK_CODE}）
-帳號：${CONFIG.BANK_ACCOUNT}
-戶名：${CONFIG.BANK_HOLDER}
-金額：NT$ ${amount}
-━━━━━━━━━━━━━━━━━
-
-⏰ 付款截止：${deadline || '請盡快完成'}
-
-📋【注意事項】
-・付款完成後請回傳您的匯款帳號末 5 碼供對帳
-・確認後 1 個工作天內啟用
-・如需延期請提前告知
-
-📩 聯繫客服：${CONFIG.CONTACT_LINE}`;
+    return `您好 ${name}，\n\n${urgencyPrefix}提醒您完成 HSC 智慧名片付款以正式啟用服務。\n\n━━━━━━━━━━━━━━━━━\n💳【付款資訊】\n銀行：${CONFIG.BANK_NAME}（${CONFIG.BANK_CODE}）\n帳號：${CONFIG.BANK_ACCOUNT}\n戶名：${CONFIG.BANK_HOLDER}\n金額：NT$ ${amount}\n━━━━━━━━━━━━━━━━━\n\n⏰ 付款截止：${deadline || '請盡快完成'}\n\n📋【注意事項】\n・付款完成後請回傳您的匯款帳號末 5 碼供對帳\n・確認後 1 個工作天內啟用\n・如需延期請提前告知\n\n📩 聯繫客服：${CONFIG.CONTACT_LINE}`;
   }
 
-  // ── 付款確認回覆文案 ──
   function buildPaymentConfirmedNotice(card, paymentAmount) {
     const name = textOf(card.name || card.owner_name) || '您';
     const cardId = textOf(card.id || card.card_id);
     const amount = paymentAmount || card.amount || card.plan_price || '—';
     const expiresAt = card.expires_at || '—';
     const renewUrl = `${CONFIG.HUB_URL}renew.html?id=${encodeURIComponent(cardId)}`;
-
-    return `您好 ${name}，
-
-✅ 已確認收到您的付款，感謝您！
-
-━━━━━━━━━━━━━━━━━
-💰【付款確認明細】
-收款金額：NT$ ${amount}
-服務使用期限：${expiresAt} 到期
-━━━━━━━━━━━━━━━━━
-
-📋【續約說明】
-・本服務為年費方案，到期前 30 天將通知續約
-・續約連結：${renewUrl}
-・如有問題請透過 LINE 聯繫
-
-📩 客服 LINE：${CONFIG.CONTACT_LINE}
-
-感謝您的支持，啟用通知請稍候，我們將儘快完成交付！`;
+    return `您好 ${name}，\n\n✅ 已確認收到您的付款，感謝您！\n\n━━━━━━━━━━━━━━━━━\n💰【付款確認明細】\n收款金額：NT$ ${amount}\n服務使用期限：${expiresAt} 到期\n━━━━━━━━━━━━━━━━━\n\n📋【續約說明】\n・本服務為年費方案，到期前 30 天將通知續約\n・續約連結：${renewUrl}\n・如有問題請透過 LINE 聯繫\n\n📩 客服 LINE：${CONFIG.CONTACT_LINE}\n\n感謝您的支持，啟用通知請稍候，我們將儘快完成交付！`;
   }
 
-  // ── 交付回覆文案（依 plan 自動判斷更新方案）──
   function buildDeliveryNotice(card) {
     const name = textOf(card.name || card.owner_name) || '您';
     const cardId = textOf(card.id || card.card_id);
@@ -313,67 +253,16 @@ ${urgencyPrefix}提醒您完成 HSC 智慧名片付款以正式啟用服務。
     const updateUrl  = `${CONFIG.HUB_URL}update.html?id=${encodeURIComponent(cardId)}`;
     const renewUrl   = `${CONFIG.HUB_URL}renew.html?id=${encodeURIComponent(cardId)}`;
     const expiresAt  = card.expires_at || '—';
-
-    // 從加購單判斷是否有無限次更新（addon_type 包含 unlimited_update / update / 無限更新 等關鍵字）
     const hasUnlimitedUpdate = state.addons.some(a => {
       const isSameCard = String(a.card_id || '').trim() === String(cardId).trim();
       const isPaid = String(a.status || '').toLowerCase() === 'paid';
       const type = String(a.addon_type || '').toLowerCase();
-      return isSameCard && isPaid && (
-        type.includes('unlimited') || type.includes('無限') || type.includes('update') || type.includes('更新')
-      );
+      return isSameCard && isPaid && (type.includes('unlimited') || type.includes('無限') || type.includes('update') || type.includes('更新'));
     });
-
-    let updateDesc = '';
-    if (hasUnlimitedUpdate) {
-      updateDesc = `✏️【更新服務】
-・無限次更新，與名片同期限（到 ${expiresAt} 止）
-・更新連結：${updateUrl}
-・隨時修改，所有人即時看到最新版本`;
-    } else {
-      updateDesc = `✏️【更新服務】
-・贈送 3 次免費更新，用完後每次 NT$300
-・更新連結：${updateUrl}
-・建議先規劃好內容再進行更新，節省次數`;
-    }
-
-    return `您好 ${name}，
-
-🎉 您的 HSC 智慧名片已正式交付啟用！
-
-━━━━━━━━━━━━━━━━━
-🔗【您的名片連結】
-${previewUrl}
-
-📌 請將此連結加入 LINE 個人資料、IG 簡介或名片簽名欄
-━━━━━━━━━━━━━━━━━
-
-📦【交付卡保管提醒】
-・請截圖或收藏此訊息作為管理紀錄
-・連結請勿分享給他人編輯權限
-・如遺失連結可隨時聯繫客服補發
-
-━━━━━━━━━━━━━━━━━
-🛠️【名片完整功能說明】
-・智慧名片：點擊連結即可查看您的數位名片
-・一鍵儲存聯絡人：訪客可直接存入手機通訊錄
-・社群連結整合：IG、LINE、FB 等一鍵直達
-・QR Code：可下載印製於實體名片、DM 或貼紙
-・即時更新：修改後所有人看到的都是最新版本
-
-━━━━━━━━━━━━━━━━━
-${updateDesc}
-
-━━━━━━━━━━━━━━━━━
-🔄【續約提醒】
-・服務使用期限：${expiresAt} 到期
-・到期前 30 天將自動通知續約
-・續約連結：${renewUrl}
-
-━━━━━━━━━━━━━━━━━
-📩 如有任何問題請聯繫：${CONFIG.CONTACT_LINE}
-
-感謝您使用 HSC 智慧名片服務！`;
+    const updateDesc = hasUnlimitedUpdate
+      ? `✏️【更新服務】\n・無限次更新，與名片同期限（到 ${expiresAt} 止）\n・更新連結：${updateUrl}\n・隨時修改，所有人即時看到最新版本`
+      : `✏️【更新服務】\n・贈送 3 次免費更新，用完後每次 NT$300\n・更新連結：${updateUrl}\n・建議先規劃好內容再進行更新，節省次數`;
+    return `您好 ${name}，\n\n🎉 您的 HSC 智慧名片已正式交付啟用！\n\n━━━━━━━━━━━━━━━━━\n🔗【您的名片連結】\n${previewUrl}\n\n📌 請將此連結加入 LINE 個人資料、IG 簡介或名片簽名欄\n━━━━━━━━━━━━━━━━━\n\n${updateDesc}\n\n━━━━━━━━━━━━━━━━━\n🔄【續約提醒】\n・服務使用期限：${expiresAt} 到期\n・到期前 30 天將自動通知續約\n・續約連結：${renewUrl}\n\n━━━━━━━━━━━━━━━━━\n📩 如有任何問題請聯繫：${CONFIG.CONTACT_LINE}\n\n感謝您使用 HSC 智慧名片服務！`;
   }
 
   // ── INVITE HELPERS ──
@@ -562,8 +451,12 @@ ${updateDesc}
     }
   }
 
-  // ── RENDER CARDS ──
+  // ══════════════════════════════════════════
+  // ── CARDS LIST（分頁版）──
+  // ══════════════════════════════════════════
+
   function renderCards() {
+    state._cardPage = 1; // 搜尋時重設頁碼
     const keyword = valueOf("#cardSearch");
     if (typeof window.renderCardsNew === 'function') {
       window.renderCardsNew(state.cards, keyword);
@@ -611,7 +504,16 @@ ${updateDesc}
     });
   }
 
-  // ── CARDS LIST (new UI with countdown + notice buttons) ──
+  // ── 分頁輔助：產生「載入更多」按鈕 HTML ──
+  function renderLoadMoreBtn(containerId, remaining) {
+    return `<div class="load-more-wrap" style="text-align:center;padding:12px 0;">
+      <button class="btn btn-soft btn-sm" data-load-more="${containerId}">
+        載入更多（還有 ${remaining} 筆）
+      </button>
+    </div>`;
+  }
+
+  // ── CARDS LIST（分頁版）──
   window.renderCardsNew = function(cards, keyword) {
     const container = $('#cardsListContainer');
     if (!container) return;
@@ -623,48 +525,15 @@ ${updateDesc}
     });
     if (!rows.length) { container.innerHTML = '<div class="empty-state">查無卡片</div>'; return; }
 
-    container.innerHTML = rows.map(c => {
-      const id = escapeHtml(String(c.id || c.card_id || ''));
-      const name = escapeHtml(String(c.name || c.owner_name || '-'));
-      const billing = billingStatusText(c.billing_status);
-      const bClass = billingBadge(c.billing_status);
-      const statusLabel = escapeHtml(String(c.status || '-'));
-      const unpaid = bClass !== 'badge-ok';
+    const pageSize = CONFIG.PAGE_SIZE;
+    const page = state._cardPage || 1;
+    const visible = rows.slice(0, page * pageSize);
+    const remaining = rows.length - visible.length;
 
-      return `
-        <div class="list-row" id="crow-${id}">
-          <div class="list-row-head" data-row="${id}" data-type="card">
-            <div class="list-row-icon icon-neutral">💳</div>
-            <div class="list-row-info">
-              <div class="list-row-title">${name}</div>
-              <div class="list-row-sub">${id} · ${statusLabel}</div>
-            </div>
-            <div class="list-row-right">
-              <span class="badge ${bClass}">${escapeHtml(billing)}</span>
-              ${renderCountdownBadge(c)}
-              <span style="font-size:11px;color:var(--ink3);margin-top:3px;">${escapeHtml(String(c.expires_at || ''))}</span>
-            </div>
-            <span class="chevron" style="margin-left:6px;">›</span>
-          </div>
-          <div class="list-row-body">
-            <div class="detail-grid">
-              ${renderDetailItem("卡片 ID", id)}
-              ${renderDetailItem("電話", c.phone || '-')}
-              ${renderDetailItem("方案", planText(c.plan))}
-              ${renderDetailItem("到期日", c.expires_at || '-')}
-            </div>
-            <div class="action-strip" style="flex-wrap:wrap;">
-              <button class="btn btn-primary btn-sm" data-action="cardDetail" data-cid="${id}">完整詳情</button>
-              <button class="btn btn-soft btn-sm" data-action="goDelivery" data-cid="${id}">前往交付</button>
-              ${unpaid ? `
-              <button class="btn btn-ok btn-sm" data-action="copyCardCreated" data-cid="${id}">🎉 建卡通知</button>
-              <button class="btn btn-warn btn-sm" data-action="copyPayNotice" data-cid="${id}">📋 催繳文案</button>
-              ` : ''}
-            </div>
-          </div>
-        </div>`;
-    }).join('');
+    const html = visible.map(c => buildCardRowHtml(c)).join('');
+    container.innerHTML = html + (remaining > 0 ? renderLoadMoreBtn('cardsListContainer', remaining) : '');
 
+    // 展開折疊
     container.querySelectorAll('.list-row-head[data-type="card"]').forEach(head => {
       head.addEventListener('click', () => {
         const row = document.getElementById(`crow-${head.dataset.row}`);
@@ -672,47 +541,89 @@ ${updateDesc}
       });
     });
 
-    container.addEventListener('click', e => {
-      // 完整詳情
-      const detailBtn = e.target.closest('[data-action="cardDetail"]');
-      if (detailBtn) {
-        e.stopPropagation();
-        if (typeof window.loadCardDetail === 'function') window.loadCardDetail(detailBtn.dataset.cid);
-        return;
-      }
-      // 前往交付
-      const goBtn = e.target.closest('[data-action="goDelivery"]');
-      if (goBtn) {
-        e.stopPropagation();
-        const cid = goBtn.dataset.cid;
-        const inp = $('#deliveryCardIdInput');
-        if (inp) inp.value = cid;
-        if (typeof window.activateAdminSection === 'function') window.activateAdminSection('deliverySection');
-        if (typeof window.loadCardDetail === 'function') window.loadCardDetail(cid);
-        const dc = $('#deliveryContent'); if (dc) dc.style.display = 'block';
-        const de = $('#deliveryEmpty'); if (de) de.style.display = 'none';
-        return;
-      }
-      // 建卡通知
-      const createdBtn = e.target.closest('[data-action="copyCardCreated"]');
-      if (createdBtn) {
-        e.stopPropagation();
-        const cid = createdBtn.dataset.cid;
-        const card = state.cards.find(c => String(c.id || c.card_id) === cid) || {};
-        copyText(buildCardCreatedNotice(card), '✅ 已複製建卡通知文案');
-        return;
-      }
-      // 催繳文案
-      const payBtn = e.target.closest('[data-action="copyPayNotice"]');
-      if (payBtn) {
-        e.stopPropagation();
-        const cid = payBtn.dataset.cid;
-        const card = state.cards.find(c => String(c.id || c.card_id) === cid) || {};
-        copyText(buildPaymentReminderNotice(card), '✅ 已複製催繳文案');
-        return;
-      }
+    // 載入更多
+    container.querySelector('[data-load-more="cardsListContainer"]')?.addEventListener('click', () => {
+      state._cardPage = (state._cardPage || 1) + 1;
+      window.renderCardsNew(cards, keyword);
     });
+
+    // 動作按鈕（事件委派）
+    container.addEventListener('click', handleCardsContainerClick);
   };
+
+  function buildCardRowHtml(c) {
+    const id = escapeHtml(String(c.id || c.card_id || ''));
+    const name = escapeHtml(String(c.name || c.owner_name || '-'));
+    const billing = billingStatusText(c.billing_status);
+    const bClass = billingBadge(c.billing_status);
+    const statusLabel = escapeHtml(String(c.status || '-'));
+    const unpaid = bClass !== 'badge-ok';
+    return `
+      <div class="list-row" id="crow-${id}">
+        <div class="list-row-head" data-row="${id}" data-type="card">
+          <div class="list-row-icon icon-neutral">💳</div>
+          <div class="list-row-info">
+            <div class="list-row-title">${name}</div>
+            <div class="list-row-sub">${id} · ${statusLabel}</div>
+          </div>
+          <div class="list-row-right">
+            <span class="badge ${bClass}">${escapeHtml(billing)}</span>
+            ${renderCountdownBadge(c)}
+            <span style="font-size:11px;color:var(--ink3);margin-top:3px;">${escapeHtml(String(c.expires_at || ''))}</span>
+          </div>
+          <span class="chevron" style="margin-left:6px;">›</span>
+        </div>
+        <div class="list-row-body">
+          <div class="detail-grid">
+            ${renderDetailItem("卡片 ID", id)}
+            ${renderDetailItem("電話", c.phone || '-')}
+            ${renderDetailItem("方案", planText(c.plan))}
+            ${renderDetailItem("到期日", c.expires_at || '-')}
+          </div>
+          <div class="action-strip" style="flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" data-action="cardDetail" data-cid="${id}">完整詳情</button>
+            <button class="btn btn-soft btn-sm" data-action="goDelivery" data-cid="${id}">前往交付</button>
+            ${unpaid ? `
+            <button class="btn btn-ok btn-sm" data-action="copyCardCreated" data-cid="${id}">🎉 建卡通知</button>
+            <button class="btn btn-warn btn-sm" data-action="copyPayNotice" data-cid="${id}">📋 催繳文案</button>
+            ` : ''}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // 用獨立函式避免 removeEventListener 問題（容器每次重建，不累積）
+  function handleCardsContainerClick(e) {
+    const detailBtn = e.target.closest('[data-action="cardDetail"]');
+    if (detailBtn) { e.stopPropagation(); if (typeof window.loadCardDetail === 'function') window.loadCardDetail(detailBtn.dataset.cid); return; }
+    const goBtn = e.target.closest('[data-action="goDelivery"]');
+    if (goBtn) {
+      e.stopPropagation();
+      const cid = goBtn.dataset.cid;
+      const inp = $('#deliveryCardIdInput'); if (inp) inp.value = cid;
+      if (typeof window.activateAdminSection === 'function') window.activateAdminSection('deliverySection');
+      if (typeof window.loadCardDetail === 'function') window.loadCardDetail(cid);
+      const dc = $('#deliveryContent'); if (dc) dc.style.display = 'block';
+      const de = $('#deliveryEmpty'); if (de) de.style.display = 'none';
+      return;
+    }
+    const createdBtn = e.target.closest('[data-action="copyCardCreated"]');
+    if (createdBtn) {
+      e.stopPropagation();
+      const cid = createdBtn.dataset.cid;
+      const card = state.cards.find(c => String(c.id || c.card_id) === cid) || {};
+      copyText(buildCardCreatedNotice(card), '✅ 已複製建卡通知文案');
+      return;
+    }
+    const payBtn = e.target.closest('[data-action="copyPayNotice"]');
+    if (payBtn) {
+      e.stopPropagation();
+      const cid = payBtn.dataset.cid;
+      const card = state.cards.find(c => String(c.id || c.card_id) === cid) || {};
+      copyText(buildPaymentReminderNotice(card), '✅ 已複製催繳文案');
+      return;
+    }
+  }
 
   // ── DELIVERY PANEL ──
   function syncDeliveryControlPanel(card) {
@@ -745,24 +656,13 @@ ${updateDesc}
         </div>
       </div>`;
 
-      summaryEl.querySelector('#btnDeliveryCardCreated')?.addEventListener('click', () => {
-        copyText(buildCardCreatedNotice(card), '✅ 已複製建卡通知文案');
-      });
-      summaryEl.querySelector('#btnDeliveryPayReminder')?.addEventListener('click', () => {
-        copyText(buildPaymentReminderNotice(card), '✅ 已複製催繳文案');
-      });
-      summaryEl.querySelector('#btnDeliveryPayConfirmed')?.addEventListener('click', () => {
-        copyText(buildPaymentConfirmedNotice(card, card.amount || card.plan_price), '✅ 已複製付款確認文案');
-      });
-      summaryEl.querySelector('#btnDeliveryNotice')?.addEventListener('click', () => {
-        copyText(buildDeliveryNotice(card), '✅ 已複製交付文案');
-      });
+      summaryEl.querySelector('#btnDeliveryCardCreated')?.addEventListener('click', () => copyText(buildCardCreatedNotice(card), '✅ 已複製建卡通知文案'));
+      summaryEl.querySelector('#btnDeliveryPayReminder')?.addEventListener('click', () => copyText(buildPaymentReminderNotice(card), '✅ 已複製催繳文案'));
+      summaryEl.querySelector('#btnDeliveryPayConfirmed')?.addEventListener('click', () => copyText(buildPaymentConfirmedNotice(card, card.amount || card.plan_price), '✅ 已複製付款確認文案'));
+      summaryEl.querySelector('#btnDeliveryNotice')?.addEventListener('click', () => copyText(buildDeliveryNotice(card), '✅ 已複製交付文案'));
     }
 
-    if (typeof window.renderDeliveryLinks === 'function') {
-      window.renderDeliveryLinks(id, meta.referral_link);
-    }
-
+    if (typeof window.renderDeliveryLinks === 'function') window.renderDeliveryLinks(id, meta.referral_link);
     if (typeof window.renderDeliveryCopyTexts === 'function') {
       const texts = [
         { label: 'Trial 分享文案', value: `🎉 體驗 HSC 智慧名片！點擊連結搶先試用：${buildPreviewLink(id)}` },
@@ -856,45 +756,24 @@ ${updateDesc}
 
   function safeSetText(selector, value) { const el = $(selector); if (el) el.textContent = value; }
 
-  // ── PAYMENTS ──
+  // ── PAYMENTS（分頁版）──
   function renderPayments() {
+    state._paymentPage = 1;
+    _renderPaymentsPage();
+  }
+
+  function _renderPaymentsPage() {
     const container = $('#paymentsListContainer');
     if (!container) return;
     if (!state.paymentList.length) { container.innerHTML = '<div class="empty-state">尚無付款資料</div>'; return; }
-    container.innerHTML = state.paymentList.map(p => {
-      const pid = escapeHtml(textOf(p.payment_id || p.id));
-      const status = textOf(p.status).toLowerCase();
-      const badgeClass = status === 'paid' ? 'badge-ok' : 'badge-warn';
-      return `
-        <div class="list-row" id="prow-${pid}">
-          <div class="list-row-head" data-row="${pid}" data-type="payment">
-            <div class="list-row-icon ${status === 'paid' ? 'icon-done' : 'icon-pending'}">💰</div>
-            <div class="list-row-info">
-              <div class="list-row-title">${escapeHtml(textOf(p.card_id))} · ${escapeHtml(textOf(p.event_type))}</div>
-              <div class="list-row-sub">${pid} · $${escapeHtml(formatValue(p.amount))}</div>
-            </div>
-            <div class="list-row-right">
-              <span class="badge ${badgeClass}">${escapeHtml(textOf(p.status) || 'pending')}</span>
-            </div>
-            <span class="chevron" style="margin-left:6px;">›</span>
-          </div>
-          <div class="list-row-body">
-            <div class="detail-grid" style="margin-top:0;">
-              ${renderDetailItem("付款ID", p.payment_id || p.id)}
-              ${renderDetailItem("卡片ID", p.card_id)}
-              ${renderDetailItem("金額", p.amount)}
-              ${renderDetailItem("應付日", p.due_at)}
-              ${renderDetailItem("付款日", p.paid_at)}
-              ${renderDetailItem("事件類型", p.event_type)}
-            </div>
-            <div class="action-strip">
-              ${status !== 'paid' ? `<button class="btn btn-primary btn-sm btn-pay-confirm" data-pid="${pid}">確認付款</button>` : ''}
-              ${status === 'paid' ? `<button class="btn btn-ok btn-sm btn-pay-copy-confirm" data-pid="${pid}" data-cid="${escapeHtml(textOf(p.card_id))}">📋 複製付款確認文案</button>` : ''}
-              ${status === 'paid' ? `<button class="btn btn-danger btn-sm btn-pay-refund" data-pid="${pid}">退款</button>` : ''}
-            </div>
-          </div>
-        </div>`;
-    }).join('');
+
+    const pageSize = CONFIG.PAGE_SIZE;
+    const page = state._paymentPage || 1;
+    const visible = state.paymentList.slice(0, page * pageSize);
+    const remaining = state.paymentList.length - visible.length;
+
+    container.innerHTML = visible.map(p => buildPaymentRowHtml(p)).join('')
+      + (remaining > 0 ? renderLoadMoreBtn('paymentsListContainer', remaining) : '');
 
     container.querySelectorAll('.list-row-head[data-type="payment"]').forEach(head => {
       head.addEventListener('click', () => document.getElementById(`prow-${head.dataset.row}`)?.classList.toggle('open'));
@@ -911,46 +790,76 @@ ${updateDesc}
       }));
     container.querySelectorAll('.btn-pay-refund').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); markPaymentRefundedFromUi(btn.dataset.pid); }));
+
+    container.querySelector('[data-load-more="paymentsListContainer"]')?.addEventListener('click', () => {
+      state._paymentPage = (state._paymentPage || 1) + 1;
+      _renderPaymentsPage();
+    });
+  }
+
+  function buildPaymentRowHtml(p) {
+    const pid = escapeHtml(textOf(p.payment_id || p.id));
+    const status = textOf(p.status).toLowerCase();
+    const badgeClass = status === 'paid' ? 'badge-ok' : 'badge-warn';
+    return `
+      <div class="list-row" id="prow-${pid}">
+        <div class="list-row-head" data-row="${pid}" data-type="payment">
+          <div class="list-row-icon ${status === 'paid' ? 'icon-done' : 'icon-pending'}">💰</div>
+          <div class="list-row-info">
+            <div class="list-row-title">${escapeHtml(textOf(p.card_id))} · ${escapeHtml(textOf(p.event_type))}</div>
+            <div class="list-row-sub">${pid} · $${escapeHtml(formatValue(p.amount))}</div>
+          </div>
+          <div class="list-row-right">
+            <span class="badge ${badgeClass}">${escapeHtml(textOf(p.status) || 'pending')}</span>
+          </div>
+          <span class="chevron" style="margin-left:6px;">›</span>
+        </div>
+        <div class="list-row-body">
+          <div class="detail-grid" style="margin-top:0;">
+            ${renderDetailItem("付款ID", p.payment_id || p.id)}
+            ${renderDetailItem("卡片ID", p.card_id)}
+            ${renderDetailItem("金額", p.amount)}
+            ${renderDetailItem("應付日", p.due_at)}
+            ${renderDetailItem("付款日", p.paid_at)}
+            ${renderDetailItem("事件類型", p.event_type)}
+          </div>
+          <div class="action-strip">
+            ${status !== 'paid' ? `<button class="btn btn-primary btn-sm btn-pay-confirm" data-pid="${pid}">確認付款</button>` : ''}
+            ${status === 'paid' ? `<button class="btn btn-ok btn-sm btn-pay-copy-confirm" data-pid="${pid}" data-cid="${escapeHtml(textOf(p.card_id))}">📋 複製付款確認文案</button>` : ''}
+            ${status === 'paid' ? `<button class="btn btn-danger btn-sm btn-pay-refund" data-pid="${pid}">退款</button>` : ''}
+          </div>
+        </div>
+      </div>`;
   }
 
   async function confirmPaymentFromUi(paymentId) {
-  if (!confirm(`確認付款單 ${paymentId} 已付款？`)) return;
-  if (!doubleConfirmId(paymentId, "付款單")) return;
-  try {
-    const res = await apiPost("confirmPayment", { payment_id: paymentId });
-    const payment = res?.payment || {};
-    const paidAt = payment.paid_at || new Date().toISOString();
-    const nextPayment = {
-      ...payment,
-      payment_id: payment.payment_id || paymentId,
-      status: payment.status || "paid",
-      billing_status: payment.billing_status || payment.billing_status_after || "paid",
-      paid_at: paidAt
-    };
+    if (!confirm(`確認付款單 ${paymentId} 已付款？`)) return;
+    if (!doubleConfirmId(paymentId, "付款單")) return;
+    try {
+      const res = await apiPost("confirmPayment", { payment_id: paymentId });
+      const payment = res?.payment || {};
+      const paidAt = payment.paid_at || new Date().toISOString();
+      const nextPayment = { ...payment, payment_id: payment.payment_id || paymentId, status: payment.status || "paid", billing_status: payment.billing_status || payment.billing_status_after || "paid", paid_at: paidAt };
 
-    patchListItem(state.paymentList, "payment_id", paymentId, nextPayment);
-    patchListItem(state.payments, "payment_id", paymentId, nextPayment);
+      patchListItem(state.paymentList, "payment_id", paymentId, nextPayment);
+      patchListItem(state.payments, "payment_id", paymentId, nextPayment);
 
-    const cardId = res?.card?.id || res?.card?.card_id || res?.card_id || payment.card_id;
-    const cardPatch = {
-      billing_status: "paid",
-      payment_paid_at: paidAt,
-      payment_due_at: ""
-    };
-    if (res?.card?.expires_at) cardPatch.expires_at = res.card.expires_at;
-    if (cardId) {
-      patchListItem(state.cards, "id", cardId, cardPatch);
-      patchListItem(state.cards, "card_id", cardId, cardPatch);
-    }
+      const cardId = res?.card?.id || res?.card?.card_id || res?.card_id || payment.card_id;
+      const cardPatch = { billing_status: "paid", payment_paid_at: paidAt, payment_due_at: "" };
+      if (res?.card?.expires_at) cardPatch.expires_at = res.card.expires_at;
+      if (cardId) {
+        patchListItem(state.cards, "id", cardId, cardPatch);
+        patchListItem(state.cards, "card_id", cardId, cardPatch);
+      }
 
-    toast("✅ 付款已確認");
-    renderPayments();
-    renderDashboard();
+      toast("✅ 付款已確認");
+      _renderPaymentsPage();
+      renderDashboard();
 
-    const ledgerSection = $('#ledgerSection');
-    if (ledgerSection?.classList.contains('active')) renderLedger();
-  } catch (err) { toast(`確認失敗：${err.message}`); }
-}
+      const ledgerSection = $('#ledgerSection');
+      if (ledgerSection?.classList.contains('active')) renderLedger();
+    } catch (err) { toast(`確認失敗：${err.message}`); }
+  }
 
   async function markPaymentRefundedFromUi(paymentId) {
     if (!confirm("⚠️ 退款操作無法自動撤銷，確定？")) return;
@@ -960,7 +869,7 @@ ${updateDesc}
       toast("✅ 已標記退款");
       patchListItem(state.paymentList, "payment_id", paymentId, { status: "refunded" });
       patchListItem(state.payments, "payment_id", paymentId, { status: "refunded" });
-      renderPayments();
+      _renderPaymentsPage();
     } catch (err) { toast(`退款失敗：${err.message}`); }
   }
 
@@ -1059,9 +968,7 @@ ${updateDesc}
               <div class="list-row-title">${escapeHtml(textOf(item.card_id))} · ${escapeHtml(textOf(item.addon_type))}</div>
               <div class="list-row-sub">${aid} · $${escapeHtml(formatValue(item.amount))}</div>
             </div>
-            <div class="list-row-right">
-              <span class="badge ${badgeClass}">${escapeHtml(status || '-')}</span>
-            </div>
+            <div class="list-row-right"><span class="badge ${badgeClass}">${escapeHtml(status || '-')}</span></div>
             <span class="chevron" style="margin-left:6px;">›</span>
           </div>
           <div class="list-row-body">
@@ -1196,9 +1103,7 @@ ${updateDesc}
               <div class="list-row-title">${escapeHtml(textOf(item.agent_id))}</div>
               <div class="list-row-sub">${cid} · $${escapeHtml(formatValue(item.amount))}</div>
             </div>
-            <div class="list-row-right">
-              <span class="badge ${status === 'paid' ? 'badge-ok' : 'badge-warn'}">${escapeHtml(status || 'pending')}</span>
-            </div>
+            <div class="list-row-right"><span class="badge ${status === 'paid' ? 'badge-ok' : 'badge-warn'}">${escapeHtml(status || 'pending')}</span></div>
             <span class="chevron" style="margin-left:6px;">›</span>
           </div>
           <div class="list-row-body">
@@ -1229,23 +1134,14 @@ ${updateDesc}
       await apiPost("markCommissionPaid", { commission_id: commissionId });
       toast("✅ 已標記付款");
       patchListItem(state.commissionItems, "commission_id", commissionId, { status: "paid" });
-
-      // 記帳：分潤取款紀錄
       const item = state.commissionItems.find(c => String(c.commission_id || c.id) === commissionId);
       if (item) {
         addLedgerRecord({
-          type: 'commission_paid',
-          payment_id: item.payment_id || '',
-          card_id: item.card_id || '',
-          card_name: '',
-          amount: item.amount || 0,
-          paid_at: new Date().toISOString(),
-          note: `分潤付款 代理：${item.agent_id || ''}`,
-          commission: item.amount || 0,
-          withdrawn: item.amount || 0,
+          type: 'commission_paid', payment_id: item.payment_id || '', card_id: item.card_id || '', card_name: '',
+          amount: item.amount || 0, paid_at: new Date().toISOString(), note: `分潤付款 代理：${item.agent_id || ''}`,
+          commission: item.amount || 0, withdrawn: item.amount || 0,
         });
       }
-
       renderCommissionList();
       const ledgerSection = $('#ledgerSection');
       if (ledgerSection?.classList.contains('active')) renderLedger();
@@ -1268,9 +1164,7 @@ ${updateDesc}
               <div class="list-row-title">${escapeHtml(textOf(a.title))}</div>
               <div class="list-row-sub">${escapeHtml(formatValue(a.published_at || a.created_at))}</div>
             </div>
-            <div class="list-row-right">
-              <span class="badge ${status === 'active' ? 'badge-ok' : 'badge-neutral'}">${escapeHtml(status)}</span>
-            </div>
+            <div class="list-row-right"><span class="badge ${status === 'active' ? 'badge-ok' : 'badge-neutral'}">${escapeHtml(status)}</span></div>
             <span class="chevron" style="margin-left:6px;">›</span>
           </div>
           <div class="list-row-body">
@@ -1382,287 +1276,180 @@ ${updateDesc}
     return warnings;
   }
 
-  // ══════════════════════════════════════════
   // ── 記帳功能 ──
-  // ══════════════════════════════════════════
-
-  function formatMoney(v) {
-    const n = Number(v || 0);
-    return 'NT$ ' + n.toLocaleString('zh-TW');
-  }
+  function formatMoney(v) { const n = Number(v || 0); return 'NT$ ' + n.toLocaleString('zh-TW'); }
 
   function buildLedgerFromPayments() {
-  return state.paymentList
-    .filter(p => textOf(p.status).toLowerCase() === 'paid')
-    .map(p => {
+    return state.paymentList.filter(p => textOf(p.status).toLowerCase() === 'paid').map(p => {
       const card = state.cards.find(c => String(c.id || c.card_id) === String(p.card_id || '')) || {};
       return {
-        ledger_id: `PM_${p.payment_id || p.id}`,
-        type: 'income',
-        payment_id: p.payment_id || '',
-        card_id: p.card_id || '',
+        ledger_id: `PM_${p.payment_id || p.id}`, type: 'income',
+        payment_id: p.payment_id || '', card_id: p.card_id || '',
         card_name: card.name || card.owner_name || '',
-        amount: Number(p.amount || p.total_amount || 0),
-        commission: 0,
-        withdrawn: 0,
+        amount: Number(p.amount || p.total_amount || 0), commission: 0, withdrawn: 0,
         paid_at: p.paid_at || p.updated_at || p.created_at || '',
         note: `${p.event_type || 'payment'} / ${p.order_type || ''}`.trim(),
         created_at: p.created_at || ''
       };
     });
-}
-
-function buildLedgerFromCommissions() {
-  return state.commissionItems
-    .filter(c => {
-      const status = textOf(c.status).toLowerCase();
-      return status === 'paid' || status === 'processed';
-    })
-    .map(c => ({
-      ledger_id: `CM_${c.commission_id || c.id}`,
-      type: 'commission_paid',
-      payment_id: c.payment_id || '',
-      card_id: c.card_id || '',
-      card_name: '',
-      amount: 0,
-      commission: Number(c.reward_amount || c.amount || 0),
-      withdrawn: Number(c.commission_paid_total || c.reward_amount || c.amount || 0),
-      paid_at: c.paid_at || c.updated_at || c.created_at || '',
-      note: `分潤 代理：${c.beneficiary_agent_id || c.agent_id || ''}`,
-      created_at: c.created_at || ''
-    }));
-}
-
-function renderLedger() {
-  const container = $('#ledgerSection');
-  if (!container) return;
-
-  const localRecords = getLedgerRecords().map(r => ({
-    ...r,
-    type: r.type || 'manual',
-    amount: Number(r.amount || 0),
-    commission: Number(r.commission || 0),
-    withdrawn: Number(r.withdrawn || 0)
-  }));
-  const paymentRecords = buildLedgerFromPayments();
-  const commissionRecords = buildLedgerFromCommissions();
-
-  const localIds = new Set(localRecords.map(r => r.ledger_id));
-  const merged = [
-    ...paymentRecords.filter(r => !localIds.has(r.ledger_id)),
-    ...commissionRecords.filter(r => !localIds.has(r.ledger_id)),
-    ...localRecords
-  ].sort((a, b) => new Date(b.paid_at || b.created_at || 0) - new Date(a.paid_at || a.created_at || 0));
-
-  const totalIncome = merged.filter(r => r.type === 'income').reduce((s, r) => s + Number(r.amount || 0), 0);
-  const totalCommission = merged.reduce((s, r) => s + Number(r.commission || 0), 0);
-  const totalWithdrawn = merged.reduce((s, r) => s + Number(r.withdrawn || 0), 0);
-  const totalManual = merged.filter(r => r.type === 'manual').reduce((s, r) => s + Number(r.amount || 0), 0);
-
-  const monthMap = {};
-  merged.forEach(r => {
-    const dt = r.paid_at || r.created_at || '';
-    const key = dt.slice(0, 7) || '未知';
-    if (!monthMap[key]) monthMap[key] = { income: 0, commission: 0, withdrawn: 0 };
-    if (r.type === 'income') monthMap[key].income += Number(r.amount || 0);
-    monthMap[key].commission += Number(r.commission || 0);
-    monthMap[key].withdrawn += Number(r.withdrawn || 0);
-  });
-  const months = Object.entries(monthMap).sort((a, b) => b[0].localeCompare(a[0]));
-
-  const wrap = $('#ledgerContentWrap');
-  if (!wrap) return;
-
-  wrap.innerHTML = `
-    <!-- 統計磚 -->
-    <div class="stats-row" style="margin-bottom:16px;">
-      <div class="stat-tile ok">
-        <div class="stat-label">總收款</div>
-        <div class="stat-value" style="font-size:18px;">${formatMoney(totalIncome)}</div>
-      </div>
-      <div class="stat-tile">
-        <div class="stat-label">總分潤</div>
-        <div class="stat-value" style="font-size:18px;">${formatMoney(totalCommission)}</div>
-      </div>
-      <div class="stat-tile warn">
-        <div class="stat-label">已取款</div>
-        <div class="stat-value" style="font-size:18px;">${formatMoney(totalWithdrawn)}</div>
-      </div>
-      <div class="stat-tile">
-        <div class="stat-label">手動調整</div>
-        <div class="stat-value" style="font-size:18px;">${formatMoney(totalManual)}</div>
-      </div>
-    </div>
-
-    <!-- 月報 -->
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-body">
-        <div style="font-weight:900;margin-bottom:10px;">月報概況</div>
-        ${months.length ? months.map(([m, v]) => `
-          <div class="copy-row">
-            <div class="copy-row-label">${escapeHtml(m)}</div>
-            <div class="copy-row-value">
-              收款 ${formatMoney(v.income)} ／ 分潤 ${formatMoney(v.commission)} ／ 已取 ${formatMoney(v.withdrawn)}
-            </div>
-          </div>`).join('') : `<div class="empty-state">尚無資料</div>`}
-      </div>
-    </div>
-
-    <!-- 手動記帳 -->
-    <div class="collapsible" id="ledgerAddCollapsible">
-      <div class="collapsible-head" id="ledgerAddHead">
-        <span>➕ 新增手動記帳</span>
-        <span class="chevron">›</span>
-      </div>
-      <div class="collapsible-body">
-        <div class="detail-grid" style="margin-top:0;">
-          <div class="field">
-            <label>類型</label>
-            <select id="ledgerAddType">
-              <option value="manual">手動調整</option>
-              <option value="expense">支出</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>金額</label>
-            <input type="number" id="ledgerAddAmount" placeholder="0" min="0">
-          </div>
-          <div class="field">
-            <label>分潤</label>
-            <input type="number" id="ledgerAddCommission" placeholder="0" min="0">
-          </div>
-          <div class="field">
-            <label>已取款</label>
-            <input type="number" id="ledgerAddWithdrawn" placeholder="0" min="0">
-          </div>
-          <div class="field">
-            <label>卡片 ID</label>
-            <input type="text" id="ledgerAddCardId" placeholder="選填">
-          </div>
-          <div class="field">
-            <label>日期</label>
-            <input type="datetime-local" id="ledgerAddDate">
-          </div>
-          <div class="field" style="grid-column:1 / -1;">
-            <label>備註</label>
-            <input type="text" id="ledgerAddNote" placeholder="選填">
-          </div>
-        </div>
-        <div class="action-strip">
-          <button class="btn btn-primary btn-sm" id="btnLedgerAddSave">儲存</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 詳細紀錄 -->
-    <div class="card">
-      <div class="card-body">
-        <div style="font-weight:900;margin-bottom:10px;">詳細紀錄</div>
-        <div id="ledgerDetailList">
-          ${merged.length ? merged.map(r => renderLedgerRow(r)).join('') : `<div class="empty-state">尚無資料</div>`}
-        </div>
-      </div>
-    </div>`;
-
-  wrap.querySelector('#ledgerAddHead')?.addEventListener('click', () => {
-    wrap.querySelector('#ledgerAddCollapsible')?.classList.toggle('open');
-  });
-
-  const dateInput = wrap.querySelector('#ledgerAddDate');
-  if (dateInput && !dateInput.value) {
-    const now = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    dateInput.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
   }
 
-  wrap.querySelector('#btnLedgerAddSave')?.addEventListener('click', () => {
-    const type = wrap.querySelector('#ledgerAddType')?.value || 'manual';
-    const amount = Number(wrap.querySelector('#ledgerAddAmount')?.value || 0);
-    const commission = Number(wrap.querySelector('#ledgerAddCommission')?.value || 0);
-    const withdrawn = Number(wrap.querySelector('#ledgerAddWithdrawn')?.value || 0);
-    const cardId = textOf(wrap.querySelector('#ledgerAddCardId')?.value);
-    const note = textOf(wrap.querySelector('#ledgerAddNote')?.value);
-    const dateVal = wrap.querySelector('#ledgerAddDate')?.value;
-    const paidAt = dateVal ? new Date(dateVal).toISOString() : new Date().toISOString();
-    addLedgerRecord({ type, amount, commission, withdrawn, card_id: cardId, paid_at: paidAt, note });
-    toast('✅ 已新增記帳紀錄');
-    renderLedger();
-  });
+  function buildLedgerFromCommissions() {
+    return state.commissionItems.filter(c => { const status = textOf(c.status).toLowerCase(); return status === 'paid' || status === 'processed'; })
+      .map(c => ({
+        ledger_id: `CM_${c.commission_id || c.id}`, type: 'commission_paid',
+        payment_id: c.payment_id || '', card_id: c.card_id || '', card_name: '', amount: 0,
+        commission: Number(c.reward_amount || c.amount || 0),
+        withdrawn: Number(c.commission_paid_total || c.reward_amount || c.amount || 0),
+        paid_at: c.paid_at || c.updated_at || c.created_at || '',
+        note: `分潤 代理：${c.beneficiary_agent_id || c.agent_id || ''}`,
+        created_at: c.created_at || ''
+      }));
+  }
 
-  wrap.querySelector('#ledgerDetailList')?.addEventListener('click', e => {
-    const editBtn = e.target.closest('[data-ledger-edit]');
-    if (editBtn) { openLedgerEditModal(editBtn.dataset.ledgerEdit); return; }
-    const delBtn = e.target.closest('[data-ledger-del]');
-    if (!delBtn) return;
-    if (!confirm('確定刪除此手動記帳？')) return;
-    const records = getLedgerRecords().filter(r => r.ledger_id !== delBtn.dataset.ledgerDel);
-    saveLedgerRecords(records);
-    toast('✅ 已刪除');
-    renderLedger();
-  });
-}
+  function renderLedger() {
+    const container = $('#ledgerSection');
+    if (!container) return;
+    const localRecords = getLedgerRecords().map(r => ({ ...r, type: r.type || 'manual', amount: Number(r.amount || 0), commission: Number(r.commission || 0), withdrawn: Number(r.withdrawn || 0) }));
+    const paymentRecords = buildLedgerFromPayments();
+    const commissionRecords = buildLedgerFromCommissions();
+    const localIds = new Set(localRecords.map(r => r.ledger_id));
+    const merged = [
+      ...paymentRecords.filter(r => !localIds.has(r.ledger_id)),
+      ...commissionRecords.filter(r => !localIds.has(r.ledger_id)),
+      ...localRecords
+    ].sort((a, b) => new Date(b.paid_at || b.created_at || 0) - new Date(a.paid_at || a.created_at || 0));
 
-function renderLedgerRow(r) {
+    const totalIncome = merged.filter(r => r.type === 'income').reduce((s, r) => s + Number(r.amount || 0), 0);
+    const totalCommission = merged.reduce((s, r) => s + Number(r.commission || 0), 0);
+    const totalWithdrawn = merged.reduce((s, r) => s + Number(r.withdrawn || 0), 0);
+    const totalManual = merged.filter(r => r.type === 'manual').reduce((s, r) => s + Number(r.amount || 0), 0);
+
+    const monthMap = {};
+    merged.forEach(r => {
+      const dt = r.paid_at || r.created_at || '';
+      const key = dt.slice(0, 7) || '未知';
+      if (!monthMap[key]) monthMap[key] = { income: 0, commission: 0, withdrawn: 0 };
+      if (r.type === 'income') monthMap[key].income += Number(r.amount || 0);
+      monthMap[key].commission += Number(r.commission || 0);
+      monthMap[key].withdrawn += Number(r.withdrawn || 0);
+    });
+    const months = Object.entries(monthMap).sort((a, b) => b[0].localeCompare(a[0]));
+
+    const wrap = $('#ledgerContentWrap');
+    if (!wrap) return;
+
+    wrap.innerHTML = `
+      <div class="stats-row" style="margin-bottom:16px;">
+        <div class="stat-tile ok"><div class="stat-label">總收款</div><div class="stat-value" style="font-size:18px;">${formatMoney(totalIncome)}</div></div>
+        <div class="stat-tile"><div class="stat-label">總分潤</div><div class="stat-value" style="font-size:18px;">${formatMoney(totalCommission)}</div></div>
+        <div class="stat-tile warn"><div class="stat-label">已取款</div><div class="stat-value" style="font-size:18px;">${formatMoney(totalWithdrawn)}</div></div>
+        <div class="stat-tile"><div class="stat-label">手動調整</div><div class="stat-value" style="font-size:18px;">${formatMoney(totalManual)}</div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-body">
+          <div style="font-weight:900;margin-bottom:10px;">月報概況</div>
+          ${months.length ? months.map(([m, v]) => `<div class="copy-row"><div class="copy-row-label">${escapeHtml(m)}</div><div class="copy-row-value">收款 ${formatMoney(v.income)} ／ 分潤 ${formatMoney(v.commission)} ／ 已取 ${formatMoney(v.withdrawn)}</div></div>`).join('') : `<div class="empty-state">尚無資料</div>`}
+        </div>
+      </div>
+      <div class="collapsible" id="ledgerAddCollapsible">
+        <div class="collapsible-head" id="ledgerAddHead"><span>➕ 新增手動記帳</span><span class="chevron">›</span></div>
+        <div class="collapsible-body">
+          <div class="detail-grid" style="margin-top:0;">
+            <div class="field"><label>類型</label><select id="ledgerAddType"><option value="manual">手動調整</option><option value="expense">支出</option></select></div>
+            <div class="field"><label>金額</label><input type="number" id="ledgerAddAmount" placeholder="0" min="0"></div>
+            <div class="field"><label>分潤</label><input type="number" id="ledgerAddCommission" placeholder="0" min="0"></div>
+            <div class="field"><label>已取款</label><input type="number" id="ledgerAddWithdrawn" placeholder="0" min="0"></div>
+            <div class="field"><label>卡片 ID</label><input type="text" id="ledgerAddCardId" placeholder="選填"></div>
+            <div class="field"><label>日期</label><input type="datetime-local" id="ledgerAddDate"></div>
+            <div class="field" style="grid-column:1 / -1;"><label>備註</label><input type="text" id="ledgerAddNote" placeholder="選填"></div>
+          </div>
+          <div class="action-strip"><button class="btn btn-primary btn-sm" id="btnLedgerAddSave">儲存</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div style="font-weight:900;margin-bottom:10px;">詳細紀錄</div>
+          <div id="ledgerDetailList">${merged.length ? merged.map(r => renderLedgerRow(r)).join('') : `<div class="empty-state">尚無資料</div>`}</div>
+        </div>
+      </div>`;
+
+    wrap.querySelector('#ledgerAddHead')?.addEventListener('click', () => wrap.querySelector('#ledgerAddCollapsible')?.classList.toggle('open'));
+
+    const dateInput = wrap.querySelector('#ledgerAddDate');
+    if (dateInput && !dateInput.value) {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      dateInput.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }
+
+    wrap.querySelector('#btnLedgerAddSave')?.addEventListener('click', () => {
+      const type = wrap.querySelector('#ledgerAddType')?.value || 'manual';
+      const amount = Number(wrap.querySelector('#ledgerAddAmount')?.value || 0);
+      const commission = Number(wrap.querySelector('#ledgerAddCommission')?.value || 0);
+      const withdrawn = Number(wrap.querySelector('#ledgerAddWithdrawn')?.value || 0);
+      const cardId = textOf(wrap.querySelector('#ledgerAddCardId')?.value);
+      const note = textOf(wrap.querySelector('#ledgerAddNote')?.value);
+      const dateVal = wrap.querySelector('#ledgerAddDate')?.value;
+      const paidAt = dateVal ? new Date(dateVal).toISOString() : new Date().toISOString();
+      addLedgerRecord({ type, amount, commission, withdrawn, card_id: cardId, paid_at: paidAt, note });
+      toast('✅ 已新增記帳紀錄');
+      renderLedger();
+    });
+
+    wrap.querySelector('#ledgerDetailList')?.addEventListener('click', e => {
+      const editBtn = e.target.closest('[data-ledger-edit]');
+      if (editBtn) { openLedgerEditModal(editBtn.dataset.ledgerEdit); return; }
+      const delBtn = e.target.closest('[data-ledger-del]');
+      if (!delBtn) return;
+      if (!confirm('確定刪除此手動記帳？')) return;
+      const records = getLedgerRecords().filter(r => r.ledger_id !== delBtn.dataset.ledgerDel);
+      saveLedgerRecords(records);
+      toast('✅ 已刪除');
+      renderLedger();
+    });
+  }
+
+  function renderLedgerRow(r) {
     const typeLabel = { income: '💰 收款', commission_paid: '💵 分潤取款', manual: '✏️ 手動', withdrawal: '🏦 取款' }[r.type] || r.type;
     const typeColor = { income: 'var(--ok)', commission_paid: 'var(--warn)', manual: 'var(--info)', withdrawal: 'var(--ink3)' }[r.type] || 'var(--ink)';
     const dt = (r.paid_at || r.created_at || '').slice(0, 10);
     const isLocal = !/^CM_|^PM_/.test(String(r.ledger_id || ''));
-    return `
-      <div class="list-row" style="margin-bottom:6px;">
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:${typeColor};">${typeLabel}</div>
-            <div style="font-size:11px;color:var(--ink3);margin-top:2px;">${escapeHtml(dt)} ${escapeHtml(r.card_id || '')} ${escapeHtml(r.note || '')}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;">
-            ${r.amount ? `<div style="font-size:13px;font-weight:900;color:var(--ok);">${formatMoney(r.amount)}</div>` : ''}
-            ${r.commission ? `<div style="font-size:11px;color:var(--ink3);">分潤 ${formatMoney(r.commission)}</div>` : ''}
-            ${r.withdrawn ? `<div style="font-size:11px;color:var(--warn);">取款 ${formatMoney(r.withdrawn)}</div>` : ''}
-          </div>
-          ${isLocal ? `
-          <div style="display:flex;gap:4px;flex-shrink:0;">
-            <button class="btn btn-soft btn-sm" style="padding:0 8px;height:32px;" data-ledger-edit="${escapeHtml(r.ledger_id)}">編輯</button>
-            <button class="btn btn-danger btn-sm" style="padding:0 8px;height:32px;" data-ledger-del="${escapeHtml(r.ledger_id)}">刪</button>
-          </div>` : ''}
+    return `<div class="list-row" style="margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:800;color:${typeColor};">${typeLabel}</div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:2px;">${escapeHtml(dt)} ${escapeHtml(r.card_id || '')} ${escapeHtml(r.note || '')}</div>
         </div>
-      </div>`;
+        <div style="text-align:right;flex-shrink:0;">
+          ${r.amount ? `<div style="font-size:13px;font-weight:900;color:var(--ok);">${formatMoney(r.amount)}</div>` : ''}
+          ${r.commission ? `<div style="font-size:11px;color:var(--ink3);">分潤 ${formatMoney(r.commission)}</div>` : ''}
+          ${r.withdrawn ? `<div style="font-size:11px;color:var(--warn);">取款 ${formatMoney(r.withdrawn)}</div>` : ''}
+        </div>
+        ${isLocal ? `<div style="display:flex;gap:4px;flex-shrink:0;"><button class="btn btn-soft btn-sm" style="padding:0 8px;height:32px;" data-ledger-edit="${escapeHtml(r.ledger_id)}">編輯</button><button class="btn btn-danger btn-sm" style="padding:0 8px;height:32px;" data-ledger-del="${escapeHtml(r.ledger_id)}">刪</button></div>` : ''}
+      </div>
+    </div>`;
   }
 
   function openLedgerEditModal(ledgerId) {
     const records = getLedgerRecords();
     const record = records.find(r => r.ledger_id === ledgerId);
     if (!record) return toast('找不到記錄');
-
-    // 簡易 inline 編輯：用 prompt 系列
-    const newAmount = prompt('收款金額', record.amount || 0);
-    if (newAmount === null) return;
-    const newCommission = prompt('分潤金額', record.commission || 0);
-    if (newCommission === null) return;
-    const newWithdrawn = prompt('取款金額', record.withdrawn || 0);
-    if (newWithdrawn === null) return;
-    const newNote = prompt('備註', record.note || '');
-    if (newNote === null) return;
-
+    const newAmount = prompt('收款金額', record.amount || 0); if (newAmount === null) return;
+    const newCommission = prompt('分潤金額', record.commission || 0); if (newCommission === null) return;
+    const newWithdrawn = prompt('取款金額', record.withdrawn || 0); if (newWithdrawn === null) return;
+    const newNote = prompt('備註', record.note || ''); if (newNote === null) return;
     const idx = records.findIndex(r => r.ledger_id === ledgerId);
     if (idx >= 0) {
-      records[idx] = {
-        ...records[idx],
-        amount: Number(newAmount) || 0,
-        commission: Number(newCommission) || 0,
-        withdrawn: Number(newWithdrawn) || 0,
-        note: newNote,
-      };
+      records[idx] = { ...records[idx], amount: Number(newAmount) || 0, commission: Number(newCommission) || 0, withdrawn: Number(newWithdrawn) || 0, note: newNote };
       saveLedgerRecords(records);
       toast('✅ 已更新');
       renderLedger();
     }
   }
 
-  // 注入記帳 section 到 DOM（若不存在）
   function injectLedgerSection() {
     if (document.getElementById('ledgerSection')) return;
-
-    // 新增 section
     const main = document.querySelector('.content');
     if (!main) return;
     const sec = document.createElement('section');
@@ -1681,14 +1468,12 @@ function renderLedgerRow(r) {
       renderLedger();
     });
 
-    // 注入 tab 按鈕
     const tabnav = document.getElementById('tabNav');
     if (tabnav) {
       const tabBtn = document.createElement('button');
       tabBtn.className = 'tab-btn';
       tabBtn.dataset.section = 'ledgerSection';
       tabBtn.textContent = '📒 記帳';
-      // 插入在「更多」按鈕前
       const moreBtn = document.getElementById('btnMore');
       tabnav.insertBefore(tabBtn, moreBtn);
       tabBtn.addEventListener('click', async () => {
@@ -1698,7 +1483,6 @@ function renderLedgerRow(r) {
       });
     }
 
-    // 也加入 more menu
     const moreGrid = document.querySelector('.more-menu-grid');
     if (moreGrid) {
       const moreBtn = document.createElement('button');
@@ -1715,7 +1499,9 @@ function renderLedgerRow(r) {
     }
   }
 
-  // ── LOAD DATA ──
+  // ══════════════════════════════════════════
+  // ── LOAD DATA（分開的 loader，供 lazy 使用）──
+  // ══════════════════════════════════════════
   async function loadCards() {
     try { const data = await apiGet("getCards", { limit: 100, offset: 0, light: true }); state.cards = normalizeList(data, ["cards", "items"]); renderCards(); }
     catch { state.cards = []; renderCards(); }
@@ -1724,19 +1510,10 @@ function renderLedgerRow(r) {
     try {
       const data = await apiGet("getPaymentList", { limit: 200, light: true });
       const rows = normalizeList(data, ["payment_list", "payments", "rows", "items"]);
-      state.payments = rows;
-      state.paymentList = rows;
-      renderPayments();
-    }
-    catch {
-      state.payments = [];
-      state.paymentList = [];
-      renderPayments();
-    }
+      state.payments = rows; state.paymentList = rows; renderPayments();
+    } catch { state.payments = []; state.paymentList = []; renderPayments(); }
   }
-  async function loadPaymentList() {
-    return loadPayments();
-  }
+  async function loadPaymentList() { return loadPayments(); }
   async function loadAddons() {
     try { const data = await apiGet("getAddonOrders"); state.addons = normalizeList(data, ["addons", "orders", "items"]); renderAddons(); }
     catch { state.addons = []; renderAddons(); }
@@ -1802,11 +1579,7 @@ function renderLedgerRow(r) {
       const data = await apiGet("getRequests", { limit: 50, offset: 0 });
       state.requests = normalizeList(data, ["requests", "items"]);
       renderRequests();
-    } catch (err) {
-      state.requests = [];
-      renderRequests();
-      toast('載入申請單失敗：' + err.message);
-    }
+    } catch (err) { state.requests = []; renderRequests(); toast('載入申請單失敗：' + err.message); }
   }
 
   async function loadRequestTrace(requestId) {
@@ -1850,11 +1623,8 @@ function renderLedgerRow(r) {
       if (reqInput) reqInput.value = "";
       const noteInput = $("#assignInviteNote");
       if (noteInput) noteInput.value = "";
-    } catch (err) {
-      toast("派碼失敗：" + err.message);
-    } finally {
-      setBtnLoading(btn, false);
-    }
+    } catch (err) { toast("派碼失敗：" + err.message); }
+    finally { setBtnLoading(btn, false); }
   }
 
   // ── SYSTEM TOOLS ──
@@ -1895,10 +1665,20 @@ function renderLedgerRow(r) {
     } catch (err) { toast(`執行失敗：${err.message}`); }
   }
 
-  // ── REFRESH ALL ──
+  // ══════════════════════════════════════════
+  // ── refreshAll（分層載入核心優化）──
+  //
+  //  第一層：首屏必要資料（requests/cards/payments/ops_logs）
+  //    → bootstrap 只帶這些，完成後立即 setLoading(false) 並渲染首屏
+  //
+  //  第二層：背景靜默載入（renewals/addons/agents/announcements/commissions）
+  //    → 不阻塞首屏，各自 Promise，完成後個別更新 dashboard
+  // ══════════════════════════════════════════
   async function refreshAll() {
     try {
       setLoading(true);
+
+      // ── 第一層：首屏資料 ──
       let boot = null;
       try {
         boot = await apiGet("getAdminBootstrap", {
@@ -1906,47 +1686,51 @@ function renderLedgerRow(r) {
           cards_limit: 100,
           payments_limit: 100,
           ops_limit: 20,
-          include_renewals: true,
-          include_addons: true,
-          include_agents: true,
-          include_announcements: true
+          include_renewals: false,   // ← 不含，交給第二層
+          include_addons: false,      // ← 同上
+          include_agents: false,      // ← 同上
+          include_announcements: false // ← 同上
         });
       } catch (bootErr) {
         console.warn("[refreshAll] bootstrap failed, fallback:", bootErr);
-        await Promise.allSettled([loadRequests(), loadCards(), loadPayments(), loadAddons(), loadAgents()]);
+        await Promise.allSettled([loadRequests(), loadCards(), loadPayments()]);
         renderRequests(); renderCards(); renderDashboard();
         return;
       }
 
-      if (boot.requests)      state.requests          = normalizeList(boot.requests,       ["requests", "items"]);
-      if (boot.cards)         state.cards             = normalizeList(boot.cards,          ["cards", "items"]);
-      if (boot.payments)      state.payments          = normalizeList(boot.payments,       ["payments", "items"]);
-      if (boot.announcements) state.announcementItems = normalizeList(boot.announcements,  ["announcements", "items"]);
-      if (boot.ops_logs)      state.opsLogs           = normalizeList(boot.ops_logs,       ["ops_logs", "items"]);
-      if (boot.renewals)      state.renewalItems      = normalizeList(boot.renewals,       ["renewals", "items"]);
-      if (boot.addons)        state.addons            = normalizeList(boot.addons,         ["addon_orders", "addons", "items"]);
-      if (boot.agents)        state.agents            = normalizeList(boot.agents,         ["agents", "items"]);
+      // 填入首屏資料
+      if (boot.requests) state.requests     = normalizeList(boot.requests,  ["requests", "items"]);
+      if (boot.cards)    state.cards        = normalizeList(boot.cards,     ["cards", "items"]);
+      if (boot.payments) {
+        const rows = normalizeList(boot.payments, ["payments", "items"]);
+        state.payments = rows; state.paymentList = rows;
+      }
+      if (boot.ops_logs) state.opsLogs      = normalizeList(boot.ops_logs,  ["ops_logs", "items"]);
 
+      // 立即渲染首屏 + 解除 loading
       renderRequests();
       renderCards();
-      if (state.renewalItems?.length)      renderRenewalList();
-      if (state.announcementItems?.length) renderAnnouncements();
-      if (state.addons?.length)            renderAddons();
-      if (state.agents?.length)            renderAgents();
+      renderPayments();
       renderDashboard();
       renderDashboardOpsLogs();
 
-      const lazyLoads = [];
-      if (!state.renewalItems?.length)      lazyLoads.push(loadRenewalList());
-      if (!state.announcementItems?.length) lazyLoads.push(loadAnnouncements());
-      if (!state.addons?.length)            lazyLoads.push(loadAddons());
-      if (!state.agents?.length)            lazyLoads.push(loadAgents());
-      if (!state.commissionItems?.length)   lazyLoads.push(loadCommissionList());
-      if (lazyLoads.length) {
-        await Promise.allSettled(lazyLoads);
-        renderDashboard();
-      }
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false); // ← 首屏完成，立即解鎖
+    }
+
+    // ── 第二層：背景靜默載入（不阻塞、不顯示全屏 loading）──
+    const bgJobs = [
+      loadRenewalList(),
+      loadAddons(),
+      loadAgents(),
+      loadAnnouncements(),
+      loadCommissionList(),
+    ];
+
+    Promise.allSettled(bgJobs).then(() => {
+      // 全部背景資料到齊後，更新 dashboard 數字（addons/renewals 影響統計）
+      renderDashboard();
+    });
   }
 
   // ── BIND EVENTS ──
@@ -2001,6 +1785,19 @@ function renderLedgerRow(r) {
       const e = $('#deliveryEmpty'); if (e) e.style.display = 'none';
     });
 
+    // ── Debounce 搜尋（防止每字觸發 re-render）──
+    const cardSearchEl = $("#cardSearch");
+    if (cardSearchEl) {
+      cardSearchEl.addEventListener("input", debounce(() => {
+        state._cardPage = 1;
+        renderCards();
+      }, 220));
+    }
+    const addonSearchEl = $("#addonSearch");
+    if (addonSearchEl) addonSearchEl.addEventListener("input", debounce(renderAddons, 220));
+    const agentSearchEl = $("#agentSearch");
+    if (agentSearchEl) agentSearchEl.addEventListener("input", debounce(renderAgents, 220));
+
     window.renderCards = renderCards;
     window.renderAddons = renderAddons;
     window.renderAgents = renderAgents;
@@ -2010,7 +1807,6 @@ function renderLedgerRow(r) {
     injectLedgerSection();
     bindEvents();
 
-    // URL 參數帶入後段 Key（書籤用，帶入後自動清除網址列）
     const urlKey = new URLSearchParams(window.location.search).get("key");
     if (urlKey && urlKey.trim()) {
       saveAdminKey(urlKey.trim());
@@ -2054,10 +1850,8 @@ function renderLedgerRow(r) {
             ${renderDetailItem("代理ID", item.agent_id)}
             ${renderDetailItem("採認時間", item.recognized_at)}
           </div>
-          <div class="field" style="margin-top:10px;"><label>service_log_id（選填）</label>
-            <input type="text" id="rLogId-${rid}" placeholder="service_log_id"></div>
-          <div class="field"><label>備註（選填）</label>
-            <input type="text" id="rNote-${rid}" placeholder="備註"></div>
+          <div class="field" style="margin-top:10px;"><label>service_log_id（選填）</label><input type="text" id="rLogId-${rid}" placeholder="service_log_id"></div>
+          <div class="field"><label>備註（選填）</label><input type="text" id="rNote-${rid}" placeholder="備註"></div>
           <div class="action-strip">
             <button class="btn btn-ok btn-sm btn-rec-approve" data-id="${rid}">核准</button>
             <button class="btn btn-danger btn-sm btn-rec-reject" data-id="${rid}">拒絕</button>
@@ -2124,10 +1918,7 @@ function renderLedgerRow(r) {
       </div>
       <div class="divider"></div>
       <div style="font-size:13px;font-weight:800;margin-bottom:10px;">升級設定</div>
-      <div class="field">
-        <label>目標等級（target_tier）</label>
-        <input type="text" id="editTargetTier" placeholder="例如：silver / gold" value="${escapeHtml(String(agent.target_tier || ''))}">
-      </div>
+      <div class="field"><label>目標等級（target_tier）</label><input type="text" id="editTargetTier" placeholder="例如：silver / gold" value="${escapeHtml(String(agent.target_tier || ''))}"></div>
       <button class="btn btn-warn btn-sm" id="btnSetUpgradeD" data-id="${agid}">設定可升級</button>
       <div class="divider"></div>
       <div style="font-size:13px;font-weight:800;margin-bottom:8px;">點數 / 分潤紀錄</div>
@@ -2176,15 +1967,9 @@ function renderLedgerRow(r) {
       function fvk(obj, keys) { for (const k of keys) { const v = obj && obj[k]; if (v !== undefined && v !== null && String(v).trim()) return v; } return ""; }
       wrap.innerHTML = `
         <div style="font-size:12px;font-weight:900;color:var(--ink3);margin-bottom:6px;">點數紀錄</div>
-        ${pRows.length ? pRows.map(r => `<div class="risk-item" style="background:var(--surface2);border-left-color:var(--border);color:var(--ink2);margin-bottom:4px;">
-          <span style="color:var(--ink3);font-size:11px;">${escapeHtml(formatValue(fvk(r, ["created_at", "time"])))}</span>
-          <span style="margin-left:6px;">${escapeHtml(formatValue(fvk(r, ["type", "action"])))} ${escapeHtml(formatValue(fvk(r, ["before_balance", "before"])))}→${escapeHtml(formatValue(fvk(r, ["after_balance", "after"])))}</span>
-        </div>`).join("") : "<div class='empty-state'>沒有點數紀錄</div>"}
+        ${pRows.length ? pRows.map(r => `<div class="risk-item" style="background:var(--surface2);border-left-color:var(--border);color:var(--ink2);margin-bottom:4px;"><span style="color:var(--ink3);font-size:11px;">${escapeHtml(formatValue(fvk(r, ["created_at", "time"])))}</span><span style="margin-left:6px;">${escapeHtml(formatValue(fvk(r, ["type", "action"])))} ${escapeHtml(formatValue(fvk(r, ["before_balance", "before"])))}→${escapeHtml(formatValue(fvk(r, ["after_balance", "after"])))}</span></div>`).join("") : "<div class='empty-state'>沒有點數紀錄</div>"}
         <div style="font-size:12px;font-weight:900;color:var(--ink3);margin:10px 0 6px;">分潤紀錄</div>
-        ${cRows.length ? cRows.map(r => `<div class="risk-item" style="background:var(--surface2);border-left-color:var(--border);color:var(--ink2);margin-bottom:4px;">
-          <span style="color:var(--ink3);font-size:11px;">${escapeHtml(formatValue(fvk(r, ["created_at", "time"])))}</span>
-          <span style="margin-left:6px;">$${escapeHtml(formatValue(fvk(r, ["amount"])))} ${escapeHtml(formatValue(fvk(r, ["note", "memo"])))}</span>
-        </div>`).join("") : "<div class='empty-state'>沒有分潤紀錄</div>"}`;
+        ${cRows.length ? cRows.map(r => `<div class="risk-item" style="background:var(--surface2);border-left-color:var(--border);color:var(--ink2);margin-bottom:4px;"><span style="color:var(--ink3);font-size:11px;">${escapeHtml(formatValue(fvk(r, ["created_at", "time"])))}</span><span style="margin-left:6px;">$${escapeHtml(formatValue(fvk(r, ["amount"])))} ${escapeHtml(formatValue(fvk(r, ["note", "memo"])))}</span></div>`).join("") : "<div class='empty-state'>沒有分潤紀錄</div>"}`;
     } catch { wrap.innerHTML = "<div class='empty-state'>無法載入紀錄</div>"; }
   }
 
