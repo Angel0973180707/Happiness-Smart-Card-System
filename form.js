@@ -259,9 +259,13 @@
    * buildPaymentConfirmUrl(cardId, amount)
    * 回傳付款確認表單 URL
    */
-  function buildPaymentConfirmUrl(cardId, amount) {
-    return `${CONFIG.PAYMENT_FORM_URL}?card_id=${encodeURIComponent(cardId || "")}&amount=${encodeURIComponent(amount || "")}`;
-  }
+function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
+  return `${CONFIG.PAYMENT_FORM_URL}` +
+    `?card_id=${encodeURIComponent(cardId || "")}` +
+    `&amount=${encodeURIComponent(amount || "")}` +
+    `&payment_type=${encodeURIComponent(paymentType || "")}` +
+    `&target_id=${encodeURIComponent(targetId || "")}`;
+}
 
   /**
    * openPaymentConfirm(cardId, amount)
