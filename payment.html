@@ -354,11 +354,16 @@
     const noteCardId    = $("bank-note-cardid");
 
     // ── 從 URL query 預填 ─────────────────────────────────────────
-    (function preloadFromQuery() {
-      const params = new URLSearchParams(window.location.search || "");
-      const cardId = (params.get("card_id") || "").trim();
-      const amount = (params.get("amount")  || "").trim();
+    const _state = { paymentType: "", targetId: "" }; // 加在 DOM refs 區塊後面
 
+(function preloadFromQuery() {
+  const params = new URLSearchParams(window.location.search || "");
+  const cardId = (params.get("card_id")      || "").trim();
+  const amount = (params.get("amount")       || "").trim();
+
+  // 新增：讀取並存入 state
+  _state.paymentType = (params.get("payment_type") || "").trim();
+  _state.targetId    = (params.get("target_id")    || "").trim();
       if (cardId) {
         cardIdInput.value = cardId;
         noteCardId.textContent = cardId;
@@ -413,6 +418,9 @@
           amount:  Number(amount),
           last5,
           note,
+           note,
+           payment_type: _state.paymentType || "",
+           target_id:    _state.targetId    || "",
           raw_text: `card_id=${cardId} amount=${amount} last5=${last5} note=${note}`
         };
 
