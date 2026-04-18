@@ -1101,6 +1101,63 @@ input:focus, textarea:focus, select:focus { outline: none; }
         <div class="section-title">系統工具</div>
       </div>
       <div class="tool-list">
+        <!-- ============================================================
+     HSC ADMIN · 維護模式面板 HTML PATCH
+     ============================================================
+     貼法:在 admin.html 中找到「系統工具」section(id="systemSection"),
+     在 <div class="tool-list"> 的最前面插入以下這整塊。
+     大概在這一行附近:
+       <div class="tool-list">
+         ← 貼在這裡(上面)
+         <div class="tool-item">
+           <div><div class="tool-item-label">每日維運</div>...
+============================================================ -->
+
+<!-- ═══ 維護模式控制面板 ═══ -->
+<div style="background:linear-gradient(180deg,#fff8ec,#fdf2e8);border:1.5px solid var(--warn);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:var(--shadow);">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:20px;">🔧</span>
+      <span style="font-size:15px;font-weight:900;color:var(--warn);">維護模式控制</span>
+    </div>
+    <div id="maintStatusBadge" style="padding:4px 10px;border-radius:999px;background:var(--ok-bg);color:var(--ok);font-size:11px;font-weight:900;">查詢中…</div>
+  </div>
+
+  <!-- 狀態顯示 -->
+  <div id="maintStatusWrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.6;color:var(--ink2);">
+    <div>載入維護狀態中…</div>
+  </div>
+
+  <!-- 啟動維護表單 -->
+  <div class="collapsible" id="maintActivateCollapsible" style="margin-bottom:10px;">
+    <div class="collapsible-head" id="maintActivateHead">
+      <span>🔴 啟動維護模式</span>
+      <span class="chevron">›</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="field">
+        <label>維護訊息</label>
+        <textarea id="maintInputMessage" rows="2" placeholder="例如:系統升級中,預計於 04/20 凌晨 2 點恢復"></textarea>
+      </div>
+      <div class="field">
+        <label>預計結束時間(選填,留空代表手動關閉)</label>
+        <input type="datetime-local" id="maintInputEndAt">
+      </div>
+      <div class="field">
+        <label>公告標題(選填)</label>
+        <input type="text" id="maintInputTitle" placeholder="系統維護通知">
+      </div>
+      <button class="btn btn-warn btn-full" id="btnMaintActivate">🔴 立即啟動維護</button>
+    </div>
+  </div>
+
+  <!-- 關閉維護 -->
+  <button class="btn btn-ok btn-full" id="btnMaintDeactivate" style="margin-bottom:8px;">🟢 關閉維護模式</button>
+
+  <!-- 快速狀態刷新 -->
+  <button class="btn btn-soft btn-sm btn-full" id="btnMaintRefresh">↻ 刷新狀態</button>
+</div>
+<!-- ═══ 維護模式控制面板 結束 ═══ -->
         <div class="tool-item">
           <div><div class="tool-item-label">每日維運</div><div class="tool-item-sub">觸發每日排程任務</div></div>
           <button class="btn btn-warn btn-sm" id="btnRunDailyOps">執行</button>
