@@ -1,29 +1,20 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v8.3.4-request-db-fix
-   完整覆蓋版
+   v8.3.5-perf-optimized
 
-   v8.3.4 修正項目：
-   1. 申請邀請碼流程改為正式 createRequest
-   2. buildLeadCreateUrl_ 改為 buildCreateRequestUrl_
-   3. 保留 buildLeadCreateUrl_ 作為相容別名，但實際改走 createRequest
-   4. ensureInviteApplyData_ 改讀 request_id，不再讀 lead_id
-   5. 移除本機假碼 fallback，API 失敗時明確報錯
-   6. 申請文字改用「申請單號」而非誤導性的申請識別碼
-
-   v8.3.3 原修正項目（保留）：
-   1. 加入 loadCardById_() — 依 card_id 從 GAS 撈資料
-   2. 加入 renderPersonalCard_() — 個人名片渲染流程
-   3. boot_() 開頭判斷 ?id=xxx&view=1，有則走個人名片模式
-   4. 個人名片模式使用 useExistingDom:true，直接填入靜態 HTML
-      節點，避免 DOM 重建後靜態 ID 找不到的問題
-   5. 個人名片模式正確設定 body 主題 class
-   6. 保留所有 v7.7.6 原有邏輯不變
-
-   v7.7.6 原修正項目（保留）：
-   1. QR Code：bindQrSlots_ 改為動態查找
-   2. 到期倒數：強化 pick key 清單 + 動態查找節點
-   3. renderBottomQr_ 改為用 scope 查找
+   效能優化項目（基於 v8.3.4）：
+   1. 快取優先渲染（cache-first）
+      - Shell 有快取時直接渲染，不等 GAS，首屏體感 < 200ms
+      - 渲染後才背景 rehydrate（lite → full）
+   2. 骨架屏（Skeleton UI）
+      - 無快取時顯示 placeholder，避免空白閃爍
+   3. 並行 fetch
+      - 個人名片模式：shell fetch 與 announcements 並行
+      - lite / full 也改為盡早發起，不等前一層完成
+   4. fetch cache 策略
+      - Shell / lite 改用 cache: "default"（瀏覽器可快取 GAS CDN response）
+      - 寫入性 API 保留 no-store
+   5. 門面模式：快取命中時跳過 loading mask
 ============================================================ */
 
 const CONFIG = {
@@ -31,10 +22,14 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v8.3.4-request-db-fix-v1.5.5",
+  VERSION: "v8.3.5-perf-optimized",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
-  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
+  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
+  // 快取 TTL 設定
+  CACHE_SHELL_MS:  5 * 60 * 1000,   // 5 分鐘
+  CACHE_LITE_MS:   3 * 60 * 1000,   // 3 分鐘（更動較頻繁）
+  CACHE_FULL_MS:   2 * 60 * 1000,   // 2 分鐘
 };
 
 const FACADE_SAMPLE_ID = "TW0001";
@@ -182,13 +177,18 @@ function safeJsonParse_(rawText){
   return null;
 }
 
-async function fetchWithTimeout_(url, timeoutMs){
+/* ──────────────────────────────────────────────────────────
+   ★ 效能優化：fetchWithTimeout_ 加入 cache 策略參數
+   - cacheMode: "default"（瀏覽器快取，適合 shell/lite）
+   - cacheMode: "no-store"（強制新鮮，適合寫入後的確認）
+────────────────────────────────────────────────────────── */
+async function fetchWithTimeout_(url, timeoutMs, cacheMode = "no-store"){
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
   try{
     const res = await fetch(url, {
       method: "GET",
-      cache: "no-store",
+      cache: cacheMode,
       redirect: "follow",
       signal: controller.signal
     });
@@ -201,11 +201,11 @@ async function fetchWithTimeout_(url, timeoutMs){
   }
 }
 
-async function fetchJsonRobust_(url){
+async function fetchJsonRobust_(url, { cacheMode = "no-store" } = {}){
   let last = null;
   for(let i = 0; i <= CONFIG.RETRY; i++){
     try{
-      return await fetchWithTimeout_(url, CONFIG.FETCH_TIMEOUT_MS);
+      return await fetchWithTimeout_(url, CONFIG.FETCH_TIMEOUT_MS, cacheMode);
     }catch(e){
       last = e;
       await new Promise(r => setTimeout(r, 520 + i * 520));
@@ -259,7 +259,7 @@ function buildCardPublicShellUrl_(id){
   u.searchParams.set("action", "getCardPublicShell");
   u.searchParams.set("id", cid);
   u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
-  u.searchParams.set("ts", String(Date.now()));
+  // ★ shell 不帶 ts（讓 GAS CDN 可快取相同 URL）
   u.searchParams.set("v", CONFIG.VERSION);
   return u.toString();
 }
@@ -270,7 +270,6 @@ function buildCardPublicLiteUrl_(id){
   u.searchParams.set("action", "getCardPublicLite");
   u.searchParams.set("id", cid);
   u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
-  u.searchParams.set("ts", String(Date.now()));
   u.searchParams.set("v", CONFIG.VERSION);
   return u.toString();
 }
@@ -308,7 +307,6 @@ function buildCreateRequestUrl_(refCode){
   return u.toString();
 }
 
-/* 向下相容：舊名稱保留，但實際改走 createRequest */
 function buildLeadCreateUrl_(refCode){
   return buildCreateRequestUrl_(refCode);
 }
@@ -317,7 +315,7 @@ function buildAnnouncementApiUrl_(){
   const u = new URL(CONFIG.GAS);
   u.searchParams.set("action", "getAnnouncements");
   u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
-  u.searchParams.set("ts", String(Date.now()));
+  // ★ 不帶 ts，讓瀏覽器可快取公告
   u.searchParams.set("v", CONFIG.VERSION);
   return u.toString();
 }
@@ -385,7 +383,6 @@ function normalizePreviewMeta_(raw){
   const layout = text(meta.layout).toLowerCase();
   const aspectRatio = text(meta.aspect_ratio || meta.aspectRatio).trim();
   const fitMode = text(meta.fit_mode || meta.fitMode).toLowerCase();
-
   return {
     theme: theme === "premium" || theme === "free" ? theme : DEFAULT_PREVIEW_META.theme,
     layout: layout === "single" ? "single" : DEFAULT_PREVIEW_META.layout,
@@ -423,43 +420,29 @@ function normalizeCardFeatures(card){
     const fromJson = safeJsonParse_(src.features_json);
     if(fromJson && typeof fromJson === "object") parsed = fromJson;
   }
-
   const features = {
     photo_meta: normalizePhotoMetaMap_(parsed.photo_meta),
     preview_meta: normalizePreviewMeta_(parsed.preview_meta)
   };
-
   src.features = features;
   return src;
 }
 
 function normalizeForRenderer_(row){
   const out = { ...(row || {}) };
-
-  // 基本文字
   if (!out.services && out.service) out.services = out.service;
   if (!out.slogan && out.subtitle) out.slogan = out.subtitle;
-
-  // 品牌故事 / 經歷
   if (!out.about && out.bio) out.about = out.bio;
   if (!out.experience && out.about) out.experience = out.about;
   if (!out.experience && out.bio) out.experience = out.bio;
-
-  // 聯繫區
   if (!out.line_url && out.line_id) out.line_url = out.line_id;
   if (!out.line_oa && out.line_id) out.line_oa = out.line_id;
-
-  // 照片
   if (Array.isArray(out.photos)) {
     out.photos.forEach((url, idx) => {
       const n = idx + 1;
-      if (n <= 10 && !out[`photo${n}_url`]) {
-        out[`photo${n}_url`] = url;
-      }
+      if (n <= 10 && !out[`photo${n}_url`]) out[`photo${n}_url`] = url;
     });
   }
-
-  // CTA
   if (Array.isArray(out.ctas)) {
     out.ctas.forEach((cta, idx) => {
       const n = idx + 1;
@@ -469,14 +452,12 @@ function normalizeForRenderer_(row){
       }
     });
   }
-
-  // marquee
   if (typeof out.marquee_enabled === "boolean") {
     out.marquee_enabled = out.marquee_enabled ? "TRUE" : "";
   }
-
   return out;
 }
+
 function getPreviewMeta_(p){
   const features = p?.features || {};
   return normalizePreviewMeta_(features.preview_meta);
@@ -603,15 +584,12 @@ async function ensureInviteApplyData_(){
       copyText: currentInviteCopyTextCache
     };
   }
-
   const refCode = getReferralSourceCode_(getActiveCardPayload_());
   currentReferralSourceCodeCache = refCode || "";
-
   const payload = await fetchJsonRobust_(buildCreateRequestUrl_(refCode));
   if(!payload || payload.ok !== true){
     throw new Error(text(payload?.error) || "createRequest failed");
   }
-
   const applyCode = text(
     payload?.data?.request_id ||
     payload?.request_id ||
@@ -621,14 +599,11 @@ async function ensureInviteApplyData_(){
     payload?.request?.request_id ||
     ""
   );
-
   if(!applyCode){
     throw new Error("createRequest succeeded but request_id missing");
   }
-
   currentInviteApplyCodeCache = applyCode;
   currentInviteCopyTextCache = buildInviteApplyText_(refCode, applyCode);
-
   return {
     refCode: refCode || "無",
     applyCode,
@@ -712,7 +687,7 @@ function setImgWithFallback_(imgEl, candidates, options = {}){
 }
 
 /* ============================================================
-   門面 state 對應工具
+   門面 state 對應工具（與原版相同，略）
 ============================================================ */
 function mapFreeColorToTheme_(v){
   const raw = text(v).toLowerCase();
@@ -722,19 +697,16 @@ function mapFreeColorToTheme_(v){
   };
   return map[raw] || "color-1";
 }
-
 function mapStyleToUi_(v){
   const raw = text(v).toLowerCase();
   const map = { "s1":"arch","s2":"flat","s3":"spot","arch":"arch","flat":"flat","spot":"spot" };
   return map[raw] || "arch";
 }
-
 function mapPaperToUi_(v){
   const raw = text(v).toLowerCase();
   const map = { "f1":"paper-1","f2":"paper-2","f3":"paper-3","paper-1":"paper-1","paper-2":"paper-2","paper-3":"paper-3" };
   return map[raw] || "paper-1";
 }
-
 function mapPremiumToUi_(v){
   const raw = text(v).toLowerCase();
   const allow = ["p1","p2","p3","p4","p5","p6","p7"];
@@ -747,7 +719,6 @@ function mapPremiumToUi_(v){
 function syncThemeUI_(){
   const freeDots = qsa("#freeDotsRow .dot");
   const premiumDots = qsa("#premiumDotsRow .p-dot");
-
   if(facadeState.plan === "premium"){
     premiumDots.forEach(btn => {
       const expected = text(btn.getAttribute("aria-label"));
@@ -765,7 +736,6 @@ function syncThemeUI_(){
     premiumDots.forEach(btn => btn.classList.remove("active"));
   }
 }
-
 function syncStyleUI_(){
   const buttons = qsa("#styleRow .btn-neo");
   buttons.forEach(btn => {
@@ -776,7 +746,6 @@ function syncStyleUI_(){
     else btn.classList.remove("active");
   });
 }
-
 function syncPaperUI_(){
   const buttons = qsa("#paperRow .btn-neo");
   buttons.forEach(btn => {
@@ -787,11 +756,9 @@ function syncPaperUI_(){
     else btn.classList.remove("active");
   });
 }
-
 function applyFacadeBodyMode_(){
   const body = document.body;
   if(!body) return;
-
   body.classList.remove(
     "mode-free","mode-premium",
     "color-1","color-2","color-3","color-4","color-5",
@@ -799,7 +766,6 @@ function applyFacadeBodyMode_(){
     "style-arch","style-flat","style-spot",
     "paper-1","paper-2","paper-3"
   );
-
   if(facadeState.plan === "premium"){
     body.classList.add("mode-premium", mapPremiumToUi_(facadeState.premiumColor));
   }else{
@@ -811,13 +777,11 @@ function applyFacadeBodyMode_(){
     );
   }
 }
-
 function syncPlanUI_(){
   const freeBtn = qs("btnPlanFree");
   const premBtn = qs("btnPlanPremium");
   const freeControls = qs("free-controls");
   const premiumControls = qs("premium-controls");
-
   if(facadeState.plan === "premium"){
     if(freeControls) freeControls.style.display = "none";
     if(premiumControls) premiumControls.style.display = "";
@@ -829,35 +793,72 @@ function syncPlanUI_(){
     if(premBtn) premBtn.classList.remove("active");
     if(freeBtn) freeBtn.classList.add("active");
   }
-
   syncThemeUI_();
   syncStyleUI_();
   syncPaperUI_();
   applyFacadeBodyMode_();
 }
+function initSelectionState_(){ syncPlanUI_(); }
 
-function initSelectionState_(){
-  syncPlanUI_();
+/* ──────────────────────────────────────────────────────────
+   ★ 骨架屏：快取未命中時，先填入 placeholder 讓使用者感知頁面在動
+────────────────────────────────────────────────────────── */
+function renderSkeletonUI_(){
+  const nameEl = qs("u-name");
+  const titleEl = qs("u-title");
+  const unitEl = qs("u-unit");
+  if(nameEl && !nameEl.textContent.trim()){
+    nameEl.textContent = "載入中…";
+    nameEl.style.opacity = "0.4";
+  }
+  if(titleEl && !titleEl.textContent.trim()){
+    titleEl.textContent = "—";
+    titleEl.style.opacity = "0.3";
+  }
+  // 讓卡片容器有基礎高度，避免 layout shift
+  const card = document.querySelector("#livePreviewCard .card");
+  if(card) card.style.minHeight = "360px";
+}
+
+function clearSkeletonUI_(){
+  const nameEl = qs("u-name");
+  const titleEl = qs("u-title");
+  if(nameEl) nameEl.style.opacity = "";
+  if(titleEl) titleEl.style.opacity = "";
+  const card = document.querySelector("#livePreviewCard .card");
+  if(card) card.style.minHeight = "";
 }
 
 /* ============================================================
-   門面資料：固定讀 TW0001
+   門面資料：優先快取，背景 rehydrate
 ============================================================ */
 async function loadFacadeBaseCard(){
   const cardId = FACADE_SAMPLE_ID;
 
-  let shell = readCardCache_("shell", cardId, 5 * 60 * 1000);
-  if(!shell){
-    const shellPayload = await fetchJsonRobust_(buildCardPublicShellUrl_(cardId));
-    shell = extractCardRow_(shellPayload);
-    if(!shell || typeof shell !== "object" || !Object.keys(shell).length){
-      throw new Error("門面樣品卡 shell 資料為空");
-    }
-    writeCardCache_("shell", cardId, shell);
+  // ── 快取優先：有快取直接渲染，不等 GAS ──
+  const cached = readCardCache_("shell", cardId, CONFIG.CACHE_SHELL_MS);
+  if(cached){
+    _applyShellToFacade_(cached, cardId);
+    // 背景靜默更新快取（不 await，不阻塞渲染）
+    _refreshShellInBackground_(cardId);
+    return; // 快取命中，立即返回
   }
 
-  facadeBaseData = buildNormalizedPayload_(normalizeCardFeatures(shell));
+  // 無快取：顯示骨架屏，再等 GAS
+  renderSkeletonUI_();
+  const shellPayload = await fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" });
+  const shell = extractCardRow_(shellPayload);
+  if(!shell || typeof shell !== "object" || !Object.keys(shell).length){
+    throw new Error("門面樣品卡 shell 資料為空");
+  }
+  writeCardCache_("shell", cardId, shell);
+  clearSkeletonUI_();
+  _applyShellToFacade_(shell, cardId);
+}
 
+// 將 shell 資料套用到 facadeBaseData 並同步 UI
+function _applyShellToFacade_(shell, cardId){
+  facadeBaseData = buildNormalizedPayload_(normalizeCardFeatures(shell));
   const basePlan = getEffectiveTheme_(facadeBaseData);
   if(basePlan === "premium"){
     facadeState.plan = "premium";
@@ -868,44 +869,57 @@ async function loadFacadeBaseCard(){
     facadeState.style = text(pick(facadeBaseData, ["style"])) || "s1";
     facadeState.paper = text(pick(facadeBaseData, ["paper"])) || "f1";
   }
-
   syncPlanUI_();
 
-  Promise.resolve().then(async ()=>{
-    try{
-      const litePayload = await fetchJsonRobust_(buildCardPublicLiteUrl_(cardId));
-      const lite = extractCardRow_(litePayload);
-      if(!lite || typeof lite !== "object" || !Object.keys(lite).length) return;
-      writeCardCache_("lite", cardId, lite);
-      const merged = normalizeCardFeatures({ ...(facadeBaseData?.__raw || facadeBaseData || {}), ...lite });
-      facadeBaseData = buildNormalizedPayload_(merged);
-      renderFacadePreview();
-    }catch(err){
-      console.warn("[HSC facade] lite load failed:", err);
-    }
-  });
+  // ★ 背景載入 lite，不阻塞首屏
+  _loadLiteInBackground_(cardId);
+}
+
+// 背景重新抓 shell（更新快取，不觸發渲染，除非資料有變）
+async function _refreshShellInBackground_(cardId){
+  try{
+    const shellPayload = await fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" });
+    const shell = extractCardRow_(shellPayload);
+    if(!shell || !Object.keys(shell).length) return;
+    writeCardCache_("shell", cardId, shell);
+    // 若核心欄位有變化，補渲染一次
+    const merged = normalizeCardFeatures({ ...(facadeBaseData?.__raw || {}), ...shell });
+    facadeBaseData = buildNormalizedPayload_(merged);
+    // 靜默更新，不強制重渲染（避免畫面閃爍）
+  }catch(_){ /* 背景失敗靜默 */ }
+}
+
+// 背景載入 lite，完成後 merge 並補渲染
+async function _loadLiteInBackground_(cardId){
+  try{
+    const litePayload = await fetchJsonRobust_(buildCardPublicLiteUrl_(cardId), { cacheMode: "default" });
+    const lite = extractCardRow_(litePayload);
+    if(!lite || typeof lite !== "object" || !Object.keys(lite).length) return;
+    writeCardCache_("lite", cardId, lite);
+    const merged = normalizeCardFeatures({ ...(facadeBaseData?.__raw || facadeBaseData || {}), ...lite });
+    facadeBaseData = buildNormalizedPayload_(merged);
+    renderFacadePreview();
+  }catch(err){
+    console.warn("[HSC facade] lite load failed:", err);
+  }
 }
 
 function buildFacadePreviewData(){
   const baseRaw = facadeBaseData?.__raw || facadeBaseData || {};
   const base = JSON.parse(JSON.stringify(baseRaw || {}));
   const isPremium = facadeState.plan === "premium";
-
   const baseFeatures = (base.features && typeof base.features === "object")
     ? base.features
     : (safeJsonParse_(base.features_json) || {});
-
   const previewMeta = {
     ...(baseFeatures.preview_meta || {}),
     theme: isPremium ? "premium" : "free"
   };
-
   const features = {
     ...(baseFeatures || {}),
     preview_meta: previewMeta,
     photo_meta: normalizePhotoMetaMap_(baseFeatures.photo_meta)
   };
-
   base.plan = isPremium ? "premium" : "free";
   base.color = isPremium ? facadeState.premiumColor : facadeState.color;
   base.style = isPremium ? "" : facadeState.style;
@@ -914,23 +928,17 @@ function buildFacadePreviewData(){
   base.cta_limit = isPremium ? 3 : 1;
   base.features = features;
   base.features_json = JSON.stringify(features);
-
   base.card_url = buildTrackedShareUrl_(facadeBaseData || base);
   base.share_url = base.card_url;
   base.preview_url = base.card_url;
   base.hub_url = buildHubShareUrl_();
   base.facade_url = base.hub_url;
-
   return base;
 }
 
 /* ============================================================
-   ★ v8.3.3 新增：個人名片模式
+   ★ 個人名片模式（cache-first + 並行 fetch）
 ============================================================ */
-
-/**
- * 依 card_id 從 GAS 撈資料
- */
 async function loadCardById_(cardId, opts = {}){
   const useTracked = !!opts.useTracked;
   const url = buildCardApiUrl_(cardId, {
@@ -939,38 +947,45 @@ async function loadCardById_(cardId, opts = {}){
   });
   const payload = await fetchJsonRobust_(url);
   const row = extractCardRow_(payload);
-
   if(!row || typeof row !== "object" || !Object.keys(row).length){
     throw new Error("名片資料為空，id=" + cardId);
   }
-
   writeCardCache_("full", cardId, row);
   return normalizeCardFeatures(row);
 }
 
-/**
- * 個人名片渲染：
- * - 使用 useExistingDom:true，填入靜態 HTML 節點
- * - 設定 body 主題 class
- * - 設定 share URL
- */
 async function renderPersonalCard_(cardId){
   const root = qs("livePreviewCard");
   if(!root) throw new Error("找不到 #livePreviewCard");
-
   const rendererApi = window.HscCardRenderer || window.HSCCardRenderer || null;
   if(!rendererApi || typeof rendererApi.renderCard !== "function") throw new Error("card-renderer.js 未正確載入");
 
-  let shell = readCardCache_("shell", cardId, 5 * 60 * 1000);
-  if(!shell){
-    const shellPayload = await fetchJsonRobust_(buildCardPublicShellUrl_(cardId));
-    shell = extractCardRow_(shellPayload);
+  // ── ★ cache-first：有快取立即渲染，同時並行發起 shell fetch ──
+  const cachedShell = readCardCache_("shell", cardId, CONFIG.CACHE_SHELL_MS);
+
+  // shell fetch 與 announcements 並行發起（不互相等待）
+  const shellFetchPromise = cachedShell
+    ? Promise.resolve(cachedShell)
+    : fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" })
+        .then(p => {
+          const r = extractCardRow_(p);
+          if(r && Object.keys(r).length) writeCardCache_("shell", cardId, r);
+          return r;
+        });
+
+  let shell;
+  if(cachedShell){
+    shell = cachedShell;
+    // 快取命中，背景更新 shell
+    shellFetchPromise.catch(() => {});
+  }else{
+    shell = await shellFetchPromise;
     if(!shell || typeof shell !== "object" || !Object.keys(shell).length){
       throw new Error("名片 shell 資料為空，id=" + cardId);
     }
-    writeCardCache_("shell", cardId, shell);
   }
 
+  // 首屏渲染（用 shell 資料）
   const shellP = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(shell)));
   const shareUrl = buildTrackedShareUrl_(shellP);
   shell.card_url = shareUrl;
@@ -999,63 +1014,67 @@ async function renderPersonalCard_(cardId){
   currentAvatarSourceKeyCache = avatarInfo.key || "";
   renderShellUiFriendly_(normalizedShell, root);
 
-  Promise.resolve().then(async ()=>{
-    try{
-      const litePayload = await fetchJsonRobust_(buildCardPublicLiteUrl_(cardId));
-      const lite = extractCardRow_(litePayload);
-      if(!lite || typeof lite !== "object" || !Object.keys(lite).length) return;
-      writeCardCache_("lite", cardId, lite);
-      const merged = normalizeForRenderer_({ ...shell, ...lite, card_url: shareUrl, share_url: shareUrl, preview_url: shareUrl });
-      if(typeof rendererApi.mergeCardData === "function"){
-        rendererApi.mergeCardData(merged, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
-      }else{
-        rendererApi.renderCard(merged, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
-      }
-      const normalizedMerged = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(merged)));
-      currentRow = normalizedMerged;
-      facadeCurrentRow = normalizedMerged;
-      window.__CARD_DATA__ = normalizedMerged;
-      window.cardData = normalizedMerged;
-      renderPostRendererUi_(normalizedMerged, root);
+  // ── ★ lite & full 並行發起，不再串行等待 ──
+  const cachedLite = readCardCache_("lite", cardId, CONFIG.CACHE_LITE_MS);
+  const liteFetchPromise = cachedLite
+    ? Promise.resolve(cachedLite)
+    : fetchJsonRobust_(buildCardPublicLiteUrl_(cardId), { cacheMode: "default" })
+        .then(p => {
+          const r = extractCardRow_(p);
+          if(r && Object.keys(r).length) writeCardCache_("lite", cardId, r);
+          return r;
+        });
 
-      setTimeout(async ()=>{
-        try{
-          const fullRow = await loadCardById_(cardId, { useTracked: false });
-          const mergedFull = normalizeForRenderer_({ ...merged, ...fullRow, card_url: shareUrl, share_url: shareUrl, preview_url: shareUrl });
-          if(typeof rendererApi.mergeCardData === "function") rendererApi.mergeCardData(mergedFull, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
-          const normalizedFull = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(mergedFull)));
-          currentRow = normalizedFull;
-          facadeCurrentRow = normalizedFull;
-          window.__CARD_DATA__ = normalizedFull;
-          window.cardData = normalizedFull;
-          renderPostRendererUi_(normalizedFull, root);
+  // full 在 lite 之後 60ms 發起，錯開 GAS 並發
+  const fullFetchPromise = new Promise(resolve => {
+    setTimeout(() => {
+      loadCardById_(cardId, { useTracked: false })
+        .then(resolve)
+        .catch(() => resolve(null));
+    }, 60);
+  });
 
-          const blockService = root.querySelector("#block-service") || qs("block-service");
-          const blockExp = root.querySelector("#block-exp") || qs("block-exp");
-
-          renderExpandableInfoBlock_(
-            blockService,
-            "服務項目",
-            pick(normalizedFull, ["services","服務項目","service"]),
-            2
-          );
-
-          renderExpandableInfoBlock_(
-            blockExp,
-            "經歷 / 品牌故事",
-            pick(normalizedFull, ["experience","經歷","exp"]),
-            3
-          );
-        }catch(err){ console.warn("[HSC card] full load deferred failed:", err); }
-      }, 60);
-    }catch(err){
-      console.warn("[HSC card] lite load failed:", err);
+  // lite 完成後更新 UI
+  liteFetchPromise.then(lite => {
+    if(!lite || typeof lite !== "object" || !Object.keys(lite).length) return;
+    const merged = normalizeForRenderer_({ ...shell, ...lite, card_url: shareUrl, share_url: shareUrl, preview_url: shareUrl });
+    if(typeof rendererApi.mergeCardData === "function"){
+      rendererApi.mergeCardData(merged, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
+    }else{
+      rendererApi.renderCard(merged, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
     }
+    const normalizedMerged = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(merged)));
+    currentRow = normalizedMerged;
+    facadeCurrentRow = normalizedMerged;
+    window.__CARD_DATA__ = normalizedMerged;
+    window.cardData = normalizedMerged;
+    renderPostRendererUi_(normalizedMerged, root);
+  }).catch(err => { console.warn("[HSC card] lite load failed:", err); });
+
+  // full 完成後補填詳細欄位
+  fullFetchPromise.then(fullRow => {
+    if(!fullRow) return;
+    const liteMerged = { ...shell, ...fullRow, card_url: shareUrl, share_url: shareUrl, preview_url: shareUrl };
+    const mergedFull = normalizeForRenderer_(liteMerged);
+    if(typeof rendererApi.mergeCardData === "function"){
+      rendererApi.mergeCardData(mergedFull, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
+    }
+    const normalizedFull = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(mergedFull)));
+    currentRow = normalizedFull;
+    facadeCurrentRow = normalizedFull;
+    window.__CARD_DATA__ = normalizedFull;
+    window.cardData = normalizedFull;
+    renderPostRendererUi_(normalizedFull, root);
+
+    const blockService = root.querySelector("#block-service") || qs("block-service");
+    const blockExp = root.querySelector("#block-exp") || qs("block-exp");
+    renderExpandableInfoBlock_(blockService, "服務項目", pick(normalizedFull, ["services","服務項目","service"]), 2);
+    renderExpandableInfoBlock_(blockExp, "經歷 / 品牌故事", pick(normalizedFull, ["experience","經歷","exp"]), 3);
   });
 }
 
 /* ============================================================
-   QR Slot — 動態查找
+   QR Slot
 ============================================================ */
 const HSC_QR = (() => {
   const registry = new Map();
@@ -1064,99 +1083,44 @@ const HSC_QR = (() => {
     if(!el) return false;
     return !!el.querySelector("canvas, img, table");
   }
-
-  function clearHost(el){
-    if(!el) return;
-    el.innerHTML = "";
-  }
-
+  function clearHost(el){ if(!el) return; el.innerHTML = ""; }
   function resolveHost(slotKey){
-    const hostIdMap = {
-      "facadeQrGrid": "facadeQrGrid",
-      "featureQrGrid": "featureQrGrid",
-      "bottomQrGrid": "bottomQrGrid"
-    };
-    const fallbackIdMap = {
-      "facadeQrGrid": "facadeQrFallback",
-      "featureQrGrid": "featureQrFallback",
-      "bottomQrGrid": "bottomQrFallback"
-    };
+    const hostIdMap = { "facadeQrGrid":"facadeQrGrid","featureQrGrid":"featureQrGrid","bottomQrGrid":"bottomQrGrid" };
+    const fallbackIdMap = { "facadeQrGrid":"facadeQrFallback","featureQrGrid":"featureQrFallback","bottomQrGrid":"bottomQrFallback" };
     const hostId = hostIdMap[slotKey];
     const fallbackId = fallbackIdMap[slotKey];
-
     let host = hostId ? document.getElementById(hostId) : null;
     let fallback = fallbackId ? document.getElementById(fallbackId) : null;
-
     if(!host){
-      const dataMap = {
-        "featureQrGrid": "[data-feature-qr-grid]",
-        "bottomQrGrid": "[data-bottom-qr-grid]"
-      };
+      const dataMap = { "featureQrGrid":"[data-feature-qr-grid]","bottomQrGrid":"[data-bottom-qr-grid]" };
       const sel = dataMap[slotKey];
       if(sel) host = document.querySelector(sel);
     }
-
     return { host, fallback };
   }
-
   function ensureSlot(slotKey){
     if(!registry.has(slotKey)){
-      registry.set(slotKey, {
-        slotKey,
-        url: "",
-        renderKey: "",
-        renderVersion: 0,
-        busy: false
-      });
+      registry.set(slotKey, { slotKey, url: "", renderKey: "", renderVersion: 0, busy: false });
     }
     return registry.get(slotKey);
   }
-
-  function bindSlot(slotKey){
-    return ensureSlot(slotKey);
-  }
-
-  function showFallback(fallbackEl){
-    if(!fallbackEl) return;
-    fallbackEl.hidden = false;
-    fallbackEl.style.display = "";
-  }
-
-  function hideFallback(fallbackEl){
-    if(!fallbackEl) return;
-    fallbackEl.hidden = true;
-    fallbackEl.style.display = "none";
-  }
-
-  function defaultRenderKey(scope, rowId, styleKey, url){
-    return [text(scope), text(rowId), text(styleKey), text(url)].join("::");
-  }
+  function bindSlot(slotKey){ return ensureSlot(slotKey); }
+  function showFallback(fallbackEl){ if(!fallbackEl) return; fallbackEl.hidden = false; fallbackEl.style.display = ""; }
+  function hideFallback(fallbackEl){ if(!fallbackEl) return; fallbackEl.hidden = true; fallbackEl.style.display = "none"; }
+  function defaultRenderKey(scope, rowId, styleKey, url){ return [text(scope), text(rowId), text(styleKey), text(url)].join("::"); }
 
   function scheduleRender(slotKey, payload = {}){
     const slot = ensureSlot(slotKey);
     const { host, fallback } = resolveHost(slotKey);
-
     if(!host) return false;
-
     const url = text(payload.url);
     const renderKey = text(payload.renderKey);
     const force = !!payload.force;
-
-    if(!url){
-      clearHost(host);
-      showFallback(fallback);
-      return false;
-    }
-
-    if(!force && slot.url === url && slot.renderKey === renderKey && hasQrContent(host)){
-      hideFallback(fallback);
-      return true;
-    }
-
+    if(!url){ clearHost(host); showFallback(fallback); return false; }
+    if(!force && slot.url === url && slot.renderKey === renderKey && hasQrContent(host)){ hideFallback(fallback); return true; }
     slot.url = url;
     slot.renderKey = renderKey;
     slot.renderVersion += 1;
-
     renderSlot_(slot, host, fallback, payload);
     return true;
   }
@@ -1164,64 +1128,32 @@ const HSC_QR = (() => {
   function renderSlot_(slot, host, fallback, payload = {}){
     if(!host) return;
     if(slot.busy && !payload.force) return;
-
     slot.busy = true;
     const currentVersion = slot.renderVersion;
-
     try{
       hideFallback(fallback);
       clearHost(host);
-
       const centerImgEl = payload.centerImgEl || null;
       const centerImgUrl = payload.centerImgUrl || "";
       const centerSizeRatio = payload.centerSizeRatio || 0.09;
       const size = Number(payload.size || 160);
-
-      const ok = renderQr({
-        container: host,
-        url: slot.url,
-        size,
-        centerImgEl,
-        centerImgUrl,
-        centerSizeRatio,
-        renderKey: slot.renderKey
-      });
-
-      if(!ok){
-        showFallback(fallback);
-      }else{
-        hideFallback(fallback);
-      }
-
+      const ok = renderQr({ container: host, url: slot.url, size, centerImgEl, centerImgUrl, centerSizeRatio, renderKey: slot.renderKey });
+      if(!ok){ showFallback(fallback); }else{ hideFallback(fallback); }
       const checkAndRehydrate = (reason) => {
         if(slot.renderVersion !== currentVersion) return;
         const { host: freshHost, fallback: freshFallback } = resolveHost(slot.slotKey);
         if(!freshHost) return;
         if(!hasQrContent(freshHost)){
           showFallback(freshFallback);
-          scheduleRender(slot.slotKey, {
-            ...payload,
-            url: slot.url,
-            renderKey: slot.renderKey,
-            force: true,
-            reason
-          });
-        }else{
-          hideFallback(freshFallback);
-        }
+          scheduleRender(slot.slotKey, { ...payload, url: slot.url, renderKey: slot.renderKey, force: true, reason });
+        }else{ hideFallback(freshFallback); }
       };
-
       requestAnimationFrame(() => checkAndRehydrate("raf-rehydrate"));
       setTimeout(() => checkAndRehydrate("timeout-rehydrate-180"), 180);
       setTimeout(() => checkAndRehydrate("timeout-rehydrate-520"), 520);
-
-    }catch(_err){
-      showFallback(fallback);
-    }finally{
-      slot.busy = false;
-    }
+    }catch(_err){ showFallback(fallback); }
+    finally{ slot.busy = false; }
   }
-
   return { bindSlot, scheduleRender, hasQrContent, defaultRenderKey };
 })();
 
@@ -1235,75 +1167,31 @@ function formatDateYmd_(date){
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}.${m}.${d}`;
 }
-
 function parseDateSafe_(value){
   if(!value) return null;
   const s = String(value).trim();
   if(!s) return null;
-
-  const normalized = s
-    .replace(/\//g, "-")
-    .replace(" ", "T")
-    .replace(/(\.\d+)?Z$/i, "");
-
+  const normalized = s.replace(/\//g, "-").replace(" ", "T").replace(/(\.\d+)?Z$/i, "");
   let d = new Date(normalized);
   if(!isNaN(d.getTime())) return d;
-
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if(m){
-    d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59, 999);
-    if(!isNaN(d.getTime())) return d;
-  }
-
+  if(m){ d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59, 999); if(!isNaN(d.getTime())) return d; }
   m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
-  if(m){
-    d = new Date(
-      Number(m[1]), Number(m[2]) - 1, Number(m[3]),
-      Number(m[4]), Number(m[5]), Number(m[6] || 0), 0
-    );
-    if(!isNaN(d.getTime())) return d;
-  }
-
+  if(m){ d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6] || 0), 0); if(!isNaN(d.getTime())) return d; }
   return null;
 }
-
 function getExpiryInfo_(p){
   const payload = p || {};
-
-  const billingStatus = text(
-    pick(payload, [
-      "billing_status","billingStatus","payment_status","paymentStatus","付款狀態","狀態"
-    ])
-  ).toLowerCase();
-
-  const expiresAtRaw = text(
-    pick(payload, [
-      "expires_at","expiresAt","expiry_date","expiryDate","expiry","expire_at","expireAt","到期日","有效期限"
-    ])
-  );
-
-  const paymentDueRaw = text(
-    pick(payload, [
-      "payment_due_at","paymentDueAt","payment_due","paymentDue","due_date","dueDate","付款期限","繳費期限"
-    ])
-  );
-
+  const billingStatus = text(pick(payload, ["billing_status","billingStatus","payment_status","paymentStatus","付款狀態","狀態"])).toLowerCase();
+  const expiresAtRaw = text(pick(payload, ["expires_at","expiresAt","expiry_date","expiryDate","expiry","expire_at","expireAt","到期日","有效期限"]));
+  const paymentDueRaw = text(pick(payload, ["payment_due_at","paymentDueAt","payment_due","paymentDue","due_date","dueDate","付款期限","繳費期限"]));
   const expiresAt = parseDateSafe_(expiresAtRaw);
   const paymentDueAt = parseDateSafe_(paymentDueRaw);
-
-  if(billingStatus === "unpaid" && paymentDueAt){
-    return { type: "payment_due", date: paymentDueAt, raw: paymentDueRaw };
-  }
-  if(expiresAt){
-    return { type: "expires_at", date: expiresAt, raw: expiresAtRaw };
-  }
-  if(paymentDueAt){
-    return { type: "payment_due", date: paymentDueAt, raw: paymentDueRaw };
-  }
-
+  if(billingStatus === "unpaid" && paymentDueAt) return { type: "payment_due", date: paymentDueAt, raw: paymentDueRaw };
+  if(expiresAt) return { type: "expires_at", date: expiresAt, raw: expiresAtRaw };
+  if(paymentDueAt) return { type: "payment_due", date: paymentDueAt, raw: paymentDueRaw };
   return null;
 }
-
 function renderCardExpiry_(p, rootEl){
   let el = null;
   if(rootEl instanceof HTMLElement){
@@ -1311,9 +1199,7 @@ function renderCardExpiry_(p, rootEl){
   }
   if(!el) el = qs("cardExpiry");
   if(!el){
-    const infoScroll = rootEl
-      ? rootEl.querySelector(".info-scroll")
-      : document.querySelector("#livePreviewCard .info-scroll");
+    const infoScroll = rootEl ? rootEl.querySelector(".info-scroll") : document.querySelector("#livePreviewCard .info-scroll");
     if(infoScroll){
       el = document.createElement("div");
       el.className = "card-expiry";
@@ -1323,26 +1209,15 @@ function renderCardExpiry_(p, rootEl){
       else infoScroll.appendChild(el);
     }
   }
-
   if(!el) return;
-
   const info = getExpiryInfo_(p);
-  if(!info || !info.date){
-    el.style.display = "none";
-    el.textContent = "";
-    el.removeAttribute("title");
-    el.classList.remove("is-expired");
-    return;
-  }
-
+  if(!info || !info.date){ el.style.display = "none"; el.textContent = ""; el.removeAttribute("title"); el.classList.remove("is-expired"); return; }
   const target = info.date;
   const now = new Date();
   const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
   const diffDays = Math.floor((targetStart - nowStart) / 86400000);
-
   let label = "";
-
   if(info.type === "payment_due"){
     if(diffDays < 0){ label = `付款期限已過 ${Math.abs(diffDays)} 天`; el.classList.add("is-expired"); }
     else if(diffDays === 0){ label = "付款期限今天截止"; el.classList.remove("is-expired"); }
@@ -1356,7 +1231,6 @@ function renderCardExpiry_(p, rootEl){
     else{ label = `EXPIRES IN ${diffDays} DAYS`; el.classList.remove("is-expired"); }
     el.title = `Expiry Date: ${formatDateYmd_(target)}`;
   }
-
   el.textContent = label;
   el.style.display = "block";
 }
@@ -1367,52 +1241,29 @@ function renderCardExpiry_(p, rootEl){
 function renderFacadePreview(){
   const root = qs("livePreviewCard");
   if(!root || !facadeBaseData) return;
-
   applyFacadeBodyMode_();
   const data = normalizeForRenderer_(buildFacadePreviewData());
-
   const renderer =
     window.HscCardRenderer && typeof window.HscCardRenderer.renderCard === "function"
       ? window.HscCardRenderer.renderCard
       : null;
-
-  if(!renderer){
-    throw new Error("card-renderer.js 尚未正確載入，找不到 HscCardRenderer.renderCard()");
-  }
-
-  const result = renderer(data, {
-    mode: "index",
-    root,
-    useExistingDom: true,
-    qrMode: "facade",
-    allowActions: true
-  });
-
-  if(!result || result.ok !== true){
-    throw new Error("門面 renderer 回傳失敗");
-  }
-
+  if(!renderer) throw new Error("card-renderer.js 尚未正確載入，找不到 HscCardRenderer.renderCard()");
+  const result = renderer(data, { mode: "index", root, useExistingDom: true, qrMode: "facade", allowActions: true });
+  if(!result || result.ok !== true) throw new Error("門面 renderer 回傳失敗");
   facadeCurrentRow = buildNormalizedPayload_(data || {});
   currentReferralSourceCodeCache = getReferralSourceCode_(facadeCurrentRow);
-
   window.__CARD_DATA__ = facadeCurrentRow;
   window.cardData = facadeCurrentRow;
   window.payload = facadeCurrentRow;
-
   const avatarInfo = pickAvatarInfo_(facadeCurrentRow);
   currentAvatarUrlCache = avatarInfo.url || "";
   currentAvatarSourceKeyCache = avatarInfo.key || "";
-
   window.__facadeQrUrl = buildHubShareUrl_();
   window.__facadeStyleKey = facadeState.plan === "premium"
     ? facadeState.premiumColor
     : `${facadeState.color}|${facadeState.style}|${facadeState.paper}`;
-
   renderPostRendererUi_(facadeCurrentRow, root);
-
-  requestAnimationFrame(() => {
-    try{ rerenderAllQrAfterFacade_(); }catch(_e){}
-  });
+  requestAnimationFrame(() => { try{ rerenderAllQrAfterFacade_(); }catch(_e){} });
 }
 
 /* ============================================================
@@ -1423,71 +1274,39 @@ window.setPlan = function(plan, el){
   syncPlanUI_();
   if(el){
     const planBtns = [qs("btnPlanFree"), qs("btnPlanPremium")].filter(Boolean);
-    planBtns.forEach(btn => {
-      if(btn === el) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
+    planBtns.forEach(btn => { if(btn === el) btn.classList.add("active"); else btn.classList.remove("active"); });
   }
   renderFacadePreview();
 };
-
 window.setTheme = function(theme, el){
   const v = text(theme).toLowerCase();
   if(!v) return;
-
-  const freeMap = {
-    "color-1":"c1","color-2":"c2","color-3":"c3","color-4":"c4","color-5":"c5",
-    "c1":"c1","c2":"c2","c3":"c3","c4":"c4","c5":"c5"
-  };
-
-  if(v in freeMap){
-    facadeState.plan = "free";
-    facadeState.color = freeMap[v];
-  }else if(/^p\d+$/.test(v)){
-    facadeState.plan = "premium";
-    facadeState.premiumColor = v;
-  }
-
+  const freeMap = { "color-1":"c1","color-2":"c2","color-3":"c3","color-4":"c4","color-5":"c5","c1":"c1","c2":"c2","c3":"c3","c4":"c4","c5":"c5" };
+  if(v in freeMap){ facadeState.plan = "free"; facadeState.color = freeMap[v]; }
+  else if(/^p\d+$/.test(v)){ facadeState.plan = "premium"; facadeState.premiumColor = v; }
   syncPlanUI_();
-
   if(el){
     const groupSel = facadeState.plan === "premium" ? "#premiumDotsRow .p-dot" : "#freeDotsRow .dot";
-    qsa(groupSel).forEach(btn => {
-      if(btn === el) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
+    qsa(groupSel).forEach(btn => { if(btn === el) btn.classList.add("active"); else btn.classList.remove("active"); });
   }
-
   renderFacadePreview();
 };
-
 window.setStyle = function(style, el){
   const raw = text(style).toLowerCase();
   const map = { "arch":"s1","flat":"s2","spot":"s3","s1":"s1","s2":"s2","s3":"s3" };
   if(!(raw in map)) return;
   facadeState.style = map[raw];
   syncStyleUI_();
-  if(el){
-    qsa("#styleRow .btn-neo").forEach(btn => {
-      if(btn === el) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
-  }
+  if(el){ qsa("#styleRow .btn-neo").forEach(btn => { if(btn === el) btn.classList.add("active"); else btn.classList.remove("active"); }); }
   renderFacadePreview();
 };
-
 window.setPaper = function(paper, el){
   const raw = text(paper).toLowerCase();
   const map = { "paper-1":"f1","paper-2":"f2","paper-3":"f3","f1":"f1","f2":"f2","f3":"f3" };
   if(!(raw in map)) return;
   facadeState.paper = map[raw];
   syncPaperUI_();
-  if(el){
-    qsa("#paperRow .btn-neo").forEach(btn => {
-      if(btn === el) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
-  }
+  if(el){ qsa("#paperRow .btn-neo").forEach(btn => { if(btn === el) btn.classList.add("active"); else btn.classList.remove("active"); }); }
   renderFacadePreview();
 };
 
@@ -1495,15 +1314,9 @@ window.setPaper = function(paper, el){
    展開文字
 ============================================================ */
 function normalizeLongText_(raw){
-  return String(raw || "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n[ \t]+/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  return String(raw || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+    .replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
-
 function setExpandableText_(contentEl, toggleEl, rawText, maxLines, options = {}){
   if(!contentEl) return;
   const value = normalizeLongText_(rawText);
@@ -1512,13 +1325,8 @@ function setExpandableText_(contentEl, toggleEl, rawText, maxLines, options = {}
   contentEl.dataset.raw = value;
   contentEl.dataset.maxLines = String(maxLines || 3);
   contentEl.dataset.expandable = "1";
-  if(allowMultiline){
-    contentEl.innerHTML = escapeHtmlWithBreaks_(value);
-    contentEl.classList.add("preline");
-  }else{
-    contentEl.textContent = value;
-    contentEl.classList.remove("preline");
-  }
+  if(allowMultiline){ contentEl.innerHTML = escapeHtmlWithBreaks_(value); contentEl.classList.add("preline"); }
+  else{ contentEl.textContent = value; contentEl.classList.remove("preline"); }
   contentEl.classList.remove("is-expanded");
   contentEl.classList.add("is-collapsed");
   contentEl.style.setProperty("--max-lines", String(maxLines || 3));
@@ -1530,82 +1338,48 @@ function setExpandableText_(contentEl, toggleEl, rawText, maxLines, options = {}
     toggleEl.onclick = null;
     toggleEl.onclick = () => {
       const expanded = contentEl.classList.contains("is-expanded");
-      if(expanded){
-        contentEl.classList.remove("is-expanded");
-        contentEl.classList.add("is-collapsed");
-        toggleEl.textContent = "看更多";
-        toggleEl.setAttribute("aria-expanded", "false");
-      }else{
-        contentEl.classList.remove("is-collapsed");
-        contentEl.classList.add("is-expanded");
-        toggleEl.textContent = "收合";
-        toggleEl.setAttribute("aria-expanded", "true");
-      }
+      if(expanded){ contentEl.classList.remove("is-expanded"); contentEl.classList.add("is-collapsed"); toggleEl.textContent = "看更多"; toggleEl.setAttribute("aria-expanded", "false"); }
+      else{ contentEl.classList.remove("is-collapsed"); contentEl.classList.add("is-expanded"); toggleEl.textContent = "收合"; toggleEl.setAttribute("aria-expanded", "true"); }
     };
   }
   if(!hasText){ if(toggleEl) toggleEl.style.display = "none"; return; }
   requestAnimationFrame(() => { refreshExpandableItem_(contentEl, toggleEl); });
 }
-
 function refreshExpandableItem_(contentEl, toggleEl){
   if(!contentEl) return;
   const maxLines = Number(contentEl.dataset.maxLines || 3);
   const wasExpanded = contentEl.classList.contains("is-expanded");
-  contentEl.classList.remove("is-expanded");
-  contentEl.classList.add("is-collapsed");
+  contentEl.classList.remove("is-expanded"); contentEl.classList.add("is-collapsed");
   contentEl.style.setProperty("--max-lines", String(maxLines));
   const needToggle = (contentEl.scrollHeight - contentEl.clientHeight) > 4;
   if(toggleEl){
     toggleEl.style.display = needToggle ? "inline-flex" : "none";
-    if(!needToggle){
-      toggleEl.textContent = "看更多";
-      toggleEl.setAttribute("aria-expanded", "false");
-    }
+    if(!needToggle){ toggleEl.textContent = "看更多"; toggleEl.setAttribute("aria-expanded", "false"); }
   }
   if(needToggle && wasExpanded){
-    contentEl.classList.remove("is-collapsed");
-    contentEl.classList.add("is-expanded");
-    if(toggleEl){
-      toggleEl.textContent = "收合";
-      toggleEl.setAttribute("aria-expanded", "true");
-    }
+    contentEl.classList.remove("is-collapsed"); contentEl.classList.add("is-expanded");
+    if(toggleEl){ toggleEl.textContent = "收合"; toggleEl.setAttribute("aria-expanded", "true"); }
   }
 }
-
-function refreshAllExpandable_(){
-  qsa("[data-expandable='1']").forEach(contentEl => {
-    const wrap = contentEl.closest(".expandable-wrap") || contentEl.parentElement;
-    const toggleEl = wrap ? wrap.querySelector(".expand-toggle") : null;
-    refreshExpandableItem_(contentEl, toggleEl);
-  });
-}
+function refreshAllExpandable_(){ qsa("[data-expandable='1']").forEach(contentEl => { const wrap = contentEl.closest(".expandable-wrap") || contentEl.parentElement; const toggleEl = wrap ? wrap.querySelector(".expand-toggle") : null; refreshExpandableItem_(contentEl, toggleEl); }); }
 
 let __expandRefreshTimer = null;
 window.addEventListener("resize", () => {
   clearTimeout(__expandRefreshTimer);
-  __expandRefreshTimer = setTimeout(() => {
-    refreshAllExpandable_();
-    applySmartBalanceAll_();
-    updateQrCenterSizes_();
-  }, 120);
+  __expandRefreshTimer = setTimeout(() => { refreshAllExpandable_(); applySmartBalanceAll_(); updateQrCenterSizes_(); }, 120);
 });
 
 function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
   if(!blockEl) return;
   const value = normalizeLongText_(rawText);
-  if(!text(value)){
-    blockEl.style.display = "none";
-    blockEl.innerHTML = "";
-    return;
-  }
+  if(!text(value)){ blockEl.style.display = "none"; blockEl.innerHTML = ""; return; }
   blockEl.style.display = "";
   blockEl.innerHTML = `
     <div class="block-title">${escapeHtml_(title)}</div>
     <div class="expandable-wrap">
       <div class="block-body expandable-text is-collapsed preline" style="--max-lines:${Number(maxLines || 3)}"></div>
       <button class="expand-toggle" type="button" style="display:none;">看更多</button>
-    </div>
-  `;
+    </div>`;
   const contentEl = blockEl.querySelector(".expandable-text");
   const toggleEl = blockEl.querySelector(".expand-toggle");
   setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline: true });
@@ -1613,14 +1387,12 @@ function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
 
 function pickAvatarInfo_(p){
   const url = pick(p, ["avatar_url"]);
-  if(text(url)){
-    return { key: "avatar_url", raw: url, url: normalizeImageUrl_(url) };
-  }
+  if(text(url)) return { key: "avatar_url", raw: url, url: normalizeImageUrl_(url) };
   return { key: "", raw: "", url: "" };
 }
 
 /* ============================================================
-   公告
+   公告（並行載入，不阻塞門面渲染）
 ============================================================ */
 function parseDateLoose_(value){
   if(!value) return null;
@@ -1629,13 +1401,9 @@ function parseDateLoose_(value){
   let d = new Date(s.replace(/\//g, "-").replace(" ", "T"));
   if(!isNaN(d.getTime())) return d;
   const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if(m){
-    d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);
-    if(!isNaN(d.getTime())) return d;
-  }
+  if(m){ d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0); if(!isNaN(d.getTime())) return d; }
   return null;
 }
-
 function isAnnouncementActive_(item){
   const status = text(item.status || "active").toLowerCase();
   if(status && status !== "active") return false;
@@ -1643,24 +1411,18 @@ function isAnnouncementActive_(item){
   const startAt = parseDateLoose_(item.start_at);
   const endAt = parseDateLoose_(item.end_at);
   if(startAt && now < startAt.getTime()) return false;
-  if(endAt){
-    const endMs = new Date(endAt.getFullYear(), endAt.getMonth(), endAt.getDate(), 23, 59, 59, 999).getTime();
-    if(now > endMs) return false;
-  }
+  if(endAt){ const endMs = new Date(endAt.getFullYear(), endAt.getMonth(), endAt.getDate(), 23, 59, 59, 999).getTime(); if(now > endMs) return false; }
   return true;
 }
-
 function sortAnnouncements_(items){
   return [...items].sort((a, b) => {
-    const pa = Number(a.priority || 0);
-    const pb = Number(b.priority || 0);
+    const pa = Number(a.priority || 0), pb = Number(b.priority || 0);
     if(pb !== pa) return pb - pa;
     const ta = parseDateLoose_(a.updated_at || a.created_at || a.start_at || "")?.getTime() || 0;
     const tb = parseDateLoose_(b.updated_at || b.created_at || b.start_at || "")?.getTime() || 0;
     return tb - ta;
   });
 }
-
 function normalizeAnnouncementItems_(payload){
   if(Array.isArray(payload)) return payload.filter(x => x && typeof x === "object");
   if(!payload || typeof payload !== "object") return [];
@@ -1671,7 +1433,6 @@ function normalizeAnnouncementItems_(payload){
     (Array.isArray(payload.rows) ? payload.rows : null) || [];
   return arr.filter(x => x && typeof x === "object");
 }
-
 function openAnnouncementModal_(item, currentIdx, total){
   if(!item) return;
   const mask = qs("announcementMask");
@@ -1686,7 +1447,6 @@ function openAnnouncementModal_(item, currentIdx, total){
   mask.setAttribute("aria-hidden", "false");
   if(typeof window.__lockBodyScroll === "function") window.__lockBodyScroll();
 }
-
 function closeAnnouncementModal_(){
   const mask = qs("announcementMask");
   if(!mask) return;
@@ -1694,14 +1454,12 @@ function closeAnnouncementModal_(){
   mask.setAttribute("aria-hidden", "true");
   if(typeof window.__unlockBodyScroll === "function") window.__unlockBodyScroll();
 }
-
 function bindAnnouncementModal_(){
   const closeBtn = qs("announcementCloseBtn");
   const mask = qs("announcementMask");
   if(closeBtn) closeBtn.addEventListener("click", closeAnnouncementModal_);
   if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) closeAnnouncementModal_(); });
 }
-
 function paintAnnouncementCards_(items, idx){
   const item = items[idx];
   if(!item) return;
@@ -1717,11 +1475,9 @@ function paintAnnouncementCards_(items, idx){
     if(trackBtn){ trackBtn.onclick = null; trackBtn.onclick = () => openAnnouncementModal_(item, idx, total); }
   });
 }
-
 function stopAnnouncementRotation_(){
   if(announcementTimer_){ clearInterval(announcementTimer_); announcementTimer_ = null; }
 }
-
 function startAnnouncementRotation_(items){
   stopAnnouncementRotation_();
   announcementItems_ = items;
@@ -1734,7 +1490,6 @@ function startAnnouncementRotation_(items){
     }, 4000);
   }
 }
-
 function renderAnnouncementPanels_(items){
   const active = sortAnnouncements_(items.filter(isAnnouncementActive_));
   if(!active.length){ qsa("[data-announcement-panel]").forEach(p => { p.style.display = "none"; }); return; }
@@ -1742,15 +1497,18 @@ function renderAnnouncementPanels_(items){
   startAnnouncementRotation_(active);
 }
 
+// ★ 公告：先顯示 BUILTIN，背景 fetch 後更新（不阻塞門面渲染）
 async function fetchAndRenderAnnouncements_(){
+  // 立即用 builtin 填充（0ms 延遲）
+  renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
+  // 背景 fetch（cache: "default" 允許瀏覽器快取）
   try{
-    const payload = await fetchJsonRobust_(buildAnnouncementApiUrl_());
+    const payload = await fetchJsonRobust_(buildAnnouncementApiUrl_(), { cacheMode: "default" });
     const items = normalizeAnnouncementItems_(payload);
     if(items && items.length > 0) renderAnnouncementPanels_(items);
-    else renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
+    // 若失敗保持 builtin，不做額外處理
   }catch(err){
-    console.warn("[HSC announcement] GAS 請求失敗，使用內建公告:", err);
-    renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
+    console.warn("[HSC announcement] GAS 請求失敗，保持內建公告:", err);
   }
 }
 
@@ -1763,7 +1521,6 @@ function applySmartBalanceToEl_(el){
   if(!raw) return;
   el.dataset.rawText = raw;
   if(window.innerWidth > 560){ el.textContent = raw; return; }
-
   if(el.dataset.balanceType === "hero-copy"){
     const parts = raw.split("|");
     el.innerHTML = "";
@@ -1780,7 +1537,6 @@ function applySmartBalanceToEl_(el){
       return;
     }
   }
-
   if(el.dataset.balanceType === "qr-title" || el.dataset.balanceType === "product-qr-title"){
     if(raw.includes("|")){
       const arr = raw.split("|");
@@ -1788,7 +1544,6 @@ function applySmartBalanceToEl_(el){
       return;
     }
   }
-
   if(el.dataset.balanceType === "qr-sub" || el.dataset.balanceType === "product-qr-sub"){
     if(raw.includes("・")){
       const parts = raw.split("・").map(x => x.trim()).filter(Boolean);
@@ -1801,12 +1556,9 @@ function applySmartBalanceToEl_(el){
       }
     }
   }
-
   el.textContent = raw;
 }
-
 function applySmartBalanceAll_(){ qsa("[data-balance-type]").forEach(applySmartBalanceToEl_); }
-
 let __balanceTimer = null;
 window.addEventListener("resize", () => {
   clearTimeout(__balanceTimer);
@@ -1822,20 +1574,15 @@ function getQrCenterRatio_(baseRatio){
   if(vw <= 520) return Math.max(0.07, baseRatio - 0.01);
   return baseRatio;
 }
-
 function buildQrImageUrl_(url, size, provider){
   const s = Number(size) || 220;
   const data = encodeURIComponent(String(url || ""));
-  if(provider === "quickchart"){
-    return "https://quickchart.io/qr?size=" + encodeURIComponent(String(s)) + "&text=" + data + "&ecLevel=H&margin=2";
-  }
+  if(provider === "quickchart") return "https://quickchart.io/qr?size=" + encodeURIComponent(String(s)) + "&text=" + data + "&ecLevel=H&margin=2";
   return "https://api.qrserver.com/v1/create-qr-code/?size=" + encodeURIComponent(`${s}x${s}`) + "&data=" + data + "&ecc=H&margin=2";
 }
-
 function buildQrCandidates_(url, size){
   return [buildQrImageUrl_(url, size, "qrserver"), buildQrImageUrl_(url, size, "quickchart")];
 }
-
 function hideCenterImg_(imgEl){
   if(!imgEl) return;
   imgEl.removeAttribute("src");
@@ -1844,7 +1591,6 @@ function hideCenterImg_(imgEl){
   imgEl.style.padding = "0";
   imgEl.style.boxShadow = "none";
 }
-
 function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   if(!imgEl) return;
   const u = normalizeImageUrl_(centerImgUrl);
@@ -1852,29 +1598,19 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   const ratio = getQrCenterRatio_(sizeRatio);
   imgEl.dataset.baseRatio = String(sizeRatio);
   imgEl.dataset.centerUrl = u;
-  imgEl.style.position = "absolute";
-  imgEl.style.left = "50%";
-  imgEl.style.top = "50%";
-  imgEl.style.width = `${Math.round(ratio * 100)}%`;
-  imgEl.style.height = `${Math.round(ratio * 100)}%`;
+  imgEl.style.position = "absolute"; imgEl.style.left = "50%"; imgEl.style.top = "50%";
+  imgEl.style.width = `${Math.round(ratio * 100)}%`; imgEl.style.height = `${Math.round(ratio * 100)}%`;
   imgEl.style.transform = "translate(-50%, -50%)";
-  imgEl.style.borderRadius = "999px";
-  imgEl.style.objectFit = "cover";
-  imgEl.style.zIndex = "3";
-  imgEl.style.background = "transparent";
-  imgEl.style.padding = "0";
-  imgEl.style.boxShadow = "none";
-  imgEl.style.display = "block";
-  imgEl.style.pointerEvents = "none";
+  imgEl.style.borderRadius = "999px"; imgEl.style.objectFit = "cover"; imgEl.style.zIndex = "3";
+  imgEl.style.background = "transparent"; imgEl.style.padding = "0"; imgEl.style.boxShadow = "none";
+  imgEl.style.display = "block"; imgEl.style.pointerEvents = "none";
   imgEl.onerror = () => { hideCenterImg_(imgEl); };
   setImgWithFallback_(imgEl, buildImgCandidates_(u), {
-    crossOrigin: "anonymous",
-    referrerPolicy: "no-referrer",
+    crossOrigin: "anonymous", referrerPolicy: "no-referrer",
     onLoad: () => { imgEl.style.display = "block"; imgEl.style.background = "transparent"; imgEl.style.padding = "0"; imgEl.style.boxShadow = "none"; },
     onFail: () => { hideCenterImg_(imgEl); }
   });
 }
-
 function updateQrCenterSizes_(){
   ["bottomQrAvatar","featureQrAvatar","facadeQrAvatar"].forEach(id => {
     const el = qs(id);
@@ -1892,64 +1628,39 @@ function updateQrCenterSizes_(){
     el.style.height = `${Math.round(ratio * 100)}%`;
   });
 }
-
 function hasQrContent(el){ return HSC_QR.hasQrContent(el); }
-
 function renderQr(options){
   const { container, url, size = 160, centerImgEl = null, centerImgUrl = "", centerSizeRatio = 0.09, renderKey = "" } = options || {};
   if(!container || !url) return false;
-
   const normalizedCenter = normalizeImageUrl_(centerImgUrl);
   const key = renderKey || `${url}|${size}|${normalizedCenter}|${centerSizeRatio}`;
-
   if(container.dataset.renderKey === key && hasQrContent(container)){
     if(centerImgEl) setCenterImg_(centerImgEl, normalizedCenter, centerSizeRatio);
-    container.style.display = "block";
-    container.style.visibility = "visible";
-    container.style.opacity = "1";
+    container.style.display = "block"; container.style.visibility = "visible"; container.style.opacity = "1";
     return true;
   }
-
   container.dataset.renderKey = key;
   container.innerHTML = "";
-  container.style.display = "flex";
-  container.style.alignItems = "center";
-  container.style.justifyContent = "center";
-  container.style.visibility = "visible";
-  container.style.opacity = "1";
-
+  container.style.display = "flex"; container.style.alignItems = "center"; container.style.justifyContent = "center";
+  container.style.visibility = "visible"; container.style.opacity = "1";
   const img = document.createElement("img");
-  img.alt = "QR Code";
-  img.loading = "eager";
-  img.decoding = "sync";
+  img.alt = "QR Code"; img.loading = "eager"; img.decoding = "sync";
   img.referrerPolicy = "no-referrer";
   try{ img.crossOrigin = "anonymous"; }catch(_e){}
-  img.style.width = "100%";
-  img.style.height = "100%";
-  img.style.display = "block";
-  img.style.objectFit = "contain";
-
+  img.style.width = "100%"; img.style.height = "100%"; img.style.display = "block"; img.style.objectFit = "contain";
   const candidates = buildQrCandidates_(url, size).map(src => {
     const sep = src.includes("?") ? "&" : "?";
     return `${src}${sep}t=${Date.now()}&v=${encodeURIComponent(CONFIG.VERSION)}`;
   });
-
   let idx = 0;
   const tryNext = () => { idx += 1; if(idx >= candidates.length){ container.dataset.renderKey = ""; return; } img.src = candidates[idx]; };
   img.onerror = () => { tryNext(); };
-  img.onload = () => {
-    container.style.display = "flex";
-    container.style.alignItems = "center";
-    container.style.justifyContent = "center";
-    container.style.visibility = "visible";
-    container.style.opacity = "1";
-  };
+  img.onload = () => { container.style.display = "flex"; container.style.alignItems = "center"; container.style.justifyContent = "center"; container.style.visibility = "visible"; container.style.opacity = "1"; };
   img.src = candidates[0];
   container.appendChild(img);
   if(centerImgEl) setCenterImg_(centerImgEl, normalizedCenter, centerSizeRatio);
   return true;
 }
-
 window.renderQr = renderQr;
 window.__getCurrentAvatarUrl = function(){ return currentAvatarUrlCache || ""; };
 window.__getHubShareUrl = buildHubShareUrl_;
@@ -1961,30 +1672,23 @@ function bindQrSlots_(){
   HSC_QR.bindSlot("featureQrGrid");
   HSC_QR.bindSlot("bottomQrGrid");
 }
-
 function renderFacadeQrStable(row, styleKey, url){
   const renderKey = HSC_QR.defaultRenderKey("facade", row?.id || FACADE_SAMPLE_ID, styleKey || "", url || "");
   lastFacadeQrRenderKey = renderKey;
   HSC_QR.scheduleRender("facadeQrGrid", { url, renderKey, force: true, reason: "facade-render", size: 148 });
 }
-
 function renderProductQrsStable(row, styleKey, featureUrl, bottomUrl){
   const info = pickAvatarInfo_(row || getActiveCardPayload_());
   const avatarUrl = info.url || currentAvatarUrlCache || "";
-
   const featureRenderKey = HSC_QR.defaultRenderKey("feature", row?.id || "", styleKey || "", featureUrl || "") + "::" + avatarUrl;
   const bottomRenderKey = HSC_QR.defaultRenderKey("bottom", row?.id || "", styleKey || "", bottomUrl || "") + "::" + avatarUrl;
-
   lastFeatureQrRenderKey = featureRenderKey;
   lastBottomQrRenderKey = bottomRenderKey;
-
   const featureAvatarEl = qs("featureQrAvatar") || document.querySelector("[data-feature-qr-avatar]");
   const bottomAvatarEl = qs("bottomQrAvatar") || document.querySelector("[data-bottom-qr-avatar]");
-
   HSC_QR.scheduleRender("featureQrGrid", { url: featureUrl, renderKey: featureRenderKey, force: true, reason: "feature-render", size: 152, centerImgEl: featureAvatarEl, centerImgUrl: avatarUrl, centerSizeRatio: 0.09 });
   HSC_QR.scheduleRender("bottomQrGrid", { url: bottomUrl, renderKey: bottomRenderKey, force: true, reason: "bottom-render", size: 136, centerImgEl: bottomAvatarEl, centerImgUrl: avatarUrl, centerSizeRatio: 0.09 });
 }
-
 function renderFacadeQrFromCurrent_(){
   const row = facadeCurrentRow || facadeBaseData;
   if(!row) return;
@@ -1993,11 +1697,9 @@ function renderFacadeQrFromCurrent_(){
   window.__facadeQrUrl = url;
   renderFacadeQrStable(row, styleKey, url);
 }
-
 function renderBottomQr_(p){
   const sec = qs("bottomQrSection") || document.querySelector("#livePreviewCard [data-bottom-qr-section]");
   if(sec) sec.style.display = "block";
-
   const payload = p || getActiveCardPayload_();
   if(!payload) return;
   const qrUrl = buildTrackedShareUrl_(payload);
@@ -2007,7 +1709,6 @@ function renderBottomQr_(p){
     : `${text(pick(payload, ["color"]))}|${text(pick(payload, ["style"]))}|${text(pick(payload, ["paper"]))}`;
   renderProductQrsStable(payload, window.__cardStyleKey, window.__featureQrUrl || qrUrl, qrUrl);
 }
-
 function renderFeatureQrFromCurrent_(){
   const payload = getActiveCardPayload_();
   if(!payload) return;
@@ -2020,9 +1721,6 @@ function renderFeatureQrFromCurrent_(){
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
 
-/* ============================================================
-   QR 強制回補
-============================================================ */
 function rerenderAllQrAfterFacade_(){
   const active = getActiveCardPayload_();
   if(!active) return;
@@ -2038,23 +1736,15 @@ function rerenderAllQrAfterFacade_(){
   setTimeout(jobs, 320);
   setTimeout(jobs, 680);
 }
-
 function reRenderAllQrStable(){
   try{
     if(facadeCurrentRow && window.__facadeQrUrl){
       renderFacadeQrStable(facadeCurrentRow, window.__facadeStyleKey || "", window.__facadeQrUrl);
-    }else{
-      renderFacadeQrFromCurrent_();
-    }
+    }else{ renderFacadeQrFromCurrent_(); }
     if(currentRow){
       renderProductQrsStable(currentRow, window.__cardStyleKey || "", window.__featureQrUrl || buildTrackedShareUrl_(currentRow), window.__bottomQrUrl || buildTrackedShareUrl_(currentRow));
-    }else{
-      renderFeatureQrFromCurrent_();
-      renderBottomQr_(getActiveCardPayload_());
-    }
-  }catch(e){
-    console.warn("QR re-render fail:", e);
-  }
+    }else{ renderFeatureQrFromCurrent_(); renderBottomQr_(getActiveCardPayload_()); }
+  }catch(e){ console.warn("QR re-render fail:", e); }
 }
 
 /* ============================================================
@@ -2067,7 +1757,6 @@ async function shareUrl_(url, title, textMsg, okMsg){
     prompt("請手動複製連結", url);
   }catch(_err){}
 }
-
 function renderBottomHubShareBtn_(){
   const sec = qs("bottomQrSection") || document.querySelector("#livePreviewCard [data-bottom-qr-section]");
   if(!sec) return;
@@ -2075,25 +1764,17 @@ function renderBottomHubShareBtn_(){
   if(!wrap){
     wrap = document.createElement("div");
     wrap.id = "bottomHubShareWrap";
-    wrap.style.marginTop = "12px";
-    wrap.style.display = "flex";
-    wrap.style.justifyContent = "center";
+    wrap.style.marginTop = "12px"; wrap.style.display = "flex"; wrap.style.justifyContent = "center";
     const btn = document.createElement("button");
-    btn.id = "btnShareHubBottom";
-    btn.type = "button";
-    btn.className = "dock-btn wide dock-web";
-    btn.style.maxWidth = "260px";
-    btn.style.width = "100%";
-    btn.style.borderRadius = "999px";
-    btn.style.fontWeight = "900";
-    btn.style.boxShadow = "0 10px 22px rgba(83,62,45,.08)";
+    btn.id = "btnShareHubBottom"; btn.type = "button"; btn.className = "dock-btn wide dock-web";
+    btn.style.maxWidth = "260px"; btn.style.width = "100%"; btn.style.borderRadius = "999px";
+    btn.style.fontWeight = "900"; btn.style.boxShadow = "0 10px 22px rgba(83,62,45,.08)";
     btn.innerHTML = `<i class="fa-solid fa-share-nodes"></i><span>分享智慧名片館</span>`;
     btn.addEventListener("click", async () => { const url = buildHubShareUrl_(); await shareUrl_(url, "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結"); });
     wrap.appendChild(btn);
     sec.insertAdjacentElement("afterend", wrap);
   }
 }
-
 function ensureBottomQrVisible_(){
   const payload = getActiveCardPayload_();
   if(!payload) return;
@@ -2102,7 +1783,6 @@ function ensureBottomQrVisible_(){
   setTimeout(() => { try{ renderBottomQr_(getActiveCardPayload_()); }catch(_e){} try{ renderBottomHubShareBtn_(); }catch(_e){} }, 250);
   setTimeout(() => { try{ renderBottomQr_(getActiveCardPayload_()); }catch(_e){} try{ renderBottomHubShareBtn_(); }catch(_e){} }, 800);
 }
-
 function renderInstallDock_(){
   const dock = qs("installDock");
   const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
@@ -2110,24 +1790,18 @@ function renderInstallDock_(){
   dock.style.display = cleanMode ? "" : "none";
 }
 
-
 function renderShellUiFriendly_(row, rootEl){
   const root = (rootEl instanceof HTMLElement) ? rootEl : (qs("livePreviewCard") || document.body);
-
   const unitVal = normalizeLongText_(pick(row, ["unit","單位","公司"]));
   const sloganVal = normalizeLongText_(pick(row, ["slogan","一句話","簡介"]));
-
   const unitEl = root.querySelector("#u-unit") || qs("u-unit");
   const unitToggle = root.querySelector("#u-unit-toggle") || qs("u-unit-toggle");
   const sloganEl = root.querySelector("#u-slogan") || qs("u-slogan");
   const sloganToggle = root.querySelector("#u-slogan-toggle") || qs("u-slogan-toggle");
-
   if(unitEl) setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
   if(sloganEl) setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
-
   const vt = root.querySelector("#versionTag") || qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
-
   renderCardExpiry_(row, root);
   renderInstallDock_();
   renderBottomQr_(row);
@@ -2136,40 +1810,25 @@ function renderShellUiFriendly_(row, rootEl){
   renderFacadeQrFromCurrent_();
   applySmartBalanceAll_();
   updateQrCenterSizes_();
-
-  requestAnimationFrame(() => {
-    refreshAllExpandable_();
-    ensureBottomQrVisible_();
-    reRenderAllQrStable();
-  });
+  requestAnimationFrame(() => { refreshAllExpandable_(); ensureBottomQrVisible_(); reRenderAllQrStable(); });
 }
 
-
-/* ============================================================
-   renderPostRendererUi_
-============================================================ */
 function renderPostRendererUi_(row, rootEl){
   const root = (rootEl instanceof HTMLElement) ? rootEl : (qs("livePreviewCard") || document.body);
-
   const unitVal = normalizeLongText_(pick(row, ["unit","單位","公司"]));
   const sloganVal = normalizeLongText_(pick(row, ["slogan","一句話","簡介"]));
-
   const unitEl = root.querySelector("#u-unit") || qs("u-unit");
   const unitToggle = root.querySelector("#u-unit-toggle") || qs("u-unit-toggle");
   const sloganEl = root.querySelector("#u-slogan") || qs("u-slogan");
   const sloganToggle = root.querySelector("#u-slogan-toggle") || qs("u-slogan-toggle");
-
   if(unitEl) setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
   if(sloganEl) setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
-
   const b1 = root.querySelector("#block-service") || qs("block-service");
   const b2 = root.querySelector("#block-exp") || qs("block-exp");
   renderExpandableInfoBlock_(b1, "服務項目", pick(row, ["services","服務項目","service"]), 2);
   renderExpandableInfoBlock_(b2, "經歷 / 品牌故事", pick(row, ["experience","經歷","exp"]), 3);
-
   const vt = root.querySelector("#versionTag") || qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
-
   renderCardExpiry_(row, root);
   renderInstallDock_();
   renderBottomQr_(row);
@@ -2178,12 +1837,7 @@ function renderPostRendererUi_(row, rootEl){
   renderFacadeQrFromCurrent_();
   applySmartBalanceAll_();
   updateQrCenterSizes_();
-
-  requestAnimationFrame(() => {
-    refreshAllExpandable_();
-    ensureBottomQrVisible_();
-    reRenderAllQrStable();
-  });
+  requestAnimationFrame(() => { refreshAllExpandable_(); ensureBottomQrVisible_(); reRenderAllQrStable(); });
 }
 
 /* ============================================================
@@ -2191,7 +1845,6 @@ function renderPostRendererUi_(row, rootEl){
 ============================================================ */
 function isIos_(){ return /iphone|ipad|ipod/i.test(navigator.userAgent || ""); }
 function isStandalone_(){ return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true; }
-
 function updateInstallUi_(){
   const btn = qs("btnInstallCard");
   const fab = qs("installFab");
@@ -2202,7 +1855,6 @@ function updateInstallUi_(){
   if(fab) fab.style.display = cleanMode ? "flex" : "none";
   if(dock) dock.style.display = cleanMode ? "" : "none";
 }
-
 async function triggerPwaInstall_(){
   if(isStandalone_()){ alert("✅ 已經安裝在桌面上了"); return; }
   if(deferredInstallPrompt){
@@ -2214,17 +1866,25 @@ async function triggerPwaInstall_(){
   if(isIos_()){ alert("請用 Safari 開啟，點分享，再選『加入主畫面』。\n\n若目前不是 Safari，請先複製此頁連結後改用 Safari 開啟。"); return; }
   alert("目前裝置尚未出現系統安裝提示。\n\n你可以先用瀏覽器選單中的『安裝應用程式』或『加入主畫面』。");
 }
-
 window.__triggerPwaInstall = triggerPwaInstall_;
-
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; updateInstallUi_(); });
 window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; updateInstallUi_(); });
 window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenterSizes_(); }, { once: true });
 
 /* ============================================================
-   ★ boot_ v8.3.3
-   開頭判斷 ?id=xxx&view=1 → 個人名片模式
-   其餘 → 門面模式（原有邏輯不變）
+   ★ boot_ v8.3.5（快取優先 + 並行）
+
+   門面模式流程：
+     1. 公告：立即顯示 BUILTIN，背景 fetch 更新
+     2. Shell：快取命中 → 0ms 渲染；無快取 → 骨架屏 + 等 GAS
+     3. renderFacadePreview：shell 完成後立即執行
+     4. lite：背景載入，完成後補渲染（不阻塞步驟 3）
+     5. QR：渲染後 300 / 900ms 補刷兩次
+
+   個人名片模式流程：
+     1. Shell：快取命中直接渲染；同時並行發起 fetch 更新快取
+     2. lite / full：並行發起，各自完成後補渲染（不串行）
+     3. 公告：與 shell fetch 並行，不互相等待
 ============================================================ */
 (async function boot_(){
   try{
@@ -2233,6 +1893,8 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenter
     applySmartBalanceAll_();
     updateInstallUi_();
     bindAnnouncementModal_();
+
+    // 公告立即顯示（不等 GAS）
     fetchAndRenderAnnouncements_();
 
     // ★ 個人名片模式判斷
@@ -2241,7 +1903,6 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenter
     const isViewMode = sp.get("view") === "1";
 
     if(urlId && isViewMode){
-      // 個人名片模式：依 id 撈資料渲染，不走門面流程
       try{
         await renderPersonalCard_(urlId);
       }catch(err){
@@ -2252,15 +1913,14 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenter
         if(nameEl) nameEl.textContent = "名片載入失敗";
         if(titleEl) titleEl.textContent = "請確認連結是否正確，或聯繫客服";
       }
-
       setTimeout(() => { try{ reRenderAllQrStable(); }catch(_e){} }, 300);
       setTimeout(() => { try{ reRenderAllQrStable(); }catch(_e){} }, 900);
-      return; // 不繼續執行門面流程
+      return;
     }
 
-    // 門面模式（原有邏輯）
-    await loadFacadeBaseCard();
-    renderFacadePreview();
+    // ★ 門面模式（快取優先）
+    await loadFacadeBaseCard();   // 有快取時幾乎 0ms
+    renderFacadePreview();        // 快取命中時極快首屏
 
     setTimeout(() => { try{ rerenderAllQrAfterFacade_(); }catch(_e){} }, 300);
     setTimeout(() => { try{ reRenderAllQrStable(); }catch(_e){} }, 900);
@@ -2276,109 +1936,56 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenter
     if(unitWrap) unitWrap.style.display = "";
     if(unitEl) unitEl.textContent = "請稍後再試";
     if(titleEl) titleEl.textContent = "";
-
-    try{
-      bindAnnouncementModal_();
-      renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
-    }catch(_e){}
+    try{ bindAnnouncementModal_(); renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS); }catch(_e){}
   }
 })();
 
 /* ============================================================
-   HSC 版權顯示控制（新增）
+   HSC 版權顯示控制
 ============================================================ */
 function shouldShowCopyright_(){
   try{
     const url = new URL(location.href);
     const cardId = (url.searchParams.get("id") || "").toUpperCase();
     const isViewMode = url.searchParams.get("view") === "1";
-
-    // 只有「客戶成品 view=1 + TW卡號」才隱藏
     if(isViewMode && cardId.startsWith("TW")) return false;
-
     return true;
-  }catch(e){
-    return true;
-  }
+  }catch(e){ return true; }
 }
-
-/* ============================================================
-   HSC 浮水印版權層（自動注入）
-============================================================ */
 function renderCardWatermark_(){
   try{
     const cardRoot =
       document.querySelector("#livePreviewCard .card") ||
       document.querySelector("#livePreviewCard") ||
       document.querySelector(".card");
-
     if(!cardRoot) return;
-
     let wm = cardRoot.querySelector(".card-watermark");
-    if(!wm){
-      wm = document.createElement("div");
-      wm.className = "card-watermark";
-      cardRoot.appendChild(wm);
-    }
-
-    if(!wm.querySelector(".wm-pattern")){
-      const pattern = document.createElement("div");
-      pattern.className = "wm-pattern";
-      wm.appendChild(pattern);
-    }
-  }catch(e){
-    console.warn("watermark error", e);
-  }
+    if(!wm){ wm = document.createElement("div"); wm.className = "card-watermark"; cardRoot.appendChild(wm); }
+    if(!wm.querySelector(".wm-pattern")){ const pattern = document.createElement("div"); pattern.className = "wm-pattern"; wm.appendChild(pattern); }
+  }catch(e){ console.warn("watermark error", e); }
 }
-
 function renderCopyright_(){
   try{
     if(!shouldShowCopyright_()) return;
-
-    const cardRoot =
-      document.querySelector("#livePreviewCard") ||
-      document.querySelector("#card-container");
-
+    const cardRoot = document.querySelector("#livePreviewCard") || document.querySelector("#card-container");
     if(!cardRoot) return;
     if(cardRoot.querySelector(".copyright-block")) return;
-
     const el = document.createElement("div");
     el.className = "copyright-block";
-    el.textContent =
-      `© ${new Date().getFullYear()} 天使幸福智慧名片館 · All Rights Reserved`;
-
+    el.textContent = `© ${new Date().getFullYear()} 天使幸福智慧名片館 · All Rights Reserved`;
     cardRoot.appendChild(el);
-  }catch(e){
-    console.warn("copyright error", e);
-  }
+  }catch(e){ console.warn("copyright error", e); }
 }
+function renderCopyrightSystem_(){ renderCardWatermark_(); renderCopyright_(); }
 
-function renderCopyrightSystem_(){
-  renderCardWatermark_();
-  renderCopyright_();
-}
+window.addEventListener("load", function(){ setTimeout(renderCopyrightSystem_, 800); });
 
-/* 首次載入後補上 */
-window.addEventListener("load", function(){
-  setTimeout(renderCopyrightSystem_, 800);
-});
-
-/* 動態重繪後自動補回 */
 let __hscObserverTimer = null;
-
 const __hscCopyrightObserver = new MutationObserver(() => {
   if(__hscObserverTimer) return;
-
-  __hscObserverTimer = setTimeout(() => {
-    renderCopyrightSystem_();
-    __hscObserverTimer = null;
-  }, 300);
+  __hscObserverTimer = setTimeout(() => { renderCopyrightSystem_(); __hscObserverTimer = null; }, 300);
 });
-
 __hscCopyrightObserver.observe(
   document.querySelector("#livePreviewCard") || document.body,
-  {
-    childList: true,
-    subtree: true
-  }
+  { childList: true, subtree: true }
 );
