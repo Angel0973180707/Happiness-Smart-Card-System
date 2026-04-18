@@ -2010,3 +2010,226 @@
   }
 
 })();
+/* ============================================================
+   HSC ADMIN · 維護模式功能 PATCH for admin.js
+   ============================================================
+   貼法:把這整段貼到 admin.js 的最底下(在最後 `)();` 之後)
+   不需改動 admin.js 其他部分。
+============================================================ */
+
+(function initAdminMaintenance() {
+  "use strict";
+
+  const MAINT_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
+  function $m(s) { return document.querySelector(s); }
+
+  function getMaintAdminKey() {
+    // 直接讀取 localStorage 的方式跟 admin.js 一致
+    const suffix = localStorage.getItem("hsc_admin_key") || "";
+    if (suffix.startsWith("ANGEL2026")) return suffix;
+    return suffix ? "ANGEL2026" + suffix : "";
+  }
+
+  function maintToast(msg) {
+    if (typeof window._hscToast === "function") window._hscToast(msg);
+    else alert(msg);
+  }
+
+  function maintEscapeHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function maintFormatDate(iso) {
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return `${y}/${m}/${day} ${hh}:${mm}`;
+    } catch (_e) {
+      return iso;
+    }
+  }
+
+  // ── API 呼叫 ──
+  async function loadMaintStatus() {
+    try {
+      const res = await fetch(`${MAINT_GAS_URL}?action=getMaintenanceStatus&_t=${Date.now()}`, { method: "GET", cache: "no-store" });
+      const data = await res.json();
+      if (!data || !data.ok) throw new Error(data?.error || "查詢失敗");
+      return data.maintenance || { enabled: false };
+    } catch (err) {
+      console.warn("[admin maint] loadStatus failed:", err);
+      return null;
+    }
+  }
+
+  async function activateMaintenance(message, endAt, title) {
+    const key = getMaintAdminKey();
+    if (!key) { maintToast("⚠️ 請先設定 Admin Key"); return false; }
+    const url = new URL(MAINT_GAS_URL);
+    url.searchParams.set("action", "adminSetMaintenance");
+    url.searchParams.set("admin_key", key);
+    url.searchParams.set("enabled", "true");
+    if (message) url.searchParams.set("message", message);
+    if (endAt) url.searchParams.set("end_at", endAt);
+    if (title) url.searchParams.set("title", title);
+    try {
+      const res = await fetch(url.toString(), { method: "GET", cache: "no-store" });
+      const data = await res.json();
+      if (!data || !data.ok) throw new Error(data?.error || "啟動失敗");
+      return data;
+    } catch (err) {
+      maintToast("啟動維護失敗:" + err.message);
+      return null;
+    }
+  }
+
+  async function deactivateMaintenance() {
+    const key = getMaintAdminKey();
+    if (!key) { maintToast("⚠️ 請先設定 Admin Key"); return false; }
+    const url = new URL(MAINT_GAS_URL);
+    url.searchParams.set("action", "adminSetMaintenance");
+    url.searchParams.set("admin_key", key);
+    url.searchParams.set("enabled", "false");
+    try {
+      const res = await fetch(url.toString(), { method: "GET", cache: "no-store" });
+      const data = await res.json();
+      if (!data || !data.ok) throw new Error(data?.error || "關閉失敗");
+      return data;
+    } catch (err) {
+      maintToast("關閉維護失敗:" + err.message);
+      return null;
+    }
+  }
+
+  // ── 渲染狀態 ──
+  function renderMaintStatus(info) {
+    const badge = $m("#maintStatusBadge");
+    const wrap = $m("#maintStatusWrap");
+    if (!badge || !wrap) return;
+
+    if (!info) {
+      badge.textContent = "查詢失敗";
+      badge.style.background = "var(--danger-bg)";
+      badge.style.color = "var(--danger)";
+      wrap.innerHTML = '<div style="color:var(--danger);">❌ 無法查詢維護狀態</div>';
+      return;
+    }
+
+    if (info.enabled) {
+      badge.textContent = "🔴 維護中";
+      badge.style.background = "var(--danger-bg)";
+      badge.style.color = "var(--danger)";
+      wrap.innerHTML = `
+        <div style="font-weight:900;color:var(--danger);margin-bottom:6px;">🔴 目前處於維護模式</div>
+        <div style="color:var(--ink);margin-bottom:4px;"><strong>訊息:</strong> ${maintEscapeHtml(info.message || "-")}</div>
+        ${info.start_at ? `<div style="color:var(--ink2);font-size:12px;">開始時間:${maintEscapeHtml(maintFormatDate(info.start_at))}</div>` : ""}
+        ${info.end_at ? `<div style="color:var(--ink2);font-size:12px;">預計結束:${maintEscapeHtml(maintFormatDate(info.end_at))}</div>` : '<div style="color:var(--ink2);font-size:12px;">⚠️ 未設定結束時間(需手動關閉)</div>'}
+      `;
+    } else {
+      badge.textContent = "🟢 服務正常";
+      badge.style.background = "var(--ok-bg)";
+      badge.style.color = "var(--ok)";
+      wrap.innerHTML = '<div style="color:var(--ok);font-weight:900;">🟢 系統運作正常,客戶端可正常使用</div>';
+    }
+  }
+
+  async function refreshMaintStatus() {
+    const info = await loadMaintStatus();
+    renderMaintStatus(info);
+    return info;
+  }
+
+  // ── 綁定事件 ──
+  function bindMaintEvents() {
+    // 收合式表單
+    const head = $m("#maintActivateHead");
+    const collapsible = $m("#maintActivateCollapsible");
+    if (head && collapsible) {
+      head.addEventListener("click", () => collapsible.classList.toggle("open"));
+    }
+
+    // 啟動維護
+    $m("#btnMaintActivate")?.addEventListener("click", async () => {
+      const message = ($m("#maintInputMessage")?.value || "").trim();
+      const endAtRaw = ($m("#maintInputEndAt")?.value || "").trim();
+      const title = ($m("#maintInputTitle")?.value || "").trim();
+
+      if (!message) {
+        maintToast("請填寫維護訊息");
+        return;
+      }
+
+      // datetime-local 格式轉成 ISO(補秒數)
+      let endAt = "";
+      if (endAtRaw) {
+        endAt = endAtRaw.length === 16 ? endAtRaw + ":00" : endAtRaw;
+      }
+
+      if (!confirm(`確認啟動維護模式?\n\n訊息:${message}\n${endAt ? `結束時間:${maintFormatDate(endAt)}` : "無結束時間(需手動關閉)"}\n\n啟動後所有客戶端 API 會被攔下,只有帶 admin_key 才能操作。`)) return;
+
+      const result = await activateMaintenance(message, endAt, title);
+      if (result) {
+        maintToast("🔴 維護模式已啟動");
+        // 清空表單
+        if ($m("#maintInputMessage")) $m("#maintInputMessage").value = "";
+        if ($m("#maintInputEndAt")) $m("#maintInputEndAt").value = "";
+        if ($m("#maintInputTitle")) $m("#maintInputTitle").value = "";
+        // 收合表單
+        collapsible?.classList.remove("open");
+        // 刷新狀態
+        await refreshMaintStatus();
+      }
+    });
+
+    // 關閉維護
+    $m("#btnMaintDeactivate")?.addEventListener("click", async () => {
+      if (!confirm("確認關閉維護模式?\n\n關閉後客戶端將立即恢復正常使用。")) return;
+      const result = await deactivateMaintenance();
+      if (result) {
+        maintToast("🟢 維護模式已關閉");
+        await refreshMaintStatus();
+      }
+    });
+
+    // 刷新狀態
+    $m("#btnMaintRefresh")?.addEventListener("click", async () => {
+      await refreshMaintStatus();
+      maintToast("狀態已更新");
+    });
+
+    // 切換到系統工具 tab 時自動載入狀態
+    document.querySelectorAll('[data-section="systemSection"]').forEach(btn => {
+      btn.addEventListener("click", () => {
+        setTimeout(refreshMaintStatus, 200);
+      });
+    });
+
+    // 頁面載入後,若已在系統工具 tab 就先查一次
+    setTimeout(() => {
+      const sysSection = $m("#systemSection");
+      if (sysSection && sysSection.classList.contains("active")) {
+        refreshMaintStatus();
+      }
+    }, 800);
+  }
+
+  // 啟動
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindMaintEvents);
+  } else {
+    bindMaintEvents();
+  }
+
+  // 暴露給外部使用
+  window.refreshMaintStatus = refreshMaintStatus;
+})();
