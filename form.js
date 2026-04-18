@@ -271,9 +271,9 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
    * openPaymentConfirm(cardId, amount)
    * 導向付款確認表單
    */
-  function openPaymentConfirm(cardId, amount) {
-    window.location.href = buildPaymentConfirmUrl(cardId, amount);
-  }
+  function openPaymentConfirm(cardId, amount, paymentType, targetId) {
+  window.location.href = buildPaymentConfirmUrl(cardId, amount, paymentType, targetId);
+}
 
   /**
    * ensureUpgradeCreateButton(container)
