@@ -751,6 +751,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
     <button class="tab-btn" data-section="inviteSection">🎫 邀請碼</button>
     <button class="tab-btn" data-section="cardSection">💳 卡片</button>
     <button class="tab-btn" data-section="deliverySection">📦 交付</button>
+    <button class="tab-btn" data-section="paymentExceptionSection">🚨 異常中心</button>
     <button class="tab-more" id="btnMore">更多 ▾</button>
   </nav>
 
@@ -917,7 +918,70 @@ input:focus, textarea:focus, select:focus { outline: none; }
 
       <div id="deliveryEmpty" class="empty-state">請輸入卡片 ID 後點「載入」</div>
     </section>
+<!-- ── 異常中心 ── -->
+    <section id="paymentExceptionSection" class="section">
+      <div class="section-header">
+        <div class="section-title">異常中心</div>
+        <button class="btn btn-soft btn-sm" id="btnRefreshException">↻ 重整</button>
+      </div>
 
+      <div class="stats-row">
+        <div class="stat-tile urgent">
+          <div class="stat-label">待處理</div>
+          <div class="stat-value" id="excTotalCount">-</div>
+        </div>
+        <div class="stat-tile warn">
+          <div class="stat-label">首次付款</div>
+          <div class="stat-value" id="excFirstCount">-</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">續約</div>
+          <div class="stat-value" id="excRenewalCount">-</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">更新</div>
+          <div class="stat-value" id="excUpdateCount">-</div>
+        </div>
+      </div>
+
+      <!-- 指派表單 (收合) -->
+      <div class="collapsible" id="assignPaymentCollapsible">
+        <div class="collapsible-head" id="assignPaymentHead">
+          <span>🎯 手動指派付款</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="collapsible-body">
+          <div class="field">
+            <label>Inbox ID</label>
+            <input type="text" id="assignInboxId" placeholder="從清單點「指派」自動帶入" readonly>
+          </div>
+          <div class="field">
+            <label>付款類型</label>
+            <select id="assignPaymentType">
+              <option value="first_payment">首次付款 (first_payment)</option>
+              <option value="renewal">續約 (renewal)</option>
+              <option value="update_fee">更新付款 (update_fee)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>卡片 ID <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="assignCardId" placeholder="TW0001">
+          </div>
+          <div class="field" id="assignPaymentIdWrap" style="display:none;">
+            <label>Payment ID <span style="color:var(--danger)">*</span> <span style="color:var(--ink3);font-weight:normal;">(續約/更新必填)</span></label>
+            <input type="text" id="assignPaymentIdInput" placeholder="PMxxxxx 或 RNxxxxx">
+          </div>
+          <div class="action-strip">
+            <button class="btn btn-primary btn-full" id="btnDoAssign">✅ 確認指派</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">未比對清單</div>
+      <div id="exceptionListContainer">
+        <div class="empty-state">點「↻ 重整」載入</div>
+      </div>
+    </section>
     <!-- ── 付款管理 ── -->
     <section id="paymentSection" class="section">
       <div class="section-header">
@@ -1391,5 +1455,259 @@ input:focus, textarea:focus, select:focus { outline: none; }
 
 })();
 </script>
+<!-- 異常中心 Script -->
+<script>
+(function() {
+  // ⚠️ 請把下面這行改成你的 GAS Web App URL
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+
+  function $(s) { return document.querySelector(s); }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function getAdminKey() { return ($('#adminKeyInput') || {}).value || ''; }
+  function showLoading(on) {
+    var m = $('#loadingMask');
+    if (m) m.classList.toggle('hidden', !on);
+  }
+  function toast(msg) {
+    if (typeof window._hscToast === 'function') window._hscToast(msg);
+    else console.log('[toast]', msg);
+  }
+
+  // GAS 呼叫工具：使用 POST + text body 避免 CORS preflight
+  function callApi(action, payload) {
+    var body = Object.assign({ action: action, admin_key: getAdminKey() }, payload || {});
+    return fetch(GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      body: JSON.stringify(body)
+    }).then(function(r) { return r.json(); });
+  }
+
+  function paymentTypeBadge(pt) {
+    pt = String(pt || 'first_payment').toLowerCase();
+    if (pt === 'first_payment') return '<span class="badge badge-warn">首次付款</span>';
+    if (pt === 'renewal') return '<span class="badge badge-info">續約</span>';
+    if (pt === 'update_fee') return '<span class="badge badge-neutral">更新付款</span>';
+    return '<span class="badge badge-neutral">' + esc(pt) + '</span>';
+  }
+
+  function renderException(items) {
+    var container = $('#exceptionListContainer');
+    if (!container) return;
+    if (!items || !items.length) {
+      container.innerHTML = '<div class="empty-state">🎉 沒有異常付款</div>';
+      return;
+    }
+    container.innerHTML = items.map(function(r) {
+      var id = esc(r.inbox_id || '');
+      var pt = String(r.payment_type || 'first_payment').toLowerCase();
+      var amount = esc(r.amount || '0');
+      var last5 = esc(r.last5 || '-');
+      var note = esc(r.note || '');
+      var rawText = esc(r.raw_text || '');
+      var targetId = esc(r.target_id || '-');
+      var createdAt = esc(r.created_at || '-');
+      var ptEsc = esc(pt);
+      return '<div class="list-row" id="erow-' + id + '">' +
+        '<div class="list-row-head" data-erow="' + id + '">' +
+          '<div class="list-row-icon icon-pending">⚠️</div>' +
+          '<div class="list-row-info">' +
+            '<div class="list-row-title">$' + amount + ' · 末5 ' + last5 + '</div>' +
+            '<div class="list-row-sub">' + createdAt + (note ? ' · ' + note : '') + '</div>' +
+          '</div>' +
+          '<div class="list-row-right">' + paymentTypeBadge(pt) + '</div>' +
+          '<span class="chevron" style="margin-left:6px;">›</span>' +
+        '</div>' +
+        '<div class="list-row-body">' +
+          '<div class="detail-grid">' +
+            '<div class="detail-item"><div class="detail-key">Inbox ID</div><div class="detail-val">' + id + '</div></div>' +
+            '<div class="detail-item"><div class="detail-key">付款類型</div><div class="detail-val">' + ptEsc + '</div></div>' +
+            '<div class="detail-item"><div class="detail-key">Target ID</div><div class="detail-val">' + targetId + '</div></div>' +
+            '<div class="detail-item"><div class="detail-key">金額</div><div class="detail-val">' + amount + '</div></div>' +
+            '<div class="detail-item"><div class="detail-key">末5碼</div><div class="detail-val">' + last5 + '</div></div>' +
+            '<div class="detail-item"><div class="detail-key">建立時間</div><div class="detail-val">' + createdAt + '</div></div>' +
+            (note ? '<div class="detail-item wide"><div class="detail-key">備註</div><div class="detail-val">' + note + '</div></div>' : '') +
+            (rawText ? '<div class="detail-item wide"><div class="detail-key">原始文字</div><div class="detail-val">' + rawText + '</div></div>' : '') +
+          '</div>' +
+          '<div class="action-strip">' +
+            '<button class="btn btn-primary" data-exc-assign="1" data-id="' + id + '" data-pt="' + ptEsc + '" data-target="' + targetId + '">🎯 指派到卡片</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    // 展開/收合
+    container.querySelectorAll('.list-row-head').forEach(function(head) {
+      head.addEventListener('click', function() {
+        var rid = head.dataset.erow;
+        var row = document.getElementById('erow-' + rid);
+        if (row) row.classList.toggle('open');
+      });
+    });
+
+    // 指派按鈕
+    container.querySelectorAll('[data-exc-assign]').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openAssignForm(btn.dataset.id, btn.dataset.pt, btn.dataset.target);
+      });
+    });
+  }
+
+  function updateStats(items) {
+    items = items || [];
+    var total = items.length;
+    var first = 0, renewal = 0, update = 0;
+    items.forEach(function(r) {
+      var pt = String(r.payment_type || 'first_payment').toLowerCase();
+      if (pt === 'first_payment') first++;
+      else if (pt === 'renewal') renewal++;
+      else if (pt === 'update_fee') update++;
+    });
+    var set = function(sel, v) { var el = $(sel); if (el) el.textContent = v; };
+    set('#excTotalCount', total);
+    set('#excFirstCount', first);
+    set('#excRenewalCount', renewal);
+    set('#excUpdateCount', update);
+  }
+
+  function loadException() {
+    if (!getAdminKey()) {
+      toast('請先輸入 Admin Key');
+      return;
+    }
+    showLoading(true);
+    callApi('getUnmatchedPayments', {})
+      .then(function(data) {
+        showLoading(false);
+        if (!data || !data.ok) {
+          toast('載入失敗：' + ((data && (data.error || data.message)) || '未知錯誤'));
+          renderException([]);
+          updateStats([]);
+          return;
+        }
+        var items = data.items || [];
+        renderException(items);
+        updateStats(items);
+      })
+      .catch(function(err) {
+        showLoading(false);
+        toast('載入錯誤：' + err.message);
+      });
+  }
+
+  function openAssignForm(inboxId, paymentType, targetId) {
+    var ptEl = $('#assignPaymentType');
+    var inboxEl = $('#assignInboxId');
+    var cardEl = $('#assignCardId');
+    var pmtEl = $('#assignPaymentIdInput');
+    if (inboxEl) inboxEl.value = inboxId || '';
+    if (ptEl) ptEl.value = paymentType || 'first_payment';
+
+    // 智慧帶入 target_id：first_payment → card_id 欄；renewal/update_fee → payment_id 欄
+    if (paymentType === 'first_payment') {
+      if (cardEl) cardEl.value = (targetId && targetId !== '-') ? targetId : '';
+      if (pmtEl) pmtEl.value = '';
+    } else {
+      if (pmtEl) pmtEl.value = (targetId && targetId !== '-') ? targetId : '';
+      if (cardEl) cardEl.value = '';
+    }
+    togglePaymentIdField();
+    var wrap = $('#assignPaymentCollapsible');
+    if (wrap) {
+      wrap.classList.add('open');
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function togglePaymentIdField() {
+    var ptEl = $('#assignPaymentType');
+    var wrap = $('#assignPaymentIdWrap');
+    if (!ptEl || !wrap) return;
+    var pt = ptEl.value;
+    wrap.style.display = (pt === 'renewal' || pt === 'update_fee') ? 'block' : 'none';
+  }
+
+  function doAssign() {
+    var inboxId = (($('#assignInboxId') || {}).value || '').trim();
+    var cardId = (($('#assignCardId') || {}).value || '').trim();
+    var pt = (($('#assignPaymentType') || {}).value) || 'first_payment';
+    var paymentId = (($('#assignPaymentIdInput') || {}).value || '').trim();
+
+    if (!inboxId) { toast('請先從清單選擇 Inbox'); return; }
+    if (!cardId) { toast('請輸入卡片 ID'); return; }
+    if ((pt === 'renewal' || pt === 'update_fee') && !paymentId) {
+      toast('續約/更新付款必填 Payment ID');
+      return;
+    }
+
+    var payload = {
+      inbox_id: inboxId,
+      card_id: cardId,
+      payment_type: pt
+    };
+    if (paymentId) payload.payment_id = paymentId;
+
+    showLoading(true);
+    callApi('assignPaymentToCard', payload)
+      .then(function(data) {
+        showLoading(false);
+        if (!data || !data.ok) {
+          toast('指派失敗：' + ((data && (data.error || data.message)) || '未知錯誤'));
+          return;
+        }
+        toast('✅ 指派成功');
+        // 清空表單
+        if ($('#assignInboxId')) $('#assignInboxId').value = '';
+        if ($('#assignCardId')) $('#assignCardId').value = '';
+        if ($('#assignPaymentIdInput')) $('#assignPaymentIdInput').value = '';
+        var wrap = $('#assignPaymentCollapsible');
+        if (wrap) wrap.classList.remove('open');
+        // 重新載入清單
+        loadException();
+      })
+      .catch(function(err) {
+        showLoading(false);
+        toast('指派錯誤：' + err.message);
+      });
+  }
+
+  // 綁定
+  function bind() {
+    var btn1 = $('#btnRefreshException');
+    if (btn1) btn1.addEventListener('click', loadException);
+
+    var btn2 = $('#btnDoAssign');
+    if (btn2) btn2.addEventListener('click', doAssign);
+
+    var ptEl = $('#assignPaymentType');
+    if (ptEl) ptEl.addEventListener('change', togglePaymentIdField);
+
+    // 收合開關
+    var head = $('#assignPaymentHead');
+    var collapsible = $('#assignPaymentCollapsible');
+    if (head && collapsible) {
+      head.addEventListener('click', function() { collapsible.classList.toggle('open'); });
+    }
+
+    // 進入 tab 時自動載入
+    document.querySelectorAll('[data-section="paymentExceptionSection"]').forEach(function(btn) {
+      btn.addEventListener('click', function() { setTimeout(loadException, 150); });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bind);
+  } else {
+    bind();
+  }
+
+  // 暴露給外部（例如你要從別處刷新異常清單）
+  window.loadPaymentException = loadException;
+})();
+</script>  
 </body>
 </html>
