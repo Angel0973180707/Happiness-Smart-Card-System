@@ -2096,14 +2096,30 @@ function _ensureExtraPaymentButtons(container, result, mode) {
     targetId    = result.paymentId || result.renewalId || "";
   }
 
-  // ...（略，noteBtn 不變）
+  // 複製備註
+  const noteBtn = document.createElement("button");
+  noteBtn.type = "button";
+  noteBtn.className = "ghost-btn mini btn-pay-note";
+  noteBtn.textContent = "📋 複製備註（卡片序號）";
+  noteBtn.style.cssText = "margin-top:6px;width:100%;";
+  noteBtn.addEventListener("click", async () => {
+    await copyText(buildPaymentNoteText(cardId));
+    setStatus(`已複製備註：${cardId}，請貼到轉帳備註欄。`, "success");
+  });
 
+  // 前往付款確認
+  const confirmBtn = document.createElement("button");
+  confirmBtn.type = "button";
+  confirmBtn.className = "line-btn btn-pay-confirm";
+  confirmBtn.textContent = "👉 填寫付款確認";
+  confirmBtn.style.cssText = "margin-top:8px;width:100%;";
   confirmBtn.addEventListener("click", () =>
     openPaymentConfirm(cardId, amount, paymentType, targetId)
   );
-    container.appendChild(noteBtn);
-    container.appendChild(confirmBtn);
-  }
+
+  container.appendChild(noteBtn);
+  container.appendChild(confirmBtn);
+}
 
   // ─────────────────────────────────────────────────────────────
 
