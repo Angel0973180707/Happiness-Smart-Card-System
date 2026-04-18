@@ -7,7 +7,6 @@
   <meta name="theme-color" content="#f8f4ee" />
   <link rel="stylesheet" href="./poster.css?v=140" />
   <style>
-    /* ── 通用補充 ── */
     .hero-tagline {
       margin-top: 10px;
       font-size: 13px;
@@ -93,8 +92,6 @@
     /* ══════════════════════════════════
        TRIAL 專屬 UI
     ══════════════════════════════════ */
-
-    /* 點數進度條區塊 */
     .trial-progress-block {
       background: linear-gradient(135deg, #fffdf9, #fef6e7);
       border: 1px solid rgba(191,135,87,.16);
@@ -124,7 +121,6 @@
       font-weight: 600;
       color: var(--muted);
     }
-    /* progress bar */
     .trial-progress-bar-wrap {
       height: 10px;
       background: rgba(191,135,87,.14);
@@ -146,67 +142,27 @@
       font-weight: 500;
     }
 
-    /* 主說明區塊 */
-    .trial-explain-block {
-      background: rgba(255,255,255,.72);
-      border: 1px solid rgba(98,76,56,.07);
-      border-radius: 14px;
-      padding: 12px 14px;
-    }
-    .trial-explain-text {
-      font-size: 13px;
-      line-height: 1.85;
-      color: var(--ink-soft);
-    }
-    .trial-explain-text strong {
-      color: var(--gold-deep);
-      font-weight: 900;
-    }
-    .trial-explain-note {
-      margin-top: 8px;
-      font-size: 11px;
-      color: var(--muted);
-      line-height: 1.6;
-      padding-top: 8px;
-      border-top: 1px solid rgba(98,76,56,.07);
-    }
-
-    /* 鼓勵文案行 */
-    .wallet-encourage {
-      font-size: 13px;
-      line-height: 1.75;
-      color: var(--ink-soft);
-      font-weight: 500;
-      text-align: center;
-      padding: 4px 0;
-    }
-
     /* ══════════════════════════════════
-       分享連結區塊（雙軌）
-       trial   → .share-link-block（客戶軌，?share=）
-       referral/partner → .referral-entry-block（代理軌，?ref=）
+       分享連結區塊
     ══════════════════════════════════ */
-
-    /* 客戶分享連結（trial 用，較柔和） */
-    .share-link-block {
+    .share-block {
       background: linear-gradient(180deg, #fffefb, #fef8f0);
       border: 1px solid rgba(191,135,87,.18);
       border-radius: 16px;
       padding: 14px;
     }
-    .share-link-label {
-      font-size: 13px;
-      font-weight: 900;
-      letter-spacing: .03em;
-      color: var(--gold-deep);
+    .ref-link-block {
+      background: linear-gradient(180deg, #fffefb, #fdf5e8);
+      border-color: rgba(191,135,87,.24);
+    }
+    .share-block-label {
+      font-size: 13px; font-weight: 900;
+      letter-spacing: .03em; color: var(--gold-deep);
       margin-bottom: 3px;
     }
-    .share-link-desc {
-      font-size: 12px;
-      color: var(--ink-soft);
-      line-height: 1.65;
-      margin-bottom: 10px;
-      font-weight: 500;
+    .share-block-desc {
+      font-size: 12px; color: var(--ink-soft);
+      line-height: 1.65; margin-bottom: 10px; font-weight: 500;
     }
     .share-link-display {
       font-size: 12px;
@@ -220,36 +176,22 @@
       margin-bottom: 10px;
       min-height: 36px;
     }
-    .share-link-btn-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
+    .share-btn-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .ref-link-note {
+      font-size: 12px; color: var(--ink-soft);
+      line-height: 1.7; margin-bottom: 10px; font-weight: 500;
+      padding: 8px 10px;
+      background: rgba(191,135,87,.07);
+      border-radius: 10px;
+    }
+    .ref-link-missing {
+      font-size: 12px; color: var(--muted);
+      line-height: 1.6; margin-top: 8px; text-align: center;
     }
 
-    /* 代理專屬入口（referral / partner，較明確） */
-    .referral-entry-block {
-      background: linear-gradient(180deg, #fffefb, #fdf5e8);
-      border: 1px solid rgba(191,135,87,.22);
-      border-radius: 16px;
-      padding: 14px;
-    }
-    .referral-entry-label {
-      font-size: 13px; font-weight: 900; letter-spacing: .04em;
-      color: var(--gold-deep); margin-bottom: 3px;
-    }
-    .referral-entry-desc {
-      font-size: 12px; color: var(--ink-soft); line-height: 1.6;
-      margin-bottom: 10px; font-weight: 500;
-    }
-    .referral-link-display {
-      font-size: 12px; color: var(--muted); word-break: break-all;
-      line-height: 1.55; padding: 8px 10px;
-      background: rgba(255,255,255,.72); border-radius: 10px;
-      border: 1px solid rgba(191,135,87,.1); margin-bottom: 10px; min-height: 36px;
-    }
-    .referral-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-
-    /* 導引提示（完整版頂部） */
+    /* 導引提示 */
     .wallet-nav-hint {
       font-size: 12px; color: #a08f82; line-height: 1.8;
       padding: 8px 12px; background: rgba(255,249,242,.7);
@@ -267,14 +209,6 @@
     .service-log-hint  { font-size: 12px; color: #a08f82; line-height: 1.55; margin-bottom: 10px; font-weight: 500; }
 
     /* 成果統計 */
-    .wallet-stats-block-wrap { }
-    .wallet-stats-intro {
-      font-size: 12px;
-      color: var(--ink-soft);
-      line-height: 1.7;
-      margin-bottom: 10px;
-      font-weight: 500;
-    }
     .wallet-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .wallet-stat-item {
       background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(255,252,247,.92));
@@ -293,11 +227,79 @@
       box-shadow: 0 4px 12px rgba(88,67,48,.03);
     }
     .card-status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-
     .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
     .status-badge.active    { color: #168e46; background: rgba(22,142,70,.1); }
     .status-badge.preparing { color: #8a6e2f; background: rgba(191,158,47,.1); }
     .status-badge.paused    { color: #7a5a4e; background: rgba(122,90,78,.1); }
+
+    /* 更新續約 */
+    .update-renewal-section {
+      margin-top: 16px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .update-status-card {
+      background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,252,247,.86));
+      border: 1px solid rgba(98,76,56,.09);
+      border-radius: 20px; padding: 14px;
+      box-shadow: 0 4px 12px rgba(88,67,48,.03);
+    }
+    .update-status-head {
+      display: flex; align-items: center;
+      gap: 8px; margin-bottom: 8px;
+    }
+    .update-status-title {
+      font-size: 14px; font-weight: 900;
+      color: var(--ink-soft); flex: 1;
+    }
+    .update-status-badge {
+      font-size: 12px; font-weight: 800;
+      padding: 3px 10px; border-radius: 999px;
+    }
+    .update-status-badge.unlimited { color: #168e46; background: rgba(22,142,70,.1); }
+    .update-status-badge.has-quota { color: #8a6e2f; background: rgba(191,158,47,.1); }
+    .update-status-badge.no-quota  { color: #b05a3d; background: rgba(176,90,61,.1);  }
+    .update-status-badge.preparing { color: var(--muted); background: rgba(98,76,56,.07); }
+    .update-status-body {
+      font-size: 13px; color: var(--ink-soft);
+      line-height: 1.75; font-weight: 500;
+    }
+    .update-progress-wrap {
+      height: 8px; background: rgba(191,135,87,.14);
+      border-radius: 999px; overflow: hidden; margin: 8px 0;
+    }
+    .update-progress-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, #c38a5c, #e0aa72);
+      transition: width .5s cubic-bezier(.4,0,.2,1); min-width: 4px;
+    }
+    .renewal-card {
+      border-radius: 20px; padding: 14px;
+      border: 1px solid rgba(191,135,87,.2);
+      background: linear-gradient(135deg, #fffdf8, #fef0dc);
+    }
+    .renewal-card.urgent {
+      border-color: rgba(176,90,61,.3);
+      background: linear-gradient(135deg, #fffaf7, #fde8d8);
+    }
+    .renewal-card-head {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .renewal-urgency-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0; background: var(--gold-soft);
+    }
+    .renewal-urgency-dot.urgent { background: #c85a3a; }
+    .renewal-card-title {
+      font-size: 14px; font-weight: 900; color: var(--gold-deep);
+    }
+    .renewal-card.urgent .renewal-card-title { color: #9a3e22; }
+    .renewal-card-body {
+      font-size: 13px; color: var(--ink-soft);
+      line-height: 1.75; margin-bottom: 12px;
+    }
+    .renewal-card-actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
 
     /* 合作說明 dialog */
     .collab-tier { margin-bottom: 14px; padding: 12px 14px; border-radius: 14px; background: rgba(255,249,242,.8); border: 1px solid rgba(191,135,87,.12); }
@@ -305,125 +307,16 @@
     .collab-tier-body  { font-size: 13px; line-height: 1.8; color: var(--ink-soft); }
     .collab-core-line  { margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.7; text-align: center; padding: 10px; background: linear-gradient(135deg, #fffdf8, #fef0dc); border-radius: 10px; border: 1px solid rgba(191,135,87,.14); }
 
-    /* 分享連結 dialog */
-    .dialog-link-display { font-size: 12px; color: var(--muted); word-break: break-all; line-height: 1.55; padding: 8px 10px; background: rgba(255,255,255,.72); border-radius: 10px; border: 1px solid rgba(191,135,87,.1); margin-bottom: 12px; min-height: 36px; }
-
     /* chip active */
     .service-chip.active { background: linear-gradient(180deg,#c38a5c,#b67b4f) !important; color: #fffaf6 !important; }
 
     @media (max-width: 420px) {
       .wallet-stats-grid   { grid-template-columns: repeat(2, 1fr); }
       .card-status-grid    { grid-template-columns: 1fr; }
-      .share-link-btn-row,
-      .referral-btn-row    { grid-template-columns: 1fr; }
+      .share-btn-row,
+      .renewal-card-actions { grid-template-columns: 1fr; }
     }
-    /* ── 通用分享區塊 ── */
-  .share-block {
-    background: linear-gradient(180deg, #fffefb, #fef8f0);
-    border: 1px solid rgba(191,135,87,.18);
-    border-radius: 16px;
-    padding: 14px;
-  }
-  .ref-link-block {
-    background: linear-gradient(180deg, #fffefb, #fdf5e8);
-    border-color: rgba(191,135,87,.24);
-  }
-  .share-block-label {
-    font-size: 13px; font-weight: 900;
-    letter-spacing: .03em; color: var(--gold-deep);
-    margin-bottom: 3px;
-  }
-  .share-block-desc {
-    font-size: 12px; color: var(--ink-soft);
-    line-height: 1.65; margin-bottom: 10px; font-weight: 500;
-  }
-  .share-btn-row {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-  }
-  .ref-link-note {
-    font-size: 12px; color: var(--ink-soft);
-    line-height: 1.7; margin-bottom: 10px; font-weight: 500;
-    padding: 8px 10px;
-    background: rgba(191,135,87,.07);
-    border-radius: 10px;
-  }
-  .ref-link-missing {
-    font-size: 12px; color: var(--muted);
-    line-height: 1.6; margin-top: 8px; text-align: center;
-  }
-  .update-renewal-section {
-    margin-top: 16px;
-    display: flex; flex-direction: column; gap: 12px;
-  }
-  .update-status-card {
-    background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,252,247,.86));
-    border: 1px solid rgba(98,76,56,.09);
-    border-radius: 20px; padding: 14px;
-    box-shadow: 0 4px 12px rgba(88,67,48,.03);
-  }
-  .update-status-head {
-    display: flex; align-items: center;
-    gap: 8px; margin-bottom: 8px;
-  }
-  .update-status-title {
-    font-size: 14px; font-weight: 900;
-    color: var(--ink-soft); flex: 1;
-  }
-  .update-status-badge {
-    font-size: 12px; font-weight: 800;
-    padding: 3px 10px; border-radius: 999px;
-  }
-  .update-status-badge.unlimited { color: #168e46; background: rgba(22,142,70,.1); }
-  .update-status-badge.has-quota { color: #8a6e2f; background: rgba(191,158,47,.1); }
-  .update-status-badge.no-quota  { color: #b05a3d; background: rgba(176,90,61,.1);  }
-  .update-status-badge.preparing { color: var(--muted); background: rgba(98,76,56,.07); }
-  .update-status-body {
-    font-size: 13px; color: var(--ink-soft);
-    line-height: 1.75; font-weight: 500;
-  }
-  .update-progress-wrap {
-    height: 8px; background: rgba(191,135,87,.14);
-    border-radius: 999px; overflow: hidden; margin: 8px 0;
-  }
-  .update-progress-fill {
-    height: 100%; border-radius: 999px;
-    background: linear-gradient(90deg, #c38a5c, #e0aa72);
-    transition: width .5s cubic-bezier(.4,0,.2,1); min-width: 4px;
-  }
-  .renewal-card {
-    border-radius: 20px; padding: 14px;
-    border: 1px solid rgba(191,135,87,.2);
-    background: linear-gradient(135deg, #fffdf8, #fef0dc);
-  }
-  .renewal-card.urgent {
-    border-color: rgba(176,90,61,.3);
-    background: linear-gradient(135deg, #fffaf7, #fde8d8);
-  }
-  .renewal-card-head {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-  }
-  .renewal-urgency-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    flex-shrink: 0; background: var(--gold-soft);
-  }
-  .renewal-urgency-dot.urgent { background: #c85a3a; }
-  .renewal-card-title {
-    font-size: 14px; font-weight: 900; color: var(--gold-deep);
-  }
-  .renewal-card.urgent .renewal-card-title { color: #9a3e22; }
-  .renewal-card-body {
-    font-size: 13px; color: var(--ink-soft);
-    line-height: 1.75; margin-bottom: 12px;
-  }
-  .renewal-card-actions {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-  }
-  @media (max-width: 420px) {
-    .share-btn-row,
-    .renewal-card-actions { grid-template-columns: 1fr; }
-  }
-
-</style>
+  </style>
 </head>
 <body>
   <main class="page">
@@ -476,12 +369,12 @@
               下載我的名片海報
               <span class="btn-download-sub">存到手機裡，分享更方便</span>
             </button>
-            <button id="renewalBtn"     class="btn btn-soft"       type="button">繼續用這張名片（續約）</button>
+            <button id="renewalBtn" class="btn btn-soft" type="button">繼續用這張名片（續約）</button>
           </div>
         </section>
 
         <!-- ══════════════════════════════
-             服務荷包 accordion
+             服務荷包 accordion（單一完整版，無重複 ID）
         ══════════════════════════════ -->
         <div id="walletAccordion" class="wallet-accordion" aria-label="服務荷包">
           <button id="walletToggle" class="wallet-toggle" type="button" aria-expanded="false" aria-controls="walletBody">
@@ -497,11 +390,13 @@
           <div id="walletBody" class="wallet-body" role="region" aria-labelledby="walletToggle">
             <div class="wallet-inner">
 
+              <!-- 導引提示（完整版） -->
               <div id="walletNavHint" class="wallet-nav-hint hidden">
                 <strong>想讓朋友認識你</strong> → 分享我的名片<br>
                 <strong>想累積分潤點數</strong> → 分享推薦連結
               </div>
 
+              <!-- 分享名片連結 -->
               <div class="share-block">
                 <div class="share-block-label">📇 分享我的名片</div>
                 <div class="share-block-desc">讓朋友掃 QR 或點連結認識你</div>
@@ -515,6 +410,7 @@
 
               <div class="wallet-divider"></div>
 
+              <!-- 推薦連結 -->
               <div class="share-block ref-link-block">
                 <div class="share-block-label">🔗 推薦連結（帶我的序號）</div>
                 <div id="refLinkTrialNote" class="ref-link-note hidden">
@@ -535,6 +431,7 @@
 
               <div class="wallet-divider"></div>
 
+              <!-- 體驗解鎖進度條 -->
               <div id="trialProgressBlock" class="trial-progress-block hidden">
                 <div class="trial-progress-header">
                   <span class="trial-progress-label">🌱 解鎖進度</span>
@@ -550,6 +447,7 @@
                 </div>
               </div>
 
+              <!-- 累積成果統計 -->
               <div id="walletStatsBlock" class="hidden">
                 <div class="service-log-label" style="margin-bottom:6px;">累積成果</div>
                 <div class="wallet-stats-grid">
@@ -566,6 +464,7 @@
                     <div id="statConvertedCount" class="wallet-stat-value">0</div>
                   </div>
                 </div>
+                <!-- 金牌收益（partner 才顯示） -->
                 <div id="partnerEarningsBlock" class="wallet-stats-grid hidden" style="margin-top:8px;">
                   <div class="wallet-stat-item">
                     <div class="wallet-stat-label">本月分潤</div>
@@ -578,65 +477,24 @@
                 </div>
               </div>
 
+              <!-- 服務快記 -->
               <div id="serviceLogBlock" class="service-log-block hidden">
                 <div class="service-log-label">記一下今天的服務</div>
                 <div class="service-log-hint">服務完，點一下就好</div>
                 <button id="logServiceBtn" class="btn btn-soft btn-sm" type="button">開始記錄</button>
               </div>
 
+              <!-- 服務紀錄 -->
               <div id="serviceLogsViewBlock" class="hidden">
                 <button id="viewServiceLogsBtn" class="btn btn-soft btn-sm" type="button">看看我做了哪些服務</button>
               </div>
 
+              <!-- 合作說明（荷包內唯一入口） -->
               <button id="openCollabBtn" class="btn btn-soft btn-sm" type="button">看看怎麼一起合作</button>
 
-            </div>
-          </div>
-        </div>
-                <!-- 金牌收益 -->
-                <div id="partnerEarningsBlock" class="wallet-stats-grid hidden" style="margin-top:8px;">
-                  <div class="wallet-stat-item">
-                    <div class="wallet-stat-label">本月分潤</div>
-                    <div id="statCommissionMonthly" class="wallet-stat-value">0</div>
-                  </div>
-                  <div class="wallet-stat-item">
-                    <div class="wallet-stat-label">累計分潤</div>
-                    <div id="statCommissionTotal" class="wallet-stat-value">0</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 服務快記（完整版） -->
-              <div id="serviceLogBlock" class="service-log-block hidden">
-                <div class="service-log-label">記一下今天的服務</div>
-                <div class="service-log-hint">服務完，點一下就好</div>
-                <button id="logServiceBtn" class="btn btn-soft btn-sm" type="button">開始記錄</button>
-              </div>
-
-              <!-- 服務紀錄（完整版） -->
-              <div id="serviceLogsViewBlock" class="hidden">
-                <button id="viewServiceLogsBtn" class="btn btn-soft btn-sm" type="button">看看我做了哪些服務</button>
-              </div>
-
-              <div class="wallet-divider"></div>
-
-              <!-- 代理專屬入口（referral / partner，?ref=） -->
-              <div id="referralEntryBlock" class="referral-entry-block hidden">
-                <div class="referral-entry-label">✦ 分享專屬入口</div>
-                <div class="referral-entry-desc">朋友從這裡進來，你的推薦與服務會被記錄</div>
-                <div id="referralLinkDisplay" class="referral-link-display">載入中…</div>
-                <div class="referral-btn-row">
-                  <button id="copyReferralLinkBtn" class="btn btn-soft btn-sm"    type="button">一鍵複製</button>
-                  <button id="shareReferralBtn"    class="btn btn-primary btn-sm" type="button">直接分享</button>
-                </div>
-              </div>
-
-              <!-- 合作說明 -->
-              <button id="openCollabBtn" class="btn btn-soft btn-sm" type="button">看看怎麼一起合作</button>
-
-            </div>
-          </div>
-        </div>
+            </div><!-- /wallet-inner -->
+          </div><!-- /walletBody -->
+        </div><!-- /walletAccordion -->
 
         <!-- 名片狀態區 -->
         <section class="card-status-section" aria-label="我的名片狀態">
@@ -660,12 +518,10 @@
               <div class="info-label">使用到期</div>
               <div id="statusExpireDate" class="info-value">--</div>
             </div>
-
             <div class="info-item">
               <div class="info-label">名片瀏覽</div>
               <div id="statusViewCount" class="info-value">--</div>
             </div>
-
             <div id="expireCountdownItem" class="info-item hidden">
               <div class="info-label">距離到期</div>
               <div id="statusExpireCountdown" class="info-value">--</div>
@@ -673,7 +529,7 @@
           </div>
         </section>
 
-        <!-- 客服區 -->
+        <!-- 更新與續約 -->
         <section id="updateRenewalSection" class="update-renewal-section hidden" aria-label="更新與續約">
 
           <div class="update-status-card">
@@ -701,6 +557,7 @@
 
         </section>
 
+        <!-- 客服 -->
         <section class="action-group" aria-label="客服">
           <div class="actions">
             <button id="lineOABtn" class="btn btn-support" type="button">需要幫忙，找我</button>
@@ -712,7 +569,6 @@
 
       </div><!-- /hero-body -->
     </section>
-
   </main>
 
   <!-- Dialog：合作說明 -->
@@ -744,14 +600,14 @@
     </div>
   </div>
 
-  <!-- Dialog：分享名片（名片軌，不帶 ref） -->
+  <!-- Dialog：分享名片 -->
   <div id="shareCardDialog" class="dialog-mask" aria-hidden="true">
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="shareCardDialogTitle">
       <h3 id="shareCardDialogTitle" class="dialog-title">分享我的名片</h3>
       <div class="dialog-body">
         <p>讓朋友認識你，看看你在做什麼。</p>
         <p>以下是你的名片連結，可以直接傳給對方：</p>
-        <div id="shareCardLinkDisplay" class="dialog-link-display">載入中…</div>
+        <div id="shareCardLinkDisplay" class="share-link-display">載入中…</div>
       </div>
       <div class="dialog-actions" style="gap:8px;display:flex;">
         <button id="shareCardCopyBtn"        class="btn btn-soft"    type="button" style="flex:1;">複製連結</button>
@@ -791,6 +647,6 @@
   </div>
 
   <script src="./qrcode.min.js"></script>
-  <script src="./poster.js?v=140"></script>
+  <script src="./poster.js?v=141"></script>
 </body>
 </html>
