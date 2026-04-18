@@ -1989,3 +1989,189 @@ __hscCopyrightObserver.observe(
   document.querySelector("#livePreviewCard") || document.body,
   { childList: true, subtree: true }
 );
+/* ============================================================
+   HSC FRONTEND · 維護模式整合 PATCH for app.js
+   ============================================================
+   貼法:把這整段貼到 app.js 的最底下(在 `})();` 之類的結尾之後)
+   即可生效。不用改動 app.js 其他部分。
+============================================================ */
+
+(function initMaintenanceGuard() {
+  "use strict";
+
+  // ── 配置(跟 app.js 用同一個 GAS) ──
+  const MAINT_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+  const MAINT_CHECK_INTERVAL_MS = 60000; // 每 60 秒背景檢查一次
+  const MAINT_CACHE_KEY = "HSC_MAINT_STATUS";
+
+  // ── 維護頁顯示 ──
+  function showMaintenancePage(info, announcement) {
+    const msg = (info && info.message) || (announcement && announcement.content) || "系統維護中,請稍後再試";
+    const title = (announcement && announcement.title) || "系統維護中";
+    const endAt = info && info.end_at ? formatMaintEndAt(info.end_at) : "";
+
+    // 移除現有維護頁(如果有)
+    const existing = document.getElementById("hscMaintenancePage");
+    if (existing) existing.remove();
+
+    const page = document.createElement("div");
+    page.id = "hscMaintenancePage";
+    page.className = "hsc-maint-page";
+    page.innerHTML = `
+      <div class="hsc-maint-card">
+        <div class="hsc-maint-icon">
+          <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <circle cx="32" cy="32" r="8" fill="#b08a6b"/>
+            <line x1="32" y1="6" x2="32" y2="16" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="32" y1="48" x2="32" y2="58" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="6" y1="32" x2="16" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="48" y1="32" x2="58" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="14" y1="14" x2="20" y2="20" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="44" y1="44" x2="50" y2="50" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="14" y1="50" x2="20" y2="44" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="44" y1="20" x2="50" y2="14" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="hsc-maint-brand">天使幸福智慧名片館</div>
+        <div class="hsc-maint-title">🔧 ${escapeMaintHtml(title)}</div>
+        <div class="hsc-maint-message">${escapeMaintHtml(msg).replace(/\n/g, "<br>")}</div>
+        ${endAt ? `<div class="hsc-maint-endat">⏰ 預計恢復時間<br><strong>${escapeMaintHtml(endAt)}</strong></div>` : ""}
+        <div class="hsc-maint-contact">
+          <div class="hsc-maint-contact-label">急事請聯繫</div>
+          <a class="hsc-maint-line-btn" href="https://lin.ee/G3VJoRm" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+              <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+            </svg>
+            LINE 官方帳號
+          </a>
+        </div>
+      </div>`;
+    document.body.appendChild(page);
+
+    // 鎖定背景捲動
+    document.body.style.overflow = "hidden";
+  }
+
+  function hideMaintenancePage() {
+    const page = document.getElementById("hscMaintenancePage");
+    if (page) page.remove();
+    document.body.style.overflow = "";
+  }
+
+  function escapeMaintHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatMaintEndAt(iso) {
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return `${y}/${m}/${day} ${hh}:${mm}`;
+    } catch (_e) {
+      return iso;
+    }
+  }
+
+  // ── 檢查維護狀態 ──
+  async function checkMaintenanceStatus() {
+    try {
+      const url = `${MAINT_GAS_URL}?action=getMaintenanceStatus&_t=${Date.now()}`;
+      const res = await fetch(url, { method: "GET", cache: "no-store" });
+      const data = await res.json();
+      if (!data || !data.ok || !data.maintenance) return null;
+      return data.maintenance;
+    } catch (err) {
+      console.warn("[HSC maint] check failed:", err);
+      return null;
+    }
+  }
+
+  async function fetchMaintAnnouncement() {
+    try {
+      const url = `${MAINT_GAS_URL}?action=getAnnouncements&_t=${Date.now()}`;
+      const res = await fetch(url, { method: "GET", cache: "no-store" });
+      const data = await res.json();
+      if (!data || !data.ok || !Array.isArray(data.announcements)) return null;
+      const maintAnn = data.announcements.find(a => String(a.type || "").toLowerCase() === "maintenance" && String(a.status || "").toLowerCase() === "active");
+      return maintAnn || null;
+    } catch (_e) {
+      return null;
+    }
+  }
+
+  // ── 頁面進入點檢查 ──
+  async function runMaintenanceCheckOnBoot() {
+    const info = await checkMaintenanceStatus();
+    if (!info || !info.enabled) return false;
+    const ann = await fetchMaintAnnouncement();
+    showMaintenancePage(info, ann);
+    return true;
+  }
+
+  // ── 背景定期檢查(每 60 秒) ──
+  function startBackgroundMaintenanceCheck() {
+    setInterval(async () => {
+      const info = await checkMaintenanceStatus();
+      const currentlyShowing = !!document.getElementById("hscMaintenancePage");
+      if (info && info.enabled) {
+        if (!currentlyShowing) {
+          const ann = await fetchMaintAnnouncement();
+          showMaintenancePage(info, ann);
+        }
+      } else {
+        if (currentlyShowing) {
+          hideMaintenancePage();
+          // 維護結束後重新整理頁面,確保乾淨載入
+          setTimeout(() => window.location.reload(), 500);
+        }
+      }
+    }, MAINT_CHECK_INTERVAL_MS);
+  }
+
+  // ── API 攔截:全域 fetch wrapper ──
+  // 攔截所有對 GAS 的 fetch,偵測到 maintenance: true 就顯示維護頁
+  const originalFetch = window.fetch;
+  window.fetch = async function patchedFetch(input, init) {
+    const response = await originalFetch(input, init);
+    try {
+      const url = typeof input === "string" ? input : (input && input.url) || "";
+      if (url.indexOf(MAINT_GAS_URL) === 0) {
+        // clone 回應讓原 caller 仍能讀
+        const clone = response.clone();
+        clone.text().then(text => {
+          try {
+            const data = JSON.parse(text);
+            if (data && data.maintenance === true && !document.getElementById("hscMaintenancePage")) {
+              // 被維護攔下了,顯示維護頁
+              fetchMaintAnnouncement().then(ann => {
+                showMaintenancePage(data.maintenance_info || { message: data.error }, ann);
+              });
+            }
+          } catch (_e) {}
+        }).catch(() => {});
+      }
+    } catch (_e) {}
+    return response;
+  };
+
+  // ── 啟動 ──
+  async function boot() {
+    const isMaint = await runMaintenanceCheckOnBoot();
+    startBackgroundMaintenanceCheck();
+    // 不論是否維護,都啟動背景檢查(維護結束能自動偵測)
+    return isMaint;
+  }
+
+  // 立即執行(不等 DOMContentLoaded,越早越好)
+  boot().catch(err => console.warn("[HSC maint] boot failed:", err));
+})();
