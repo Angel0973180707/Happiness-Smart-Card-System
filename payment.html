@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>付款確認｜天使幸福智慧名片</title>
+  <style>
+    :root{
+      --bg:#f8f5ef;
+      --card:#fffdf9;
+      --line:#e7dccd;
+      --text:#3d352d;
+      --muted:#7d7469;
+      --accent:#b97a3d;
+      --accent-dark:#9b642e;
+      --ok:#2f7d4a;
+      --error:#b85b5b;
+      --shadow:0 14px 32px rgba(88,67,44,.08);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+      color:var(--text);
+      background:linear-gradient(180deg,#fbf7ef 0%,#f5efe5 100%);
+    }
+    .wrap{
+      max-width:760px;
+      margin:0 auto;
+      padding:24px 16px 48px;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:22px;
+    }
+    h1{
+      margin:0 0 8px;
+      font-size:28px;
+      line-height:1.2;
+    }
+    .sub{
+      color:var(--muted);
+      line-height:1.8;
+      margin-bottom:18px;
+      font-size:15px;
+    }
+    .notice{
+      background:#fff8ec;
+      border:1px solid rgba(185,122,61,.28);
+      color:#8b5b16;
+      border-radius:14px;
+      padding:14px 16px;
+      font-size:14px;
+      line-height:1.8;
+      margin-bottom:18px;
+      font-weight:700;
+    }
+    .grid{
+      display:grid;
+      gap:14px;
+    }
+    @media (min-width:700px){
+      .grid.two{
+        grid-template-columns:1fr 1fr;
+      }
+    }
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    label{
+      font-size:14px;
+      font-weight:800;
+    }
+    input, textarea{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:13px 14px;
+      font-size:16px;
+      background:#fff;
+      color:var(--text);
+      outline:none;
+    }
+    input:focus, textarea:focus{
+      border-color:rgba(185,122,61,.7);
+      box-shadow:0 0 0 4px rgba(185,122,61,.12);
+    }
+    textarea{
+      min-height:96px;
+      resize:vertical;
+    }
+    .helper{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.7;
+    }
+    .actions{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:18px;
+    }
+    button{
+      appearance:none;
+      border:0;
+      border-radius:14px;
+      padding:13px 18px;
+      font-size:15px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .btn-primary{
+      background:var(--accent);
+      color:#fff;
+    }
+    .btn-primary:hover{ background:var(--accent-dark); }
+    .btn-secondary{
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--line);
+    }
+    .status{
+      margin-top:16px;
+      padding:14px 16px;
+      border-radius:14px;
+      display:none;
+      line-height:1.8;
+      font-size:14px;
+      font-weight:700;
+    }
+    .status.visible{ display:block; }
+    .status.info{
+      background:#f5fbff;
+      border:1px solid rgba(37,99,235,.18);
+      color:#1e3a8a;
+    }
+    .status.success{
+      background:#f1faf4;
+      border:1px solid rgba(47,125,74,.2);
+      color:var(--ok);
+    }
+    .status.error{
+      background:#fff4f4;
+      border:1px solid rgba(184,91,91,.2);
+      color:var(--error);
+    }
+    .result{
+      margin-top:20px;
+      display:none;
+    }
+    .result.visible{ display:block; }
+    .result-box{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:18px;
+      line-height:1.8;
+    }
+    .result-box h2{
+      margin:0 0 8px;
+      font-size:22px;
+    }
+    .muted{
+      color:var(--muted);
+    }
+    .inline-code{
+      display:inline-block;
+      background:#f7f3eb;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:2px 8px;
+      font-weight:800;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>付款確認</h1>
+      <div class="sub">
+        完成付款後，請填寫以下資訊。<br>
+        系統會自動比對並開通名片；若暫時未成功配對，將進入異常中心由後台補處理。
+      </div>
+
+      <div class="notice">
+        付款時建議在備註填寫「卡片序號」，例如：<span class="inline-code">TW0001</span><br>
+        這樣系統會更容易自動配對成功。
+      </div>
+
+      <form id="payment-form" novalidate>
+        <div class="grid two">
+          <div class="field">
+            <label for="card_id">卡片序號</label>
+            <input id="card_id" name="card_id" placeholder="例如：TW0001" />
+            <div class="helper">建議與付款備註一致填寫，提升自動配對成功率。</div>
+          </div>
+
+          <div class="field">
+            <label for="amount">付款金額</label>
+            <input id="amount" name="amount" inputmode="numeric" placeholder="例如：1500" />
+            <div class="helper">請填實際轉帳金額。</div>
+          </div>
+
+          <div class="field">
+            <label for="last5">入帳末 5 碼</label>
+            <input id="last5" name="last5" inputmode="numeric" maxlength="5" placeholder="例如：48231" />
+            <div class="helper">請填銀行交易顯示的入帳帳號末五碼。</div>
+          </div>
+
+          <div class="field">
+            <label for="note">備註（選填）</label>
+            <input id="note" name="note" placeholder="例如：TW0001" />
+            <div class="helper">若付款時有填卡片序號，請一併填入，配對更快。</div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:14px;">
+          <label for="remark">其他說明（選填）</label>
+          <textarea id="remark" name="remark" placeholder="例如：今天下午 2:30 左右轉帳"></textarea>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn-primary" id="btn-submit">送出付款確認</button>
+          <button type="button" class="btn-secondary" id="btn-back">返回上一頁</button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div id="result" class="result">
+          <div class="result-box">
+            <h2>已收到付款確認</h2>
+            <div class="muted">
+              系統將於 1～5 分鐘內自動比對並開通。<br>
+              若未自動開通，資料會進入異常中心，由後台補處理。
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const CONFIG = {
+        API_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec"
+      };
+
+      const els = {
+        form: document.getElementById("payment-form"),
+        cardId: document.getElementById("card_id"),
+        amount: document.getElementById("amount"),
+        last5: document.getElementById("last5"),
+        note: document.getElementById("note"),
+        remark: document.getElementById("remark"),
+        submit: document.getElementById("btn-submit"),
+        back: document.getElementById("btn-back"),
+        status: document.getElementById("status"),
+        result: document.getElementById("result")
+      };
+
+      document.addEventListener("DOMContentLoaded", init);
+
+      function init() {
+        hydrateFromQuery();
+        bindEvents();
+      }
+
+      function bindEvents() {
+        els.form.addEventListener("submit", onSubmit);
+        els.back.addEventListener("click", () => history.back());
+        els.last5.addEventListener("input", () => {
+          els.last5.value = String(els.last5.value || "").replace(/\D/g, "").slice(0, 5);
+        });
+        els.amount.addEventListener("input", () => {
+          els.amount.value = String(els.amount.value || "").replace(/[^\d]/g, "");
+        });
+      }
+
+      function hydrateFromQuery() {
+        const p = new URLSearchParams(location.search);
+        const cardId = (p.get("card_id") || "").trim();
+        const amount = (p.get("amount") || "").trim();
+
+        if (cardId) {
+          els.cardId.value = cardId;
+          if (!els.note.value) els.note.value = cardId;
+        }
+        if (amount) els.amount.value = amount;
+      }
+
+      function setStatus(message, type) {
+        els.status.className = "status visible " + (type || "info");
+        els.status.textContent = message || "";
+      }
+
+      function clearStatus() {
+        els.status.className = "status";
+        els.status.textContent = "";
+      }
+
+      function validate() {
+        const cardId = (els.cardId.value || "").trim().toUpperCase();
+        const amount = (els.amount.value || "").trim();
+        const last5 = (els.last5.value || "").trim();
+
+        if (!cardId) {
+          setStatus("請填寫卡片序號。", "error");
+          els.cardId.focus();
+          return false;
+        }
+        if (!/^TW\d{4,}$/i.test(cardId)) {
+          setStatus("卡片序號格式不正確，請填例如：TW0001。", "error");
+          els.cardId.focus();
+          return false;
+        }
+        if (!amount) {
+          setStatus("請填寫付款金額。", "error");
+          els.amount.focus();
+          return false;
+        }
+        if (!/^\d+$/.test(amount)) {
+          setStatus("付款金額請填數字。", "error");
+          els.amount.focus();
+          return false;
+        }
+        if (!/^\d{5}$/.test(last5)) {
+          setStatus("請填寫正確的入帳末 5 碼。", "error");
+          els.last5.focus();
+          return false;
+        }
+
+        clearStatus();
+        return true;
+      }
+
+      async function onSubmit(e) {
+        e.preventDefault();
+        if (!validate()) return;
+
+        const payload = {
+          action: "submitPaymentCheck",
+          card_id: (els.cardId.value || "").trim().toUpperCase(),
+          amount: (els.amount.value || "").trim(),
+          last5: (els.last5.value || "").trim(),
+          note: (els.note.value || "").trim(),
+          raw_text: (els.remark.value || "").trim()
+        };
+
+        try {
+          els.submit.disabled = true;
+          setStatus("送出中，請稍候…", "info");
+
+          const data = await postToGas(payload);
+
+          if (!data || data.ok !== true) {
+            throw new Error((data && (data.error || data.message)) || "系統送出失敗");
+          }
+
+          setStatus("已收到付款確認，系統將於 1～5 分鐘內自動比對並開通。", "success");
+          els.result.classList.add("visible");
+          els.form.reset();
+
+          const p = new URLSearchParams(location.search);
+          const cardId = (p.get("card_id") || payload.card_id || "").trim();
+          const amount = (p.get("amount") || "").trim();
+          if (cardId) {
+            els.cardId.value = cardId;
+            els.note.value = cardId;
+          }
+          if (amount) els.amount.value = amount;
+
+        } catch (err) {
+          console.error(err);
+          setStatus("送出失敗，請稍後再試或聯繫客服。", "error");
+        } finally {
+          els.submit.disabled = false;
+        }
+      }
+
+      async function postToGas(payload) {
+        const body = new URLSearchParams();
+        body.append("payload", JSON.stringify(payload || {}));
+
+        const res = await fetch(CONFIG.API_URL, {
+          method: "POST",
+          body
+        });
+
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (_) {
+          throw new Error("系統回傳格式錯誤");
+        }
+        return data;
+      }
+    })();
+  </script>
+</body>
+</html>
