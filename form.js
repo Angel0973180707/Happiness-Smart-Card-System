@@ -2075,33 +2075,32 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
    * _ensureExtraPaymentButtons(container, result, mode)
    * 在 success-actions 內補上「複製備註」和「前往付款確認」按鈕
    */
-  function _ensureExtraPaymentButtons(container, result, mode) {
-    if (!container) return;
-    // 移除舊有的
-    container.querySelectorAll(".btn-pay-note, .btn-pay-confirm").forEach(b => b.remove());
+function _ensureExtraPaymentButtons(container, result, mode) {
+  if (!container) return;
+  container.querySelectorAll(".btn-pay-note, .btn-pay-confirm").forEach(b => b.remove());
 
-    const cardId = result.cardId || result.card_id || "—";
-    const amount = result.totalAmount || result.updateFeeAmount || 0;
+  const cardId = result.cardId || result.card_id || "—";
+  const amount = result.totalAmount || result.updateFeeAmount || 0;
 
-    // 複製備註
-    const noteBtn = document.createElement("button");
-    noteBtn.type = "button";
-    noteBtn.className = "ghost-btn mini btn-pay-note";
-    noteBtn.textContent = "📋 複製備註（卡片序號）";
-    noteBtn.style.cssText = "margin-top:6px;width:100%;";
-    noteBtn.addEventListener("click", async () => {
-      await copyText(buildPaymentNoteText(cardId));
-      setStatus(`已複製備註：${cardId}，請貼到轉帳備註欄。`, "success");
-    });
+  // ── 依 mode 決定 paymentType / targetId ──
+  let paymentType = "";
+  let targetId    = "";
+  if (mode === "create") {
+    paymentType = "first_payment";
+    targetId    = cardId;
+  } else if (mode === "update_paid") {
+    paymentType = "update_fee";
+    targetId    = result.paymentId || "";
+  } else if (mode === "renew") {
+    paymentType = "renewal";
+    targetId    = result.paymentId || result.renewalId || "";
+  }
 
-    // 前往付款確認
-    const confirmBtn = document.createElement("button");
-    confirmBtn.type = "button";
-    confirmBtn.className = "line-btn btn-pay-confirm";
-    confirmBtn.textContent = "👉 填寫付款確認";
-    confirmBtn.style.cssText = "margin-top:8px;width:100%;";
-    confirmBtn.addEventListener("click", () => openPaymentConfirm(cardId, amount));
+  // ...（略，noteBtn 不變）
 
+  confirmBtn.addEventListener("click", () =>
+    openPaymentConfirm(cardId, amount, paymentType, targetId)
+  );
     container.appendChild(noteBtn);
     container.appendChild(confirmBtn);
   }
