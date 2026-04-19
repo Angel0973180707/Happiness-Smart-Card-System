@@ -1,8 +1,19 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   完整修正版 v3.2 — 更新模式照片覆蓋修正
+   完整修正版 v3.3 — 更新模式照片刪除支援
 
-   本版改動（v3.2）：相對 v3.1 的修正
+   本版改動（v3.3）：相對 v3.2 的修正
+   1. 更新模式支援「刪除照片」：
+      - 每張照片卡片加一顆「🗑️ 移除此照片」按鈕
+      - 按下去把 state.photoRealUrls[key] 設為空字串（不是 delete）
+      - 清掉 preview、file、uploadState，並 reset file input
+      - buildUpdatePayload 已經會送空字串 → 配合後端修好的
+        shouldApplyUpdateValue_，後端就會真的把舊 URL 覆蓋成空值
+   2. ⚠️ 搭配後端 patch：GAS 的 shouldApplyUpdateValue_ 必須
+        對照片欄位（avatar/logo/photoN 的 _url 與 _key）允許空字串穿透，
+        否則前端即使送空字串也會被後端 SKIP 掉。
+
+   v3.2 改動（相對 v3.1）：
    1. 更新模式：新照片會正確覆蓋舊照片（原本完全不會被送出）
       - hydrateMediaFromCard 會把原卡片的照片 URL / photo_meta 載入 state
       - buildUpdatePayload 會把 avatar_url / logo_url / photoN_url 帶上
@@ -1220,6 +1231,52 @@
     moveDown.addEventListener("click",    () => { state.photoMeta[key].y = clampNumber(+(state.photoMeta[key].y + 0.05).toFixed(2), 0, 1, 0.5); applyPhotoTransform(previewImage, state.photoMeta[key]); updatePreview(); saveDraftSilently(); });
     resetBtn.addEventListener("click",    () => { state.photoMeta[key] = { ...DEFAULT_PHOTO_META }; zoomRange.value = "1"; applyPhotoTransform(previewImage, state.photoMeta[key]); updatePreview(); saveDraftSilently(); });
 
+    // ── v3.3：動態建立「🗑️ 移除此照片」按鈕 ─────────────────
+    // template 本身沒有此按鈕，用 JS 插入，確保舊 html 不用改
+    let removeBtn = frag.querySelector(".remove-photo");
+    if (!removeBtn && tools) {
+      removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "ghost-btn mini remove-photo";
+      removeBtn.textContent = "🗑️ 移除此照片";
+      removeBtn.style.cssText =
+        "margin-top:8px;width:100%;color:#dc2626;" +
+        "border-color:rgba(220,38,38,.35);background:#fef2f2;font-weight:700;";
+      tools.appendChild(removeBtn);
+    }
+    if (removeBtn) {
+      removeBtn.addEventListener("click", () => {
+        if (!window.confirm("確定要移除這張照片嗎？\n送出更新後，卡片上的這張照片會被清除。")) return;
+
+        // 關鍵：用空字串（不是 delete）
+        // buildUpdatePayload 會帶 photoN_url: ""
+        // 後端 shouldApplyUpdateValue_ 對照片欄位允許空字串穿透 → 真的清掉
+        state.photoRealUrls[key]    = "";
+        state.photoPreviewUrls[key] = "";
+        delete state.photoFiles[key];
+        state.photoUploadState[key] = "removed";
+
+        // 重設位置/縮放/旋轉 meta 回預設
+        state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
+
+        // 清 file input（讓客戶可以重選同一個檔）
+        if (fileInput) { try { fileInput.value = ""; } catch (_) {} }
+
+        // UI 回空狀態
+        previewImage.removeAttribute("src");
+        previewImage.classList.add("hidden");
+        previewEmpty.classList.remove("hidden");
+        tools.classList.add("hidden");
+        if (zoomRange) zoomRange.value = "1";
+        badge.textContent = "已移除";
+        badge.dataset.uploadState = "removed";
+
+        updatePreview();
+        saveDraftSilently();
+      });
+    }
+    // ─────────────────────────────────────────────────────
+
     hydratePhotoCardUi(key, { badge, previewImage, previewEmpty, tools, zoomRange });
     return card;
   }
@@ -1244,8 +1301,13 @@
       previewImage.classList.add("hidden");
       previewEmpty.classList.remove("hidden");
       tools.classList.add("hidden");
-      badge.textContent = "尚未上傳";
-      badge.dataset.uploadState = "idle";
+      if (state.photoUploadState[key] === "removed") {
+        badge.textContent = "已移除";
+        badge.dataset.uploadState = "removed";
+      } else {
+        badge.textContent = "尚未上傳";
+        badge.dataset.uploadState = "idle";
+      }
     }
   }
 
