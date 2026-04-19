@@ -1786,7 +1786,116 @@
       }
     })();
   </script>
+<!-- ═══════════════════════════════════════════════════════════
+       LIFF 初始化:抓 LINE user_id → 寫入隱藏欄位
+       - 從 LINE 官方帳號進入 → 自動抓取
+       - 非 LINE 環境進入     → 引導到 LINE 登入
+       - 驗證完成前送出按鈕鎖定,避免沒帶 user_id 就送出
+  ═══════════════════════════════════════════════════════════ -->
+  <script>
+  (function () {
+    "use strict";
 
+    // ⚠️ 你的 LIFF ID,已經幫你填好了
+    var LIFF_ID = "2009832915-yvLuTLRB";
+
+    // ── 顯示頂部警告條 ──
+    function showLineRequiredWarning(msg) {
+      var box = document.getElementById("liff-required-warning");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "liff-required-warning";
+        box.style.cssText =
+          "position:fixed;top:0;left:0;right:0;z-index:9999;" +
+          "background:#fef2f2;border-bottom:2px solid #dc2626;" +
+          "color:#991b1b;font-weight:800;font-size:14px;" +
+          "padding:14px 16px;text-align:center;line-height:1.6;";
+        document.body.prepend(box);
+      }
+      box.innerHTML = msg;
+    }
+    function hideLineRequiredWarning() {
+      var box = document.getElementById("liff-required-warning");
+      if (box) box.remove();
+    }
+
+    // ── 鎖定/解鎖送出按鈕 ──
+    function lockSubmit(reason) {
+      var btn = document.getElementById("btn-submit-form");
+      if (!btn) return;
+      btn.disabled = true;
+      btn.setAttribute("data-locked-by-liff", "1");
+      btn.style.opacity = "0.5";
+      btn.style.cursor = "not-allowed";
+      btn.title = reason || "請從 LINE 官方帳號進入";
+    }
+    function unlockSubmit() {
+      var btn = document.getElementById("btn-submit-form");
+      if (!btn) return;
+      if (btn.getAttribute("data-locked-by-liff") !== "1") return;
+      btn.disabled = false;
+      btn.removeAttribute("data-locked-by-liff");
+      btn.style.opacity = "";
+      btn.style.cursor = "";
+      btn.title = "";
+    }
+
+    // ── 主流程 ──
+    function bootLiff() {
+      lockSubmit("正在驗證 LINE 身分…");
+
+      if (typeof liff === "undefined") {
+        showLineRequiredWarning("⚠️ LINE SDK 載入失敗,請從 LINE 官方帳號重新進入。");
+        return;
+      }
+
+      liff.init({ liffId: LIFF_ID })
+        .then(function () {
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return null;
+          }
+          return liff.getProfile();
+        })
+        .then(function (profile) {
+          if (!profile || !profile.userId) {
+            showLineRequiredWarning(
+              "⚠️ 無法取得 LINE 身分,請從 LINE 官方帳號重新進入。"
+            );
+            return;
+          }
+
+          var uidInput  = document.getElementById("line_user_id");
+          var nameInput = document.getElementById("line_display_name");
+          if (uidInput)  uidInput.value  = profile.userId || "";
+          if (nameInput) nameInput.value = profile.displayName || "";
+
+          hideLineRequiredWarning();
+          unlockSubmit();
+
+          // 讓 form.js 也知道(備援)
+          window.HSC_LINE_UID  = profile.userId;
+          window.HSC_LINE_NAME = profile.displayName;
+        })
+        .catch(function (err) {
+          console.error("[LIFF] init failed:", err);
+          showLineRequiredWarning(
+            "⚠️ 請從 LINE 官方帳號進入申請<br>" +
+            "此表單僅限 LINE 好友申請,請回到官方帳號點選申請連結。"
+          );
+        });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", bootLiff);
+    } else {
+      bootLiff();
+    }
+  })();
+  </script>
+
+  <script type="module" src="./form.js"></script>
+</body>
   <script type="module" src="./form.js"></script>
 </body>
 </html>
