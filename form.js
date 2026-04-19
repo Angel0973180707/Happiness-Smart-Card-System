@@ -1,13 +1,20 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   完整修正版 v3.1 — 三鍵套精簡版
+   完整修正版 v3.2 — 更新模式照片覆蓋修正
 
-   本版改動（v3.1）：
+   本版改動（v3.2）：相對 v3.1 的修正
+   1. 更新模式：新照片會正確覆蓋舊照片（原本完全不會被送出）
+      - hydrateMediaFromCard 會把原卡片的照片 URL / photo_meta 載入 state
+      - buildUpdatePayload 會把 avatar_url / logo_url / photoN_url 帶上
+      - buildUpdatePayload 會帶 features_json.photo_meta（裁切/縮放/旋轉）
+      - submitUpdate 送出前會 await waitAllUploads()，避免丟檔
+
+   v3.1 原有改動：
    1. 付款面板精簡為 4 顆按鈕：
       ┌─────────────────────────────────────────┐
       │ 🔗 查看成品           （灰色次要）        │
-      │ 📋 複製付款資訊（含確認連結）（橘色主按鈕）│
-      │ 👉 填寫付款確認（已付款？）  （綠色主按鈕）│
+      │ 📋 複製付款資訊(含確認連結)（橘色主按鈕）│
+      │ 👉 填寫付款確認(已付款？)  （綠色主按鈕）│
       │ 💬 LINE 客服         （灰色次要）         │
       └─────────────────────────────────────────┘
    2. 「複製付款資訊」直接複製三鍵套（含付款確認連結）
@@ -720,7 +727,38 @@
     }
   }
 
-  function hydrateMediaFromCard(card) { void card; }
+  function hydrateMediaFromCard(card) {
+    if (!card) return;
+
+    // 1) 把原有照片 URL 載入 state（個人照、Logo、照片牆）
+    //    這樣表單一開啟就能看到舊照片，若客戶沒換新圖，送出時會把舊 URL 原樣回傳
+    if (card.avatar_url) {
+      state.photoRealUrls.avatar    = card.avatar_url;
+      state.photoPreviewUrls.avatar = card.avatar_url;
+      state.photoUploadState.avatar = "done";
+    }
+    if (card.logo_url) {
+      state.photoRealUrls.logo    = card.logo_url;
+      state.photoPreviewUrls.logo = card.logo_url;
+      state.photoUploadState.logo = "done";
+    }
+    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) {
+      const url = card[`photo${i}_url`];
+      if (url) {
+        state.photoRealUrls[`photo${i}`]    = url;
+        state.photoPreviewUrls[`photo${i}`] = url;
+        state.photoUploadState[`photo${i}`] = "done";
+      }
+    }
+
+    // 2) 還原照片位置/縮放/旋轉 meta（如果 features_json 有存）
+    const fj = card.features_json || card.features || null;
+    if (fj && typeof fj === "object" && fj.photo_meta && typeof fj.photo_meta === "object") {
+      Object.keys(fj.photo_meta).forEach(k => {
+        state.photoMeta[k] = normalizePhotoMeta(fj.photo_meta[k]);
+      });
+    }
+  }
 
   function hydrateCtasFromCard(card) {
     if (!card) return;
@@ -1596,7 +1634,12 @@
 
       if (state.updateFlow.cardExpired) throw new Error("卡片已到期，無法更新。");
 
-      setProgressStep(2, "送出更新資料…");
+      // ★ 等所有新選的照片上傳到 Firebase 完成後，才送資料到後端
+      //   避免 payload 拿到空 URL 把舊照片洗掉
+      setProgressStep(2, "等待圖片上傳完成…");
+      await waitAllUploads();
+
+      setProgressStep(3, "送出更新資料…");
       const updatePayload = buildUpdatePayload();
       const updateRes = await postToGas({ action: CONFIG.UPDATE_SUBMIT_ACTION, card_id: cardId, update_token: token, ...updatePayload });
       if (!updateRes.ok) throw new Error(updateRes.error || "更新失敗");
@@ -1713,6 +1756,28 @@
       payload[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
       payload[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
     }
+
+    // ── 照片 URL（新照片覆蓋舊照片）────────────────────────────
+    // 邏輯說明：
+    //   - 進入更新表單時 hydrateMediaFromCard 會把舊照片 URL 放進 state.photoRealUrls
+    //   - 客戶若選了新檔 → file input change handler 會 delete 舊 URL，
+    //     上傳完成後 uploadPhotoToFirebase 把新 URL 寫回 state.photoRealUrls
+    //   - 所以這裡只要把 state.photoRealUrls 的值送出，即可達成
+    //     「有換 = 新蓋舊、沒換 = 保留舊」
+    // 為了讓後端即使是 overwrite 模式也不會誤刪舊照片，
+    // 一律把 avatar / logo / photoN 欄位帶上（沒值就送空字串）。
+    payload.avatar_url = state.photoRealUrls.avatar || "";
+    payload.logo_url   = state.photoRealUrls.logo   || "";
+    for (let i = 1; i <= limits.wallPhotos; i++) {
+      payload[`photo${i}_url`] = state.photoRealUrls[`photo${i}`] || "";
+    }
+
+    // ── features_json：帶上照片裁切/縮放/旋轉，以及預覽設定 ──
+    payload.features_json = {
+      photo_meta:   buildPhotoMetaMap(),
+      preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan }
+    };
+
     return payload;
   }
 
