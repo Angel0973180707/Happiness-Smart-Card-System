@@ -2120,8 +2120,41 @@ function _ensureExtraPaymentButtons(container, result, mode) {
     if (ok) openPaymentConfirm(cardId, amount, paymentType, targetId);
   });
 
-  container.appendChild(noteBtn);
+ container.appendChild(noteBtn);
   container.appendChild(confirmBtn);
+
+  // ── 三鍵套：一鍵複製完整通知 ──
+  const bundleBtn = document.createElement("button");
+  bundleBtn.type = "button";
+  bundleBtn.className = "ghost-btn mini btn-pay-bundle";
+  bundleBtn.textContent = "📦 一鍵複製完整通知（可貼給家人）";
+  bundleBtn.style.cssText = "margin-top:6px;width:100%;";
+  bundleBtn.addEventListener("click", async () => {
+    const bundleText = _buildFullBundleText(result, mode, cardId, amount, paymentType, targetId);
+    await copyText(bundleText);
+    setStatus("已複製完整通知（含付款資訊 + 付款確認連結），可直接貼到 LINE 給家人或自己保留。", "success");
+  });
+  container.appendChild(bundleBtn);
+}
+
+/**
+ * _buildFullBundleText — 組合「三鍵套」完整通知文案
+ * = 付款資訊 + 備註警告 + 付款確認頁完整連結 + 客服備援
+ */
+function _buildFullBundleText(result, mode, cardId, amount, paymentType, targetId) {
+  const paymentInfo = buildPaymentInfoText(result, mode);
+  const confirmUrl = new URL(buildPaymentConfirmUrl(cardId, amount, paymentType, targetId), window.location.href).href;
+  const lines = [];
+  lines.push(paymentInfo);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("【付款確認連結】");
+  lines.push("完成轉帳後，請點此填寫確認：");
+  lines.push(confirmUrl);
+  lines.push("");
+  lines.push("【客服窗口（備援）】");
+  lines.push(CONFIG.SERVICE_URL);
+  return lines.join("\n");
 }
 
   // ─────────────────────────────────────────────────────────────
