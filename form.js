@@ -44,6 +44,7 @@
     RENEW_QUOTE_ACTION: "createRenewalQuote",
     RENEW_CREATE_PAYMENT_ACTION: "createRenewalPayment",
     RENEW_MARK_RENEWED_ACTION: "markCardRenewed",
+    ADMIN_BUILD_BUNDLE_ACTION: "adminBuildBundleText", 
 
     // ── v3 新增：銀行付款資訊 ──────────────────────────────
     BANK_NAME: "玉山銀行",
