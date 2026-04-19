@@ -2078,8 +2078,7 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
    */
 function _ensureExtraPaymentButtons(container, result, mode) {
   if (!container) return;
-  container.querySelectorAll(".btn-pay-note, .btn-pay-confirm").forEach(b => b.remove());
-
+  container.querySelectorAll(".btn-pay-note, .btn-pay-confirm, .btn-pay-bundle").forEach(b => b.remove());
   const cardId = result.cardId || result.card_id || "—";
   const amount = result.totalAmount || result.updateFeeAmount || 0;
 
