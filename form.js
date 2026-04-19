@@ -2114,9 +2114,12 @@ function _ensureExtraPaymentButtons(container, result, mode) {
   confirmBtn.className = "line-btn btn-pay-confirm";
   confirmBtn.textContent = "👉 填寫付款確認";
   confirmBtn.style.cssText = "margin-top:8px;width:100%;";
-  confirmBtn.addEventListener("click", () =>
-    openPaymentConfirm(cardId, amount, paymentType, targetId)
-  );
+  confirmBtn.addEventListener("click", () => {
+    const ok = window.confirm(
+      "即將前往付款確認表單。\n\n建議你先：\n1. 已完成轉帳\n2. 已記下轉帳金額與末 5 碼\n\n現在要前往嗎？"
+    );
+    if (ok) openPaymentConfirm(cardId, amount, paymentType, targetId);
+  });
 
   container.appendChild(noteBtn);
   container.appendChild(confirmBtn);
