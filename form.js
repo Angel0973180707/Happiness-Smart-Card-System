@@ -1,22 +1,19 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   完整修正版 v3 — 成交自動化補強版
+   完整修正版 v3.1 — 三鍵套精簡版
 
-   本版新增：
-   1. CONFIG 補充銀行帳戶資訊與 PAYMENT_FORM_URL
-   2. 新增 buildPaymentInfoText / buildPaymentNoteText /
-      buildPaymentConfirmUrl / openPaymentConfirm /
-      ensureUpgradeCreateButton 工具函式
-   3. showCreateSuccessPanel → 主流程改為付款導流
-   4. showUpdateSuccessPanel → 免費/無限更新不顯示付款；
-      付費更新顯示付款資訊
-   5. submitUpdate → requiresPayment 改呼叫
-      showUpdatePaymentRequiredPanel，不再擋掉
-   6. showRenewSuccessPanel → 主流程改為付款導流
-   7. setSuccessActionLabels → create/update_paid/renew
-      主流程改為複製付款資訊＋前往付款確認
-   8. 更新／續約頁加升級方案導流按鈕與提示
-   9. payment.html 另以獨立檔案提供（同資料夾）
+   本版改動（v3.1）：
+   1. 付款面板精簡為 4 顆按鈕：
+      ┌─────────────────────────────────────────┐
+      │ 🔗 查看成品           （灰色次要）        │
+      │ 📋 複製付款資訊（含確認連結）（橘色主按鈕）│
+      │ 👉 填寫付款確認（已付款？）  （綠色主按鈕）│
+      │ 💬 LINE 客服         （灰色次要）         │
+      └─────────────────────────────────────────┘
+   2. 「複製付款資訊」直接複製三鍵套（含付款確認連結）
+   3. 刪掉「複製備註」「一鍵複製完整通知」重複按鈕
+   4. 「客服窗口（備援）」改名「💬 LINE 客服」
+   5. 各付款面板加「付款流程 1-4」說明區塊，關鍵動作標顏色
 ============================================================ */
 
 (() => {
@@ -44,15 +41,15 @@
     RENEW_QUOTE_ACTION: "createRenewalQuote",
     RENEW_CREATE_PAYMENT_ACTION: "createRenewalPayment",
     RENEW_MARK_RENEWED_ACTION: "markCardRenewed",
-    ADMIN_BUILD_BUNDLE_ACTION: "adminBuildBundleText", 
+    ADMIN_BUILD_BUNDLE_ACTION: "adminBuildBundleText",
 
-    // ── v3 新增：銀行付款資訊 ──────────────────────────────
+    // ── 銀行付款資訊 ──────────────────────────────
     BANK_NAME: "玉山銀行",
     BANK_CODE: "808",
     BANK_ACCOUNT: "0738968051590",
     BANK_HOLDER: "李秀芳",
     PAYMENT_FORM_URL: "payment.html",
-    // ──────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────
 
     BASE_LIMITS: {
       free:    { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
@@ -77,6 +74,28 @@
   };
 
   const DEFAULT_PHOTO_META = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
+
+  // ── 付款流程說明區塊（三個場景共用產生器）──
+  const FLOW_STEP_MAP = {
+    create:       "3 天內系統自動開通交付卡",
+    renew:        "3 天內系統自動延長使用期限",
+    update_paid:  "系統確認後自動套用更新"
+  };
+  function buildFlowStepsHtml(scenario) {
+    const step4 = FLOW_STEP_MAP[scenario] || "系統確認後自動開通";
+    return `
+      <div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#fff8ec,#fef3c7);border:1.5px solid rgba(217,119,6,.3);font-size:13px;font-weight:700;color:#78350f;line-height:2;">
+        <div style="font-weight:900;font-size:14px;color:#92400e;margin-bottom:10px;">📋 付款流程（4 步驟）</div>
+        <div style="margin-bottom:4px;"><span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:6px;">1</span> 點 <strong style="color:#d97706;">「複製付款資訊」</strong>貼到 LINE / 記事本</div>
+        <div style="margin-bottom:4px;"><span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:6px;">2</span> 依資訊轉帳（<strong style="color:#d97706;">備註填卡號</strong>）</div>
+        <div style="margin-bottom:4px;"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:6px;">3</span> 點 <strong style="color:#16a34a;">「填寫付款確認」</strong>送出末 5 碼</div>
+        <div><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:6px;">4</span> <strong style="color:#2563eb;">${escapeHtml(step4)}</strong></div>
+      </div>
+      <div style="margin-top:10px;padding:10px 14px;border-radius:12px;background:#f5fbff;border:1px solid rgba(37,99,235,.2);font-size:12px;font-weight:700;color:#1e3a8a;line-height:1.7;text-align:center;">
+        🔒 請以本頁官方流程付款，避免被詐騙。
+      </div>
+    `;
+  }
 
   const state = {
     mode: "create",
@@ -212,11 +231,11 @@
     }
   }
 
-  // ── v3 新增工具函式 ──────────────────────────────────────────
+  // ── 工具函式 ─────────────────────────────────────────────────
 
   /**
    * buildPaymentInfoText(result, mode)
-   * 產生可複製的付款資訊文案
+   * 產生可複製的付款資訊文案（純付款資訊，不含確認連結）
    * mode: "create" | "renew" | "update_paid"
    */
   function buildPaymentInfoText(result, mode) {
@@ -257,24 +276,48 @@
   }
 
   /**
-   * buildPaymentConfirmUrl(cardId, amount)
+   * buildPaymentConfirmUrl(cardId, amount, paymentType, targetId)
    * 回傳付款確認表單 URL
    */
-function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
-  return `${CONFIG.PAYMENT_FORM_URL}` +
-    `?card_id=${encodeURIComponent(cardId || "")}` +
-    `&amount=${encodeURIComponent(amount || "")}` +
-    `&payment_type=${encodeURIComponent(paymentType || "")}` +
-    `&target_id=${encodeURIComponent(targetId || "")}`;
-}
+  function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
+    return `${CONFIG.PAYMENT_FORM_URL}` +
+      `?card_id=${encodeURIComponent(cardId || "")}` +
+      `&amount=${encodeURIComponent(amount || "")}` +
+      `&payment_type=${encodeURIComponent(paymentType || "")}` +
+      `&target_id=${encodeURIComponent(targetId || "")}`;
+  }
 
   /**
-   * openPaymentConfirm(cardId, amount)
+   * openPaymentConfirm(cardId, amount, paymentType, targetId)
    * 導向付款確認表單
    */
   function openPaymentConfirm(cardId, amount, paymentType, targetId) {
-  window.location.href = buildPaymentConfirmUrl(cardId, amount, paymentType, targetId);
-}
+    window.location.href = buildPaymentConfirmUrl(cardId, amount, paymentType, targetId);
+  }
+
+  /**
+   * _buildFullBundleText — 組合「三鍵套」完整通知文案
+   * = 付款資訊 + 付款確認頁完整連結 + 客服備援
+   * 當使用者點「複製付款資訊」時實際會複製這份（讓他可以一次貼給家人）
+   */
+  function _buildFullBundleText(result, mode, cardId, amount, paymentType, targetId) {
+    const paymentInfo = buildPaymentInfoText(result, mode);
+    const confirmUrl = new URL(
+      buildPaymentConfirmUrl(cardId, amount, paymentType, targetId),
+      window.location.href
+    ).href;
+    const lines = [];
+    lines.push(paymentInfo);
+    lines.push("");
+    lines.push("━━━━━━━━━━━━━━━━━━━━━");
+    lines.push("【付款確認連結】");
+    lines.push("完成轉帳後，請點此填寫確認：");
+    lines.push(confirmUrl);
+    lines.push("");
+    lines.push("【LINE 客服】");
+    lines.push(CONFIG.SERVICE_URL);
+    return lines.join("\n");
+  }
 
   /**
    * ensureUpgradeCreateButton(container)
@@ -1372,13 +1415,11 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
     return true;
   }
 
-  // ── v3 修改：requiresPayment 時改走付款頁，不擋送出 ──────────
   function validateUpdateBeforeSubmit() {
     if (state.updateFlow.cardExpired) {
       setStatus("卡片已到期，請先續約。", "error");
       return false;
     }
-    // requiresPayment 不再 return false，改在 submitUpdate 內處理
     if (!state.updateFlow.canSubmitDirectly && !state.updateFlow.requiresPayment) {
       setStatus("目前無法判斷更新資格，請重新整理後再試。", "error");
       return false;
@@ -1532,12 +1573,11 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
     }
   }
 
-  // ── submitUpdate（v3 修改：requiresPayment → 付款頁面）─────────
+  // ── submitUpdate ─────────────────────────────────────────────
 
   async function submitUpdate() {
     if (!validateUpdateBeforeSubmit()) return;
 
-    // ── 若需付款，改走付款頁面，不送 updateCardByToken ──
     if (state.updateFlow.requiresPayment) {
       const cardId    = state.modeContext.cardId;
       const feeAmount = state.updateFlow.updateFeeAmount || 300;
@@ -1729,9 +1769,9 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
     if (els["success-summary-box"])       els["success-summary-box"].classList.add("hidden");
     if (els["success-footer-note"])       els["success-footer-note"].innerHTML = "";
     if (els["btn-copy-secondary-notice"]) els["btn-copy-secondary-notice"].classList.add("hidden");
-    if (els["progress-contact-service"])  els["progress-contact-service"].textContent = "客服窗口";
+    if (els["progress-contact-service"])  els["progress-contact-service"].textContent = "💬 LINE 客服";
     if (els["btn-copy-primary-notice"]) {
-      els["btn-copy-primary-notice"].textContent = "回覆客服文案";
+      els["btn-copy-primary-notice"].textContent = "📋 複製付款資訊（含確認連結）";
       els["btn-copy-primary-notice"].classList.remove("hidden");
     }
     const previewBtn = document.getElementById("btn-open-preview");
@@ -1739,8 +1779,6 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
     if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
     if (window.HSCFormCountdownBridge?.refresh) window.HSCFormCountdownBridge.refresh();
   }
-
-  // ── freshBtn：clone 節點清除舊 listener ──────────────────────
 
   function freshBtn(id) {
     const old = els[id];
@@ -1777,15 +1815,14 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
         <div class="success-info-row"><span class="label">金額</span><span class="value" style="font-weight:900;color:#d97706;">${money(amount)}</span></div>
         <div style="margin-top:12px;padding:10px;background:#fef3c7;border-radius:10px;font-size:12px;font-weight:700;color:#92400e;line-height:1.7;">
           ⚠️ 付款備註請填寫：<strong style="font-size:14px;">${escapeHtml(cardId)}</strong><br>
-          未填寫備註將無法自動辨識，請務必填寫！<br>
-          完成付款後請填寫付款確認，系統將於 1～5 分鐘內自動開通。
+          未填寫備註將無法自動辨識，請務必填寫！
         </div>
       </div>
     `;
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // v3 showCreateSuccessPanel：主流程改為付款導流
+  // showCreateSuccessPanel：建卡成功面板
   // ═══════════════════════════════════════════════════════════════
   function showCreateSuccessPanel(result) {
     resetSuccessPanel();
@@ -1806,18 +1843,15 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
       `;
     }
 
-    // 付款期限
     if (els["success-due-alert"]) {
       els["success-due-alert"].classList.remove("hidden");
       if (els["success-due-text"])
         els["success-due-text"].textContent = `付款期限：${result.dueDateStr || "—"}`;
     }
 
-    // 倒數
     if (els["success-countdown-box"]) els["success-countdown-box"].classList.remove("hidden");
     if (window.HSCFormCountdownBridge?.refresh) window.HSCFormCountdownBridge.refresh();
 
-    // 成品預覽
     if (els["success-preview-row"]) {
       els["success-preview-row"].classList.remove("hidden");
       if (els["progress-preview-link"]) {
@@ -1826,7 +1860,6 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
       }
     }
 
-    // 摘要框 + 付款資訊
     if (els["success-summary-box"]) {
       els["success-summary-box"].classList.remove("hidden");
       if (els["success-summary-content"]) {
@@ -1839,19 +1872,16 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
       }
     }
 
+    // ── 付款流程 1-4 說明 ──
     if (els["success-footer-note"]) {
-      els["success-footer-note"].innerHTML = `
-        <div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#f5fbff;border:1px solid rgba(37,99,235,.2);font-size:12px;font-weight:700;color:#1e3a8a;line-height:1.7;text-align:center;">
-          🔒 付款安全提醒：請以本頁官方流程付款，避免被詐騙。<br>若有疑問請用下方客服按鈕聯繫。
-        </div>
-      `;
+      els["success-footer-note"].innerHTML = buildFlowStepsHtml("create");
     }
 
     setSuccessActionLabels("create", result);
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // v3 showUpdateSuccessPanel：免費/無限不顯示付款；付費走付款
+  // showUpdateSuccessPanel：免費更新完成面板
   // ═══════════════════════════════════════════════════════════════
   function showUpdateSuccessPanel(result) {
     resetSuccessPanel();
@@ -1868,7 +1898,6 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
       `;
     }
 
-    // 成品預覽
     if (els["success-preview-row"]) {
       els["success-preview-row"].classList.remove("hidden");
       const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(result.cardId)}&view=1`;
@@ -1878,7 +1907,6 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
       }
     }
 
-    // 摘要框（不含付款資訊）
     if (els["success-summary-box"]) {
       els["success-summary-box"].classList.remove("hidden");
       if (els["success-summary-content"]) {
@@ -1893,11 +1921,12 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
       }
     }
 
-    // 不顯示付款按鈕，僅顯示查看成品
     setSuccessActionLabels("update_done", result);
   }
 
-  // ── v3 新增：付費更新付款頁面（不送 GAS，直接顯示付款資訊）──────
+  // ═══════════════════════════════════════════════════════════════
+  // showUpdatePaymentRequiredPanel：付費更新付款面板
+  // ═══════════════════════════════════════════════════════════════
   function showUpdatePaymentRequiredPanel(params) {
     const cardId    = params.cardId    || state.modeContext.cardId || "—";
     const feeAmount = params.updateFeeAmount || state.updateFlow.updateFeeAmount || 300;
@@ -1925,12 +1954,17 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
       }
     }
 
+    // ── 付款流程 1-4 說明 ──
+    if (els["success-footer-note"]) {
+      els["success-footer-note"].innerHTML = buildFlowStepsHtml("update_paid");
+    }
+
     const fakeResult = { cardId, totalAmount: feeAmount };
     setSuccessActionLabels("update_paid", fakeResult);
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // v3 showRenewSuccessPanel：主流程改為付款導流
+  // showRenewSuccessPanel：續約付款面板
   // ═══════════════════════════════════════════════════════════════
   function showRenewSuccessPanel(result) {
     resetSuccessPanel();
@@ -1949,7 +1983,6 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
       `;
     }
 
-    // 付款期限 + 倒數
     if (els["success-due-alert"]) {
       els["success-due-alert"].classList.remove("hidden");
       if (els["success-due-text"])
@@ -1958,7 +1991,6 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
     if (els["success-countdown-box"]) els["success-countdown-box"].classList.remove("hidden");
     if (window.HSCFormCountdownBridge?.refresh) window.HSCFormCountdownBridge.refresh();
 
-    // 摘要框 + 付款資訊
     if (els["success-summary-box"]) {
       els["success-summary-box"].classList.remove("hidden");
       if (els["success-summary-content"]) {
@@ -1971,11 +2003,16 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
       }
     }
 
+    // ── 續約流程 1-4 說明 ──
+    if (els["success-footer-note"]) {
+      els["success-footer-note"].innerHTML = buildFlowStepsHtml("renew");
+    }
+
     setSuccessActionLabels("renew", result);
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // v3 setSuccessActionLabels：主流程改為付款三按鈕
+  // setSuccessActionLabels：精簡版，4 顆按鈕
   // ═══════════════════════════════════════════════════════════════
   function setSuccessActionLabels(mode, result) {
     const primaryBtn   = freshBtn("btn-copy-primary-notice");
@@ -1983,29 +2020,30 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
     const contactBtn   = freshBtn("progress-contact-service");
     if (!primaryBtn) return;
 
-    // 隱藏舊有次要按鈕（備援客服保留）
+    // 隱藏舊的次要按鈕
     if (secondaryBtn) secondaryBtn.classList.add("hidden");
 
-    // ── 建立新名片升級按鈕（更新/續約頁面用）──
     const upgradeContainer = els["success-actions"];
 
     if (mode === "create") {
-      // 主流程三按鈕：複製付款資訊、複製備註、前往付款確認
+      // 🟠 主按鈕：複製付款資訊（含確認連結＝三鍵套）
       primaryBtn.classList.remove("hidden");
-      primaryBtn.textContent = "📋 複製付款資訊";
+      primaryBtn.textContent = "📋 複製付款資訊（含確認連結）";
       primaryBtn.addEventListener("click", async () => {
-        await copyText(buildPaymentInfoText(result, "create"));
-        setStatus("已複製付款資訊，貼給收款方確認。", "success");
+        const bundleText = _buildFullBundleText(result, "create", result.cardId, result.totalAmount, "first_payment", result.cardId);
+        await copyText(bundleText);
+        setStatus("已複製付款資訊（含確認連結），貼到 LINE 後依步驟操作。", "success");
       });
 
       _ensureExtraPaymentButtons(upgradeContainer, result, "create");
 
+      // 💬 LINE 客服
       if (contactBtn) {
-        contactBtn.textContent = "客服窗口（備援）";
+        contactBtn.textContent = "💬 LINE 客服";
         contactBtn.addEventListener("click", () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
       }
 
-      // 查看成品
+      // 🔗 查看成品
       const previewBtn = document.getElementById("btn-open-preview");
       if (previewBtn && result?.previewUrl) {
         previewBtn.classList.remove("hidden");
@@ -2015,14 +2053,13 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
       }
 
     } else if (mode === "update_done") {
-      // 免費/無限更新：只顯示查看成品，不顯示付款
+      // 免費/無限更新：只顯示查看成品
       primaryBtn.classList.add("hidden");
 
       const previewUrl = result?.cardId
         ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(result.cardId)}&view=1`
         : "#";
 
-      // 確保有查看成品按鈕
       ensurePreviewActionButton();
       const previewBtn = document.getElementById("btn-open-preview");
       if (previewBtn) {
@@ -2034,128 +2071,85 @@ function buildPaymentConfirmUrl(cardId, amount, paymentType, targetId) {
       }
 
       if (contactBtn) {
-        contactBtn.textContent = "客服窗口";
+        contactBtn.textContent = "💬 LINE 客服";
         contactBtn.addEventListener("click", () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
       }
 
     } else if (mode === "update_paid") {
-      // 付費更新：複製付款資訊、複製備註、前往付款確認
+      // 付費更新：複製付款資訊（含確認連結）
       primaryBtn.classList.remove("hidden");
-      primaryBtn.textContent = "📋 複製付款資訊";
+      primaryBtn.textContent = "📋 複製付款資訊（含確認連結）";
       primaryBtn.addEventListener("click", async () => {
-        await copyText(buildPaymentInfoText(result, "update_paid"));
-        setStatus("已複製付款資訊。", "success");
+        const bundleText = _buildFullBundleText(result, "update_paid", result.cardId, result.totalAmount, "update_fee", result.paymentId || "");
+        await copyText(bundleText);
+        setStatus("已複製付款資訊（含確認連結）。", "success");
       });
 
       _ensureExtraPaymentButtons(upgradeContainer, result, "update_paid");
 
       if (contactBtn) {
-        contactBtn.textContent = "客服窗口（備援）";
+        contactBtn.textContent = "💬 LINE 客服";
         contactBtn.addEventListener("click", () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
       }
 
     } else if (mode === "renew") {
-      // 續約：複製付款資訊、複製備註、前往付款確認
+      // 續約：複製付款資訊（含確認連結）
       primaryBtn.classList.remove("hidden");
-      primaryBtn.textContent = "📋 複製付款資訊";
+      primaryBtn.textContent = "📋 複製付款資訊（含確認連結）";
       primaryBtn.addEventListener("click", async () => {
-        await copyText(buildPaymentInfoText(result, "renew"));
-        setStatus("已複製付款資訊。", "success");
+        const bundleText = _buildFullBundleText(result, "renew", result.cardId, result.totalAmount, "renewal", result.paymentId || result.renewalId || "");
+        await copyText(bundleText);
+        setStatus("已複製付款資訊（含確認連結）。", "success");
       });
 
       _ensureExtraPaymentButtons(upgradeContainer, result, "renew");
 
       if (contactBtn) {
-        contactBtn.textContent = "客服窗口（備援）";
+        contactBtn.textContent = "💬 LINE 客服";
         contactBtn.addEventListener("click", () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
       }
     }
   }
 
   /**
-   * _ensureExtraPaymentButtons(container, result, mode)
-   * 在 success-actions 內補上「複製備註」和「前往付款確認」按鈕
+   * _ensureExtraPaymentButtons — 精簡版：只加「填寫付款確認」綠色主按鈕
    */
-function _ensureExtraPaymentButtons(container, result, mode) {
-  if (!container) return;
-  container.querySelectorAll(".btn-pay-note, .btn-pay-confirm, .btn-pay-bundle").forEach(b => b.remove());
-  const cardId = result.cardId || result.card_id || "—";
-  const amount = result.totalAmount || result.updateFeeAmount || 0;
+  function _ensureExtraPaymentButtons(container, result, mode) {
+    if (!container) return;
+    // 清掉所有舊的衍生按鈕（包含歷史遺留的複製備註 / 三鍵套）
+    container.querySelectorAll(".btn-pay-note, .btn-pay-confirm, .btn-pay-bundle").forEach(b => b.remove());
 
-  // ── 依 mode 決定 paymentType / targetId ──
-  let paymentType = "";
-  let targetId    = "";
-  if (mode === "create") {
-    paymentType = "first_payment";
-    targetId    = cardId;
-  } else if (mode === "update_paid") {
-    paymentType = "update_fee";
-    targetId    = result.paymentId || "";
-  } else if (mode === "renew") {
-    paymentType = "renewal";
-    targetId    = result.paymentId || result.renewalId || "";
+    const cardId = result.cardId || result.card_id || "—";
+    const amount = result.totalAmount || result.updateFeeAmount || 0;
+
+    // 依 mode 決定 paymentType / targetId
+    let paymentType = "";
+    let targetId    = "";
+    if (mode === "create") {
+      paymentType = "first_payment";
+      targetId    = cardId;
+    } else if (mode === "update_paid") {
+      paymentType = "update_fee";
+      targetId    = result.paymentId || "";
+    } else if (mode === "renew") {
+      paymentType = "renewal";
+      targetId    = result.paymentId || result.renewalId || "";
+    }
+
+    // 🟢 主 CTA：填寫付款確認（綠色大按鈕）
+    const confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "line-btn btn-pay-confirm";
+    confirmBtn.textContent = "👉 填寫付款確認（已付款？）";
+    confirmBtn.style.cssText = "margin-top:8px;width:100%;";
+    confirmBtn.addEventListener("click", () => {
+      const ok = window.confirm(
+        "即將前往付款確認表單。\n\n建議你先：\n1. 已完成轉帳\n2. 已記下轉帳金額與末 5 碼\n\n現在要前往嗎？"
+      );
+      if (ok) openPaymentConfirm(cardId, amount, paymentType, targetId);
+    });
+    container.appendChild(confirmBtn);
   }
-
-  // 複製備註
-  const noteBtn = document.createElement("button");
-  noteBtn.type = "button";
-  noteBtn.className = "ghost-btn mini btn-pay-note";
-  noteBtn.textContent = "📋 複製備註（卡片序號）";
-  noteBtn.style.cssText = "margin-top:6px;width:100%;";
-  noteBtn.addEventListener("click", async () => {
-    await copyText(buildPaymentNoteText(cardId));
-    setStatus(`已複製備註：${cardId}，請貼到轉帳備註欄。`, "success");
-  });
-
-  // 前往付款確認
-  const confirmBtn = document.createElement("button");
-  confirmBtn.type = "button";
-  confirmBtn.className = "line-btn btn-pay-confirm";
-  confirmBtn.textContent = "👉 填寫付款確認";
-  confirmBtn.style.cssText = "margin-top:8px;width:100%;";
-  confirmBtn.addEventListener("click", () => {
-    const ok = window.confirm(
-      "即將前往付款確認表單。\n\n建議你先：\n1. 已完成轉帳\n2. 已記下轉帳金額與末 5 碼\n\n現在要前往嗎？"
-    );
-    if (ok) openPaymentConfirm(cardId, amount, paymentType, targetId);
-  });
-
- container.appendChild(noteBtn);
-  container.appendChild(confirmBtn);
-
-  // ── 三鍵套：一鍵複製完整通知 ──
-  const bundleBtn = document.createElement("button");
-  bundleBtn.type = "button";
-  bundleBtn.className = "ghost-btn mini btn-pay-bundle";
-  bundleBtn.textContent = "📦 一鍵複製完整通知（可貼給家人）";
-  bundleBtn.style.cssText = "margin-top:6px;width:100%;";
-  bundleBtn.addEventListener("click", async () => {
-    const bundleText = _buildFullBundleText(result, mode, cardId, amount, paymentType, targetId);
-    await copyText(bundleText);
-    setStatus("已複製完整通知（含付款資訊 + 付款確認連結），可直接貼到 LINE 給家人或自己保留。", "success");
-  });
-  container.appendChild(bundleBtn);
-}
-
-/**
- * _buildFullBundleText — 組合「三鍵套」完整通知文案
- * = 付款資訊 + 備註警告 + 付款確認頁完整連結 + 客服備援
- */
-function _buildFullBundleText(result, mode, cardId, amount, paymentType, targetId) {
-  const paymentInfo = buildPaymentInfoText(result, mode);
-  const confirmUrl = new URL(buildPaymentConfirmUrl(cardId, amount, paymentType, targetId), window.location.href).href;
-  const lines = [];
-  lines.push(paymentInfo);
-  lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━");
-  lines.push("【付款確認連結】");
-  lines.push("完成轉帳後，請點此填寫確認：");
-  lines.push(confirmUrl);
-  lines.push("");
-  lines.push("【客服窗口（備援）】");
-  lines.push(CONFIG.SERVICE_URL);
-  return lines.join("\n");
-}
 
   // ─────────────────────────────────────────────────────────────
 
@@ -2241,11 +2235,9 @@ function _buildFullBundleText(result, mode, cardId, amount, paymentType, targetI
             : "確認內容無誤後，可直接送出更新。";
     }
 
-    // ── v3：更新頁加升級方案提示 ──
     _renderUpgradeHintForUpdate(panel);
   }
 
-  /** 更新頁升級方案導流提示 */
   function _renderUpgradeHintForUpdate(container) {
     let hintBox = container.querySelector(".upgrade-hint-box");
     if (!hintBox) {
@@ -2279,11 +2271,9 @@ function _buildFullBundleText(result, mode, cardId, amount, paymentType, targetI
     if (els["mode-info-desc"])   els["mode-info-desc"].textContent   = "可依需求調整續約方案與延用功能。";
     if (els["mode-inline-tip"])  els["mode-inline-tip"].textContent  = "確認方案與加購後送出，系統會建立續約付款資訊。";
 
-    // ── v3：續約頁加升級方案提示 ──
     _renderUpgradeHintForRenew(panel);
   }
 
-  /** 續約頁升級方案導流提示 */
   function _renderUpgradeHintForRenew(container) {
     let hintBox = container.querySelector(".upgrade-hint-box");
     if (!hintBox) {
@@ -2389,7 +2379,6 @@ function _buildFullBundleText(result, mode, cardId, amount, paymentType, targetI
     if (!submitBtn) return;
 
     if (f.updateMode === "paid") {
-      // v3：付費更新也可以送出，送出後走付款頁面
       submitBtn.classList.remove("hidden");
       submitBtn.textContent = "送出更新（需付款）";
       copyBtn?.classList.add("hidden");
