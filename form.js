@@ -1556,6 +1556,8 @@
       action:        CONFIG.CREATE_ACTION,
       tenant:        "angel",
       invite_code:   inviteCode,
+       line_user_id:      (document.getElementById("line_user_id")?.value || window.HSC_LINE_UID || "").trim(),
+      line_display_name: (document.getElementById("line_display_name")?.value || window.HSC_LINE_NAME || "").trim(),
       referrer:      refValue || "",
       service_agent: refValue || "SELF",
       agent_type:    refValue ? "service" : "self",
