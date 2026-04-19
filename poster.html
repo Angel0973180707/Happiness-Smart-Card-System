@@ -3,9 +3,144 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>天使幸福智慧名片｜專屬名片入口</title>
+  <title>專屬個人名片交付卡</title>
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="stylesheet" href="./poster.css?v=140" />
+
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="交付卡" />
+
+  <link rel="icon" href="./icon-192.png?v=141" />
+  <!-- manifest 和 apple-touch-icon 由下方 JS 動態注入（交付卡專屬 icon）-->
+
+  <link rel="stylesheet" href="./poster.css?v=141" />
+
+  <!-- ═══════════════════════════════════════════════════════════
+       HSC 交付卡 PWA 動態 manifest 注入（v1.0）
+       - 有 id 參數 → 動態產生 manifest：
+           name="王小明 · 交付卡" + 頭像 icon + 打開交付卡
+       - 無 id → 不做 PWA 注入
+  ═══════════════════════════════════════════════════════════ -->
+  <script>
+  (function(){
+    "use strict";
+
+    var VERSION = "v1.4-pwa";
+    var DEFAULT_ICON = "./icon-192.png?v=" + VERSION;
+    var GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+    var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+
+    function getParams(){
+      try { return new URLSearchParams(location.search || ""); }
+      catch(e){ return new URLSearchParams(); }
+    }
+
+    function injectLink(rel, href, attrs){
+      var link = document.createElement("link");
+      link.rel = rel;
+      link.href = href;
+      if (attrs){
+        Object.keys(attrs).forEach(function(k){ link.setAttribute(k, attrs[k]); });
+      }
+      document.head.appendChild(link);
+      return link;
+    }
+
+    function buildDeliveryManifest(cardId, cardData){
+      // 交付卡 URL（保留原本的所有 query string）
+      var currentSearch = location.search || "";
+      var deliveryUrl = BASE_URL + "poster.html" + currentSearch;
+
+      var avatarUrl = cardData.avatar_url || "";
+      var cardName = cardData.name || cardId;
+      var iconUrl = avatarUrl ? avatarUrl : (BASE_URL + "icon-192.png");
+
+      // 交付卡命名：「王小明 · 交付卡」（名字在前，標籤在後）
+      var displayName = cardName + " · 交付卡";
+
+      var manifest = {
+        name: displayName,
+        short_name: displayName,
+        start_url: deliveryUrl,
+        scope: "./",
+        display: "standalone",
+        orientation: "portrait",
+        background_color: "#f8f4ee",
+        theme_color: "#f8f4ee",
+        description: cardName + " 的交付卡管理頁",
+        icons: [
+          { src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any" }
+        ]
+      };
+
+      var json = JSON.stringify(manifest);
+      var blob = new Blob([json], { type: "application/manifest+json" });
+      var blobUrl = URL.createObjectURL(blob);
+
+      injectLink("manifest", blobUrl);
+
+      if (avatarUrl){
+        injectLink("apple-touch-icon", avatarUrl);
+      } else {
+        injectLink("apple-touch-icon", DEFAULT_ICON);
+      }
+
+      try {
+        var metaTitle = document.querySelector("meta[name=\"apple-mobile-web-app-title\"]");
+        if (metaTitle) metaTitle.setAttribute("content", displayName);
+        document.title = displayName;
+      } catch(_){}
+    }
+
+    function fetchCardAndBuildManifest(cardId){
+      // 先嘗試讀 localStorage 的 shell cache（index.html 的快取也能用）
+      try {
+        var cached = localStorage.getItem("HSC_shell_" + cardId);
+        if (cached){
+          var parsed = JSON.parse(cached);
+          if (parsed && parsed.data){
+            buildDeliveryManifest(cardId, parsed.data);
+            return;
+          }
+        }
+      } catch(_){}
+
+      // 沒快取 → fetch shell
+      var url = GAS_URL + "?action=getCardPublicShell&id=" + encodeURIComponent(cardId) + "&tenant=angel&v=" + VERSION;
+      fetch(url, { method: "GET", cache: "default" })
+        .then(function(res){ return res.text(); })
+        .then(function(text){
+          try {
+            var data = JSON.parse(text);
+            var card = data.item || data.card || data.row || data.data || data;
+            if (card && (card.name || card.avatar_url)){
+              buildDeliveryManifest(cardId, card);
+            } else {
+              // fallback：最少給個 icon，避免完全沒 manifest
+              injectLink("apple-touch-icon", DEFAULT_ICON);
+            }
+          } catch(_){
+            injectLink("apple-touch-icon", DEFAULT_ICON);
+          }
+        })
+        .catch(function(){
+          injectLink("apple-touch-icon", DEFAULT_ICON);
+        });
+    }
+
+    var sp = getParams();
+    var urlId = (sp.get("id") || "").trim();
+
+    if (urlId){
+      fetchCardAndBuildManifest(urlId);
+    } else {
+      injectLink("apple-touch-icon", DEFAULT_ICON);
+    }
+  })();
+  </script>
+
   <style>
     .hero-tagline {
       margin-top: 10px;
@@ -55,6 +190,30 @@
       background: linear-gradient(180deg, #d4956a 0%, #c48050 100%);
       border: 1px solid rgba(159,109,69,.14);
       box-shadow: 0 4px 10px rgba(88,67,48,.09), inset 0 1px 0 rgba(255,255,255,.18);
+    }
+
+    /* 交付卡 PWA 安裝按鈕 */
+    .btn-install-delivery {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: #fffaf6;
+      background: linear-gradient(180deg, #c38a5c 0%, #b67b4f 100%);
+      border: 1px solid rgba(159,109,69,.2);
+      box-shadow: 0 4px 10px rgba(88,67,48,.12), inset 0 1px 0 rgba(255,255,255,.2);
+      padding: 14px 22px 12px;
+      line-height: 1.2;
+      position: relative;
+    }
+    .btn-install-delivery-icon {
+      position: absolute; left: 22px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px; font-weight: 900; line-height: 1;
+    }
+    .btn-install-delivery-sub {
+      font-size: 11px; font-weight: 500;
+      color: rgba(255,250,246,.85); letter-spacing: .02em; display: block;
     }
 
     /* ══════════════════════════════════
@@ -369,12 +528,17 @@
               下載我的名片海報
               <span class="btn-download-sub">存到手機裡，分享更方便</span>
             </button>
+            <button id="installDeliveryBtn" class="btn btn-install-delivery" type="button">
+              <span class="btn-install-delivery-icon" aria-hidden="true">⊕</span>
+              把交付卡加到手機桌面
+              <span class="btn-install-delivery-sub">一鍵打開，隨時查看</span>
+            </button>
             <button id="renewalBtn" class="btn btn-soft" type="button">繼續用這張名片（續約）</button>
           </div>
         </section>
 
         <!-- ══════════════════════════════
-             服務荷包 accordion（單一完整版，無重複 ID）
+             服務荷包 accordion
         ══════════════════════════════ -->
         <div id="walletAccordion" class="wallet-accordion" aria-label="服務荷包">
           <button id="walletToggle" class="wallet-toggle" type="button" aria-expanded="false" aria-controls="walletBody">
@@ -645,6 +809,70 @@
       </div>
     </div>
   </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       交付卡 PWA 安裝功能（掛在 poster.js 之前）
+  ═══════════════════════════════════════════════════════════ -->
+  <script>
+  (function(){
+    "use strict";
+
+    var deferredPrompt = null;
+
+    function isIos(){ return /iphone|ipad|ipod/i.test(navigator.userAgent || ""); }
+    function isStandalone(){
+      return window.matchMedia && window.matchMedia("(display-mode: standalone)").matches
+          || window.navigator.standalone === true;
+    }
+
+    window.addEventListener("beforeinstallprompt", function(e){
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    window.addEventListener("appinstalled", function(){
+      deferredPrompt = null;
+    });
+
+    async function triggerInstall(){
+      if (isStandalone()){
+        alert("✅ 已經安裝在桌面上了");
+        return;
+      }
+      if (deferredPrompt){
+        try {
+          deferredPrompt.prompt();
+          await deferredPrompt.userChoice;
+        } catch(_){}
+        finally {
+          deferredPrompt = null;
+        }
+        return;
+      }
+      if (isIos()){
+        alert("請用 Safari 打開這一頁\n然後點底部的「分享」→「加到主畫面」");
+        return;
+      }
+      alert("目前裝置尚未出現安裝提示\n請從瀏覽器選單找「安裝應用程式」或「加到主畫面」");
+    }
+
+    function bindInstall(){
+      var btn = document.getElementById("installDeliveryBtn");
+      if (btn){
+        btn.addEventListener("click", function(e){
+          e.preventDefault();
+          triggerInstall();
+        }, { passive: false });
+      }
+    }
+
+    if (document.readyState === "loading"){
+      document.addEventListener("DOMContentLoaded", bindInstall, { once: true });
+    } else {
+      bindInstall();
+    }
+  })();
+  </script>
 
   <script src="./qrcode.min.js"></script>
   <script src="./poster.js?v=141"></script>
