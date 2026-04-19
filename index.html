@@ -8,8 +8,8 @@
 
   <meta name="theme-color" content="#f8f4ee" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <link rel="icon" href="./icon-192.png?v=v1.5.6" />
-  <!-- manifest 和 apple-touch-icon 由下方 JS 動態注入（支援個人卡片專屬 icon）-->
+  <link rel="icon" href="./icon-192.png?v=v1.5.7" />
+  <!-- manifest 和 apple-touch-icon 由下方 JS 動態注入（支援成品卡專屬 icon）-->
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,23 +18,25 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=v1.5.6" />
+  <meta property="og:image" content="og-card.png?v=v1.5.7" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=v1.5.6" />
+  <link rel="stylesheet" href="./style.css?v=v1.5.7" />
 
   <!-- ═══════════════════════════════════════════════════════════
-       HSC PWA 動態 manifest 注入（v1.0）
-       - 個人卡片模式（?id=TWxxxx&view=1 且非 TW0001）→ 動態產生含頭像的 manifest
-       - 門面模式 / TW0001 樣品卡 → 用原本的靜態 manifest.json
+       HSC PWA 動態 manifest 注入（v1.1）
+       - 成品卡模式（?id=TWxxxx&view=1 且非 TW0001）
+         → 動態產生 manifest：name="王小明 · 智慧名片" + 頭像 icon + 打開成品卡
+       - 門面模式 / TW0001 樣品卡
+         → 用原本的靜態 manifest.json（名片館 icon + 打開門面）
   ═══════════════════════════════════════════════════════════ -->
   <script>
   (function(){
     "use strict";
 
-    var VERSION = "v1.5.6";
+    var VERSION = "v1.5.7";
     var DEFAULT_MANIFEST_URL = "./manifest.json?v=" + VERSION;
     var DEFAULT_ICON = "./icon-192.png?v=" + VERSION;
     var GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -64,12 +66,15 @@
     function buildDynamicManifest(cardId, cardData){
       var cardUrl = BASE_URL + "index.html?id=" + encodeURIComponent(cardId) + "&view=1";
       var avatarUrl = cardData.avatar_url || "";
-      var cardName = cardData.name || ("智慧名片 " + cardId);
+      var cardName = cardData.name || cardId;
       var iconUrl = avatarUrl ? avatarUrl : (BASE_URL + "icon-192.png");
 
+      // 成品卡命名：「王小明 · 智慧名片」（名字在前，標籤在後）
+      var displayName = cardName + " · 智慧名片";
+
       var manifest = {
-        name: cardName + "｜智慧名片",
-        short_name: cardName,
+        name: displayName,
+        short_name: displayName,
         start_url: cardUrl,
         scope: "./",
         display: "standalone",
@@ -97,8 +102,8 @@
 
       try {
         var metaTitle = document.querySelector("meta[name=\"apple-mobile-web-app-title\"]");
-        if (metaTitle) metaTitle.setAttribute("content", cardName);
-        document.title = cardName + "｜天使幸福智慧名片";
+        if (metaTitle) metaTitle.setAttribute("content", displayName);
+        document.title = displayName;
       } catch(_){}
     }
 
@@ -660,7 +665,7 @@
     body.clean #admin-panel{ display:none !important; }
     body.clean #card-container{ position: relative; z-index: 1; }
 
-    /* ── 個人名片模式：隱藏門面 UI ── */
+    /* ── 成品卡模式：隱藏門面 UI ── */
     body.card-view-mode #admin-panel{ display:none !important; }
     body.card-view-mode #adminHotspotBR{ display:none !important; }
 
@@ -700,7 +705,6 @@
         }catch(e){}
       }
 
-      // 門面模式才補預設 id=TW0001
       if (!isClean && !isAdmin && !isCardViewMode) {
         if (!urlId) {
           sp.set("id", "TW0001");
@@ -722,7 +726,6 @@
     <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
   </button>
 
-  <!-- 門面 header：個人名片模式由 body.card-view-mode CSS 隱藏 -->
   <header id="admin-panel">
     <div class="panel-inner">
 
@@ -967,7 +970,7 @@
             </div>
           </div>
 
-          <div class="version-tag" id="versionTag">v1.5.6</div>
+          <div class="version-tag" id="versionTag">v1.5.7</div>
         </div>
       </section>
     </div>
@@ -1037,14 +1040,14 @@
     </div>
   </div>
 
-  <script src="./card-renderer.js?v=v1.5.6"></script>
-  <script src="./app.js?v=v1.5.6"></script>
+  <script src="./card-renderer.js?v=v1.5.7"></script>
+  <script src="./app.js?v=v1.5.7"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "v1.5.6";
+      var VERSION = "v1.5.7";
       var LINE_OA_URL = "https://lin.ee/G3VJoRm";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
