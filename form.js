@@ -1849,16 +1849,19 @@
 
   function buildUpdatePayload() {
     const shared = buildSharedCardData();
-    const theme  = getThemeSelection();
+    const card = state.runtime.updateCard || {};
     const limits = getLimitsUpdate();
     const payload = {
       ...shared,
-      plan:            theme.plan,
-      color:           theme.color,
-      style:           theme.style,
-      paper:           theme.paper,
-      marquee_text:    isMarqueeEnabled() ? valueOf("marquee_text") : "",
-      marquee_enabled: isMarqueeEnabled() ? "true" : "",
+      // 🔒 更新模式:plan/color/style/paper 全部沿用原卡,不允許改
+      plan:  card.plan  || "",
+      color: card.color || "",
+      style: card.style || "",
+      paper: card.paper || "",
+      // 跑馬燈:只有原本已加購的卡才能改
+      marquee_text:    card.marquee_enabled ? valueOf("marquee_text") : (card.marquee_text || ""),
+      marquee_enabled: card.marquee_enabled || "",
+      // 張數/數量:沿用原卡限制,不讓改
       photo_limit: limits.wallPhotos,
       cta_limit:   limits.ctas
     };
