@@ -897,19 +897,24 @@
   function getLimitsRenew() {
     const plan = state.renewFlow.targetPlan || getSelectedPlan() || "free";
     const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.free;
+
+    // 🆕 用原卡的 limits(sum of 原基本 + 已加購)
+    const card = state.runtime.renewCard || {};
+    const currentWallPhotos = Math.max(base.wallPhotos, Number(card.photo_limit || 0));
+    const currentCtas       = Math.max(base.ctas,       Number(card.cta_limit   || 0));
+
     let ewp = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
     let ect = isAddonChecked("addon_cta")   ? getAddonQty("addon_cta_qty")   : 0;
-    ewp = Math.min(ewp, CONFIG.MAX_WALL_PHOTOS - base.wallPhotos);
-    ect = Math.min(ect, CONFIG.MAX_CTAS - base.ctas);
+    ewp = Math.min(ewp, CONFIG.MAX_WALL_PHOTOS - currentWallPhotos);
+    ect = Math.min(ect, CONFIG.MAX_CTAS - currentCtas);
     return {
       plan, planLabel: base.label, planPrice: base.price,
-      baseWallPhotos: base.wallPhotos,
-      wallPhotos: base.wallPhotos + ewp,
-      ctas: base.ctas + ect,
+      baseWallPhotos: currentWallPhotos,
+      wallPhotos: currentWallPhotos + ewp,
+      ctas: currentCtas + ect,
       extraWallPhotos: ewp, extraCtas: ect
     };
   }
-
   function getAddonItemsForQuote(limits) {
     const items = [];
     const bundleChecked = isAddonChecked("addon_bundle");
