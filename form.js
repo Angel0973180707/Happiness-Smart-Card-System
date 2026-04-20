@@ -923,19 +923,31 @@
     const photoQty = photoChecked ? getAddonQty("addon_photo_qty") : 0;
     const ctaQty   = ctaChecked   ? getAddonQty("addon_cta_qty")   : 0;
 
-    if (bundleChecked) {
+    // 🆕 續約模式:已擁有的加購項目不重複計費(終身制)
+    const isRenewMode = state.mode === "renew";
+    const renewCard   = state.runtime.renewCard || {};
+    const ownedMarquee = isRenewMode && (
+      renewCard.marquee_enabled === "true" ||
+      renewCard.marquee_enabled === true ||
+      renewCard.marquee_enabled === "TRUE"
+    );
+    const ownedPhotoMax = isRenewMode && Number(renewCard.photo_limit || 0) >= 10;
+    const ownedCtaMax   = isRenewMode && Number(renewCard.cta_limit   || 0) >= 10;
+    const ownedUpgrade  = isRenewMode && String(renewCard.member_tier || renewCard.agent_type || "").toLowerCase() === "partner";
+
+    if (bundleChecked && !ownedMarquee) {
       items.push({ code: "addon_bundle", name: "跑馬燈＋更新組合", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_bundle, amount: CONFIG.ADDON_PRICES.addon_bundle });
     } else {
-      if (isAddonChecked("addon_marquee"))          items.push({ code: "addon_marquee",          name: "跑馬燈功能", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_marquee,          amount: CONFIG.ADDON_PRICES.addon_marquee });
+      if (isAddonChecked("addon_marquee") && !ownedMarquee)
+        items.push({ code: "addon_marquee",          name: "跑馬燈功能", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_marquee,          amount: CONFIG.ADDON_PRICES.addon_marquee });
       if (isAddonChecked("addon_update_unlimited")) items.push({ code: "addon_update_unlimited", name: "無限更新",   qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited, amount: CONFIG.ADDON_PRICES.addon_update_unlimited });
     }
-    if (photoChecked && photoQty > 0) items.push({ code: "addon_photo", name: "照片牆加購", qty: photoQty, unit_price: CONFIG.ADDON_PRICES.addon_photo, amount: photoQty * CONFIG.ADDON_PRICES.addon_photo });
-    if (ctaChecked   && ctaQty   > 0) items.push({ code: "addon_cta",   name: "CTA 加購",  qty: ctaQty,   unit_price: CONFIG.ADDON_PRICES.addon_cta,   amount: ctaQty   * CONFIG.ADDON_PRICES.addon_cta   });
-    if (isAddonChecked("addon_agent_upgrade"))       items.push({ code: "addon_agent_upgrade", name: "金牌級會員", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_agent_upgrade, amount: CONFIG.ADDON_PRICES.addon_agent_upgrade });
+    if (photoChecked && photoQty > 0 && !ownedPhotoMax) items.push({ code: "addon_photo", name: "照片牆加購", qty: photoQty, unit_price: CONFIG.ADDON_PRICES.addon_photo, amount: photoQty * CONFIG.ADDON_PRICES.addon_photo });
+    if (ctaChecked   && ctaQty   > 0 && !ownedCtaMax)   items.push({ code: "addon_cta",   name: "CTA 加購",  qty: ctaQty,   unit_price: CONFIG.ADDON_PRICES.addon_cta,   amount: ctaQty   * CONFIG.ADDON_PRICES.addon_cta   });
+    if (isAddonChecked("addon_agent_upgrade") && !ownedUpgrade) items.push({ code: "addon_agent_upgrade", name: "金牌級會員", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_agent_upgrade, amount: CONFIG.ADDON_PRICES.addon_agent_upgrade });
 
     return items;
   }
-
   function refreshAll() {
     const limits = getLimits();
     syncPlanCards();
