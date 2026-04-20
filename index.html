@@ -25,12 +25,14 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="./style.css?v=v1.5.7" />
 
-  <!-- ═══════════════════════════════════════════════════════════
-       HSC PWA 動態 manifest 注入（v1.1）
-       - 成品卡模式（?id=TWxxxx&view=1 且非 TW0001）
-         → 動態產生 manifest：name="王小明 · 智慧名片" + 頭像 icon + 打開成品卡
+ <!-- ═══════════════════════════════════════════════════════════
+       HSC PWA 動態 manifest 注入(v1.2-canvas-icon)
+       - 成品卡模式(?id=TWxxxx&view=1 且非 TW0001)
+         → 動態產生 manifest:
+           name="王小明 · 智慧名片" + Canvas 合成頭像 icon + 打開成品卡
        - 門面模式 / TW0001 樣品卡
-         → 用原本的靜態 manifest.json（名片館 icon + 打開門面）
+         → 用原本的靜態 manifest.json(名片館 icon + 打開門面)
+       - Canvas 合成失敗 → fallback 到純頭像 URL 或預設 icon
   ═══════════════════════════════════════════════════════════ -->
   <script>
   (function(){
@@ -63,14 +65,61 @@
       injectLink("apple-touch-icon", DEFAULT_ICON);
     }
 
-    function buildDynamicManifest(cardId, cardData){
+    // === Canvas 合成頭像 icon(純頭像,不加鎖頭)===
+    function buildAvatarIconDataUrl(avatarUrl){
+      return new Promise(function(resolve){
+        if (!avatarUrl) { resolve(null); return; }
+        var img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function(){
+          try {
+            var canvas = document.createElement("canvas");
+            canvas.width = 512;
+            canvas.height = 512;
+            var ctx = canvas.getContext("2d");
+
+            // 底色
+            ctx.fillStyle = "#f8f4ee";
+            ctx.fillRect(0, 0, 512, 512);
+
+            // 圓形頭像(cover 填滿)
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(256, 256, 256, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            var ratio = Math.max(512 / img.width, 512 / img.height);
+            var w = img.width * ratio;
+            var h = img.height * ratio;
+            ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
+            ctx.restore();
+
+            resolve(canvas.toDataURL("image/png", 0.95));
+          } catch(e) {
+            console.warn("[HSC personal icon] canvas composite failed:", e);
+            resolve(null);
+          }
+        };
+        img.onerror = function(){
+          console.warn("[HSC personal icon] avatar CORS or load failed");
+          resolve(null);
+        };
+        img.src = avatarUrl;
+      });
+    }
+
+    async function buildDynamicManifest(cardId, cardData){
       var cardUrl = BASE_URL + "index.html?id=" + encodeURIComponent(cardId) + "&view=1";
       var avatarUrl = cardData.avatar_url || "";
       var cardName = cardData.name || cardId;
-      var iconUrl = avatarUrl ? avatarUrl : (BASE_URL + "icon-192.png");
-
-      // 成品卡命名：「王小明 · 智慧名片」（名字在前，標籤在後）
       var displayName = cardName + " · 智慧名片";
+
+      // 嘗試 Canvas 合成「純頭像」icon,失敗就 fallback
+      var iconUrl = DEFAULT_ICON;
+      if (avatarUrl) {
+        var composite = await buildAvatarIconDataUrl(avatarUrl);
+        iconUrl = composite || avatarUrl;  // 合成失敗退回純頭像 URL
+      }
 
       var manifest = {
         name: displayName,
@@ -93,12 +142,7 @@
       var blobUrl = URL.createObjectURL(blob);
 
       injectLink("manifest", blobUrl);
-
-      if (avatarUrl){
-        injectLink("apple-touch-icon", avatarUrl);
-      } else {
-        injectLink("apple-touch-icon", DEFAULT_ICON);
-      }
+      injectLink("apple-touch-icon", iconUrl);
 
       try {
         var metaTitle = document.querySelector("meta[name=\"apple-mobile-web-app-title\"]");
@@ -107,33 +151,32 @@
       } catch(_){}
     }
 
-    function fetchCardAndBuildManifest(cardId){
+    async function fetchCardAndBuildManifest(cardId){
       try {
         var cached = localStorage.getItem("HSC_shell_" + cardId);
         if (cached){
           var parsed = JSON.parse(cached);
           if (parsed && parsed.data){
-            buildDynamicManifest(cardId, parsed.data);
+            await buildDynamicManifest(cardId, parsed.data);
             return;
           }
         }
       } catch(_){}
 
       var url = GAS_URL + "?action=getCardPublicShell&id=" + encodeURIComponent(cardId) + "&tenant=angel&v=" + VERSION;
-      fetch(url, { method: "GET", cache: "default" })
-        .then(function(res){ return res.text(); })
-        .then(function(text){
-          try {
-            var data = JSON.parse(text);
-            var card = data.item || data.card || data.row || data.data || data;
-            if (card && (card.name || card.avatar_url)){
-              buildDynamicManifest(cardId, card);
-            } else {
-              useDefaultManifest();
-            }
-          } catch(_){ useDefaultManifest(); }
-        })
-        .catch(function(){ useDefaultManifest(); });
+      try {
+        var res = await fetch(url, { method: "GET", cache: "default" });
+        var text = await res.text();
+        var data = JSON.parse(text);
+        var card = data.item || data.card || data.row || data.data || data;
+        if (card && (card.name || card.avatar_url)){
+          await buildDynamicManifest(cardId, card);
+        } else {
+          useDefaultManifest();
+        }
+      } catch(_){
+        useDefaultManifest();
+      }
     }
 
     var sp = getParams();
@@ -148,7 +191,6 @@
     }
   })();
   </script>
-
   <style>
     :root{
       --poster-bg:#f8f4ee;
