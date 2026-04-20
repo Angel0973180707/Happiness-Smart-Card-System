@@ -1857,7 +1857,7 @@ function updateInstallUi_(){
 }
 async function triggerPwaInstall_(){
   if(isStandalone_()){ alert("✅ 已經在桌面上了"); return; }
-  if(deferredInstallPrompt){
+  if(false && deferredInstallPrompt){
     try{ deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; }
     catch(err){ console.error(err); }
     finally{ deferredInstallPrompt = null; updateInstallUi_(); }
