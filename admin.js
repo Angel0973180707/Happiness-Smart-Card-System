@@ -249,7 +249,7 @@
  function buildDeliveryNotice(card) {
     const name        = textOf(card.name || card.owner_name) || '您';
     const cardId      = textOf(card.id || card.card_id);
-    const cardUrl     = buildPreviewLink(cardId); 
+    const cardUrl     = `${CONFIG.HUB_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`;
     const deliveryUrl = `${CONFIG.HUB_URL}poster.html?id=${encodeURIComponent(cardId)}`;
     const hubUrl      = CONFIG.HUB_URL;
     const expiresAt   = card.expires_at || '—';
