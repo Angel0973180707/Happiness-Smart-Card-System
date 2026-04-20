@@ -1843,7 +1843,13 @@ function renderPostRendererUi_(row, rootEl){
 /* ============================================================
    PWA
 ============================================================ */
-function isIos_(){ return /iphone|ipad|ipod/i.test(navigator.userAgent || ""); }
+function isIos_(){
+  var ua = navigator.userAgent || "";
+  if (/iphone|ipad|ipod/i.test(ua)) return true;
+  if (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) return true;
+  if (!/android/i.test(ua)) return true;
+  return false;
+}
 function isStandalone_(){ return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true; }
 function updateInstallUi_(){
   const btn = qs("btnInstallCard");
