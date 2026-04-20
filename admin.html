@@ -1492,8 +1492,10 @@ input:focus, textarea:focus, select:focus { outline: none; }
       return `https://liff.line.me/2009832915-yvLuTLRB?invite=${encodeURIComponent(code)}`;
     }
     function buildText(r) {
-     const url = buildUrl(r.assigned_invite_code);
-      return `您好，這是您的申請入口\n\n申請編號：${r.request_id}\n邀請碼：${r.assigned_invite_code}\n\n👉 點擊填寫：\n${url}`;
+    const code = r.assigned_invite_code;
+   const liffUrl = `https://liff.line.me/2009832915-yvLuTLRB?invite=${encodeURIComponent(code)}`;
+   const webUrl = `https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html?invite=${encodeURIComponent(code)}`;
+   return `您好，這是您的申請入口\n\n申請編號：${r.request_id}\n邀請碼：${code}\n\n👉 LINE 客戶點這個（會自動綁定）：\n${liffUrl}\n\n👉 微信或其他客戶點這個：\n${webUrl}`;
     }
 
     const copyCodeBtn = $('#btnCopyCode');
