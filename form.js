@@ -915,7 +915,7 @@
       extraWallPhotos: ewp, extraCtas: ect
     };
   }
-  function getAddonItemsForQuote(limits) {
+ function getAddonItemsForQuote(limits) {
     const items = [];
     const bundleChecked = isAddonChecked("addon_bundle");
     const photoChecked  = isAddonChecked("addon_photo");
@@ -948,32 +948,6 @@
 
     return items;
   }
-  function refreshAll() {
-    const limits = getLimits();
-    syncPlanCards();
-    syncThemeGroups(limits.plan);
-    syncAddonInputs(limits);
-    syncMarqueeSection();
-    renderPhotoSections(limits.wallPhotos);
-    renderCtas(limits.ctas);
-    syncSummary(limits);
-    syncQuoteByMode();
-    syncModePanels();
-    renderUpdateModeActionState();
-    updatePreview();
-    saveDraftSilently();
-  }
-
-  function syncPlanCards() {
-    const plan = getSelectedPlan();
-    els.planCards.forEach(c => c.classList.toggle("is-selected", c.getAttribute("data-plan-card") === plan));
-  }
-
-  function syncThemeGroups(plan) {
-    els["free-theme-group"]?.classList.toggle("hidden",    plan !== "free");
-    els["premium-theme-group"]?.classList.toggle("hidden", plan !== "premium");
-  }
-
   function syncAddonInputs(limits) {
     const bundleChecked = isAddonChecked("addon_bundle");
     const createOnly = state.mode === "create" || state.mode === "renew";
