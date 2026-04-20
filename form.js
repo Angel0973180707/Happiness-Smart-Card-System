@@ -2635,6 +2635,15 @@
   function saveDraftSilently() { try { saveDraft(); } catch (_) {} }
 
   function restoreDraft() {
+      // 🆕 更新/續約模式:不還原草稿,避免蓋掉從 API 載入的原卡資料
+    if (state.mode === "update" || state.mode === "renew") {
+      const inviteOnly = getInviteCodeFromPage();
+      if (inviteOnly && document.getElementById("invite_code")) {
+        document.getElementById("invite_code").value = inviteOnly;
+        state.modeContext.inviteCode = inviteOnly;
+      }
+      return;
+    }
     let draft = null;
     try { draft = JSON.parse(localStorage.getItem(CONFIG.DRAFT_KEY) || "null"); } catch (_) {}
     if (!draft || typeof draft !== "object") {
