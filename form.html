@@ -1125,11 +1125,42 @@
       .photo-right-col { grid-column: 1; grid-row: 3; }
     }
 
-    @media (max-width: 480px) {
+   @media (max-width: 480px) {
       .form-shell { padding: 14px 12px 48px; }
       .photo-grid-form { grid-template-columns: 1fr; }
       .photo-tool-row .mini { flex: 1 1 calc(50% - 6px); }
       .success-actions > * { flex: 1 1 100%; }
+    }
+
+    /* ═══════════════════════════════════════════════
+       更新 & 續約模式專用 UI 鎖定規則
+    ═══════════════════════════════════════════════ */
+    #dev-mode-switcher,
+    #btn-toggle-mode {
+      display: none !important;
+    }
+    body[data-form-mode="update"] .plan-grid,
+    body[data-form-mode="update"] .addon-layout,
+    body[data-form-mode="update"] #free-theme-group,
+    body[data-form-mode="update"] #premium-theme-group,
+    body[data-form-mode="update"] .quote-box,
+    body[data-form-mode="update"] .form-card[data-hide-on-update] {
+      display: none !important;
+    }
+    body[data-form-mode="update"] #update-mode-notice {
+      display: block !important;
+    }
+    body[data-form-mode="renew"] .plan-grid,
+    body[data-form-mode="renew"] #free-theme-group,
+    body[data-form-mode="renew"] #premium-theme-group,
+    body[data-form-mode="renew"] .form-card[data-hide-on-renew] {
+      display: none !important;
+    }
+    body[data-form-mode="renew"] #renew-mode-notice {
+      display: block !important;
+    }
+    .addon-item.already-owned {
+      display: none !important;
     }
   </style>
 </head>
