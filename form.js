@@ -1898,11 +1898,10 @@
     for (let i = 1; i <= limits.wallPhotos; i++) {
       payload[`photo${i}_url`] = state.photoRealUrls[`photo${i}`] || "";
     }
-
-    // ── features_json：帶上照片裁切/縮放/旋轉，以及預覽設定 ──
+// ── features_json：帶上照片裁切/縮放/旋轉，以及預覽設定 ──
     payload.features_json = {
       photo_meta:   buildPhotoMetaMap(),
-      preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan }
+      preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: card.plan || "premium" }
     };
 
     return payload;
