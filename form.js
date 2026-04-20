@@ -640,13 +640,57 @@
       state.runtime.renewPaymentSummary = paymentRes;
       state.runtime.renewAddonSummary   = addonRes;
       hydrateFormFromCard(state.runtime.renewCard);
-      state.renewFlow.targetPlan = state.runtime.renewCard?.plan || getSelectedPlan() || "free";
+     state.renewFlow.targetPlan = state.runtime.renewCard?.plan || getSelectedPlan() || "free";
       const radio = document.querySelector(`input[name="plan"][value="${state.renewFlow.targetPlan}"]`);
       if (radio) radio.checked = true;
-      setStatus("已載入續約資料，可調整方案與加購項目。", "info");
+
+      // 🔒 續約:已擁有的加購項目自動隱藏
+      hideOwnedAddons_();
+
+      setStatus("已載入續約資料,可加購新功能與延長效期。", "info");
     } catch (err) {
       console.error(err);
       setStatus(`載入續約資料失敗：${err.message}`, "error");
+    }
+  }
+
+  // 續約模式:已擁有的加購項目自動隱藏
+  function hideOwnedAddons_() {
+    const card = state.runtime.renewCard || {};
+
+    // 已擁有跑馬燈 → 隱藏跑馬燈加購 + 跑馬燈+更新組合
+    if (card.marquee_enabled === "true" || card.marquee_enabled === true || card.marquee_enabled === "TRUE") {
+      document.getElementById("addon_marquee_enabled")?.closest(".addon-item")?.classList.add("already-owned");
+      document.getElementById("addon_bundle_enabled")?.closest(".addon-item")?.classList.add("already-owned");
+    }
+
+    // 已達照片牆最大張數 → 隱藏照片牆加購
+    const currentPhotoLimit = Number(card.photo_limit || 0);
+    if (currentPhotoLimit >= 10) {
+      document.getElementById("addon_photo_enabled")?.closest(".addon-item")?.classList.add("already-owned");
+    }
+
+    // 已達 CTA 最大數量 → 隱藏 CTA 加購
+    const currentCtaLimit = Number(card.cta_limit || 0);
+    if (currentCtaLimit >= 10) {
+      document.getElementById("addon_cta_enabled")?.closest(".addon-item")?.classList.add("already-owned");
+    }
+
+    // 金牌會員已升級 → 隱藏升級加購
+    const tier = String(card.member_tier || card.agent_type || "").toLowerCase();
+    if (tier === "partner") {
+      document.getElementById("addon_agent_upgrade_enabled")?.closest(".addon-item")?.classList.add("already-owned");
+    }
+
+    // ⚠️ 無限更新:不隱藏,續約必須重新加購,改文字提醒
+    const unlimitedItem = document.getElementById("addon_update_unlimited_enabled")?.closest(".addon-item");
+    if (unlimitedItem) {
+      const small = unlimitedItem.querySelector(".addon-content small");
+      if (small) {
+        small.innerHTML = "⚠️ 續約必須重新加購,否則享 3 次免費更新";
+        small.style.color = "#b45309";
+        small.style.fontWeight = "800";
+      }
     }
   }
 
