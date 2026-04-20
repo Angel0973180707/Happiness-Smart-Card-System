@@ -1492,7 +1492,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
       return `https://liff.line.me/2009832915-yvLuTLRB?invite=${encodeURIComponent(code)}`;
     }
     function buildText(r) {
-      const url = buildUrl(r.assigned_invite_code, r.form_url);
+     const url = buildUrl(r.assigned_invite_code);
       return `您好，這是您的申請入口\n\n申請編號：${r.request_id}\n邀請碼：${r.assigned_invite_code}\n\n👉 點擊填寫：\n${url}`;
     }
 
