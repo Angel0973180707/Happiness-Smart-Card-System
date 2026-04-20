@@ -617,7 +617,7 @@
   }
 
   // ── DELIVERY PANEL ──
-  function syncDeliveryControlPanel(card) {
+function syncDeliveryControlPanel(card) {
     if (!card) return;
     const id = textOf(card.id || card.card_id);
     const meta = buildWalletModeMeta(card);
@@ -642,15 +642,26 @@
             <button class="btn btn-warn btn-sm" id="btnDeliveryPayReminder">📋 催繳文案</button>
           ` : `
             <button class="btn btn-primary btn-sm" id="btnDeliveryPayConfirmed">✅ 付款確認文案</button>
-            <button class="btn btn-ok btn-sm" id="btnDeliveryNotice">📦 交付文案</button>
           `}
         </div>
+        ${!unpaid ? `
+          <div style="margin-top:12px;background:var(--primary-bg);border:1.5px solid var(--primary);border-radius:var(--radius-sm);padding:12px;">
+            <div style="font-weight:900;color:var(--primary);margin-bottom:8px;font-size:13px;">📦 補發交付卡</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+              <button class="btn btn-soft btn-sm" id="btnCopyDeliveryUrl" title="私人管理頁,不可分享">🔐 交付卡連結</button>
+              <button class="btn btn-primary btn-sm" id="btnCopyCardPublicUrl" title="可分享給任何人">📇 名片連結</button>
+              <button class="btn btn-ok btn-sm" id="btnDeliveryNotice">📋 完整文案</button>
+            </div>
+          </div>
+        ` : ''}
       </div>`;
 
       summaryEl.querySelector('#btnDeliveryCardCreated')?.addEventListener('click', () => copyText(buildCardCreatedNotice(card), '✅ 已複製建卡通知文案'));
       summaryEl.querySelector('#btnDeliveryPayReminder')?.addEventListener('click', () => copyText(buildPaymentReminderNotice(card), '✅ 已複製催繳文案'));
       summaryEl.querySelector('#btnDeliveryPayConfirmed')?.addEventListener('click', () => copyText(buildPaymentConfirmedNotice(card, card.amount || card.plan_price), '✅ 已複製付款確認文案'));
-      summaryEl.querySelector('#btnDeliveryNotice')?.addEventListener('click', () => copyText(buildDeliveryNotice(card), '✅ 已複製交付文案'));
+      summaryEl.querySelector('#btnDeliveryNotice')?.addEventListener('click', () => copyText(buildDeliveryNotice(card), '✅ 已複製完整交付文案'));
+      summaryEl.querySelector('#btnCopyDeliveryUrl')?.addEventListener('click', () => copyText(`${CONFIG.HUB_URL}poster.html?id=${encodeURIComponent(id)}`, '🔐 已複製交付卡連結(請勿外傳)'));
+      summaryEl.querySelector('#btnCopyCardPublicUrl')?.addEventListener('click', () => copyText(buildPreviewLink(id), '📇 已複製智慧名片連結(可分享)'));
     }
 
     if (typeof window.renderDeliveryLinks === 'function') window.renderDeliveryLinks(id, meta.referral_link);
