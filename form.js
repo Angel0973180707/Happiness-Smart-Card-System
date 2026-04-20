@@ -1906,7 +1906,6 @@
 
     return payload;
   }
-
   function buildUpdateRequestLinkText() {
     const cardId = state.identity.cardId || state.modeContext.cardId || state.runtime.updateCard?.card_id || "";
     const name   = valueOf("display_name") || state.runtime.updateCard?.name || "";
