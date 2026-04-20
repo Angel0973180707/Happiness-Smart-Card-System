@@ -12,21 +12,22 @@
   <meta name="apple-mobile-web-app-title" content="交付卡" />
 
   <link rel="icon" href="./icon-192.png?v=141" />
-  <!-- manifest 和 apple-touch-icon 由下方 JS 動態注入（交付卡專屬 icon）-->
+  <!-- manifest 和 apple-touch-icon 由下方 JS 動態注入（交付卡專屬 icon,含鎖頭徽章）-->
 
   <link rel="stylesheet" href="./poster.css?v=141" />
 
   <!-- ═══════════════════════════════════════════════════════════
-       HSC 交付卡 PWA 動態 manifest 注入（v1.0）
+       HSC 交付卡 PWA 動態 manifest 注入（v1.5-lock-icon）
        - 有 id 參數 → 動態產生 manifest：
-           name="王小明 · 交付卡" + 頭像 icon + 打開交付卡
+           name="王小明 · 交付卡" + 「頭像+鎖頭徽章」合成 icon
+       - 合成失敗 → fallback 到純頭像
        - 無 id → 不做 PWA 注入
   ═══════════════════════════════════════════════════════════ -->
   <script>
   (function(){
     "use strict";
 
-    var VERSION = "v1.4-pwa";
+    var VERSION = "v1.5-lock-icon";
     var DEFAULT_ICON = "./icon-192.png?v=" + VERSION;
     var GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
     var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
@@ -47,17 +48,114 @@
       return link;
     }
 
-    function buildDeliveryManifest(cardId, cardData){
-      // 交付卡 URL（保留原本的所有 query string）
+    // === 關鍵:用 Canvas 合成「頭像+鎖頭徽章」icon ===
+    function buildLockIconDataUrl(avatarUrl){
+      return new Promise(function(resolve){
+        if (!avatarUrl) { resolve(null); return; }
+        var img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function(){
+          try {
+            var canvas = document.createElement("canvas");
+            canvas.width = 512;
+            canvas.height = 512;
+            var ctx = canvas.getContext("2d");
+
+            // 底色
+            ctx.fillStyle = "#f8f4ee";
+            ctx.fillRect(0, 0, 512, 512);
+
+            // 圓形頭像(cover 填滿)
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(256, 256, 256, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            var ratio = Math.max(512 / img.width, 512 / img.height);
+            var w = img.width * ratio;
+            var h = img.height * ratio;
+            ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
+            ctx.restore();
+
+            // 右下角鎖頭徽章
+            var bx = 380, by = 380, br = 108;
+
+            // 白色外圈(帶陰影)
+            ctx.shadowColor = "rgba(0,0,0,.28)";
+            ctx.shadowBlur = 14;
+            ctx.shadowOffsetY = 4;
+            ctx.fillStyle = "#fff";
+            ctx.beginPath();
+            ctx.arc(bx, by, br, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+
+            // 金色內圓
+            ctx.fillStyle = "#b08a6b";
+            ctx.beginPath();
+            ctx.arc(bx, by, br - 16, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 白色鎖環
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 10;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.arc(bx, by - 6, 22, Math.PI * 1.2, Math.PI * 1.8);
+            ctx.stroke();
+
+            // 白色鎖身(圓角矩形)
+            var lbw = 60, lbh = 50, lbr = 9;
+            var lbx = bx - lbw / 2, lby = by + 2;
+            ctx.fillStyle = "#fff";
+            ctx.beginPath();
+            ctx.moveTo(lbx + lbr, lby);
+            ctx.lineTo(lbx + lbw - lbr, lby);
+            ctx.quadraticCurveTo(lbx + lbw, lby, lbx + lbw, lby + lbr);
+            ctx.lineTo(lbx + lbw, lby + lbh - lbr);
+            ctx.quadraticCurveTo(lbx + lbw, lby + lbh, lbx + lbw - lbr, lby + lbh);
+            ctx.lineTo(lbx + lbr, lby + lbh);
+            ctx.quadraticCurveTo(lbx, lby + lbh, lbx, lby + lbh - lbr);
+            ctx.lineTo(lbx, lby + lbr);
+            ctx.quadraticCurveTo(lbx, lby, lbx + lbr, lby);
+            ctx.closePath();
+            ctx.fill();
+
+            // 金色鎖孔
+            ctx.fillStyle = "#b08a6b";
+            ctx.beginPath();
+            ctx.arc(bx, by + 26, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            resolve(canvas.toDataURL("image/png", 0.95));
+          } catch(e) {
+            console.warn("[HSC delivery icon] canvas composite failed:", e);
+            resolve(null);
+          }
+        };
+        img.onerror = function(){
+          console.warn("[HSC delivery icon] avatar CORS or load failed");
+          resolve(null);
+        };
+        img.src = avatarUrl;
+      });
+    }
+
+    async function buildDeliveryManifest(cardId, cardData){
       var currentSearch = location.search || "";
       var deliveryUrl = BASE_URL + "poster.html" + currentSearch;
-
       var avatarUrl = cardData.avatar_url || "";
       var cardName = cardData.name || cardId;
-      var iconUrl = avatarUrl ? avatarUrl : (BASE_URL + "icon-192.png");
-
-      // 交付卡命名：「王小明 · 交付卡」（名字在前，標籤在後）
       var displayName = cardName + " · 交付卡";
+
+      // 嘗試合成「頭像+鎖頭」icon,失敗就 fallback
+      var iconUrl = BASE_URL + "icon-192.png";
+      if (avatarUrl) {
+        var composite = await buildLockIconDataUrl(avatarUrl);
+        iconUrl = composite || avatarUrl;  // 合成失敗退回純頭像
+      }
 
       var manifest = {
         name: displayName,
@@ -80,12 +178,7 @@
       var blobUrl = URL.createObjectURL(blob);
 
       injectLink("manifest", blobUrl);
-
-      if (avatarUrl){
-        injectLink("apple-touch-icon", avatarUrl);
-      } else {
-        injectLink("apple-touch-icon", DEFAULT_ICON);
-      }
+      injectLink("apple-touch-icon", iconUrl);
 
       try {
         var metaTitle = document.querySelector("meta[name=\"apple-mobile-web-app-title\"]");
@@ -94,40 +187,32 @@
       } catch(_){}
     }
 
-    function fetchCardAndBuildManifest(cardId){
-      // 先嘗試讀 localStorage 的 shell cache（index.html 的快取也能用）
+    async function fetchCardAndBuildManifest(cardId){
       try {
         var cached = localStorage.getItem("HSC_shell_" + cardId);
         if (cached){
           var parsed = JSON.parse(cached);
           if (parsed && parsed.data){
-            buildDeliveryManifest(cardId, parsed.data);
+            await buildDeliveryManifest(cardId, parsed.data);
             return;
           }
         }
       } catch(_){}
 
-      // 沒快取 → fetch shell
       var url = GAS_URL + "?action=getCardPublicShell&id=" + encodeURIComponent(cardId) + "&tenant=angel&v=" + VERSION;
-      fetch(url, { method: "GET", cache: "default" })
-        .then(function(res){ return res.text(); })
-        .then(function(text){
-          try {
-            var data = JSON.parse(text);
-            var card = data.item || data.card || data.row || data.data || data;
-            if (card && (card.name || card.avatar_url)){
-              buildDeliveryManifest(cardId, card);
-            } else {
-              // fallback：最少給個 icon，避免完全沒 manifest
-              injectLink("apple-touch-icon", DEFAULT_ICON);
-            }
-          } catch(_){
-            injectLink("apple-touch-icon", DEFAULT_ICON);
-          }
-        })
-        .catch(function(){
+      try {
+        var res = await fetch(url, { method: "GET", cache: "default" });
+        var text = await res.text();
+        var data = JSON.parse(text);
+        var card = data.item || data.card || data.row || data.data || data;
+        if (card && (card.name || card.avatar_url)){
+          await buildDeliveryManifest(cardId, card);
+        } else {
           injectLink("apple-touch-icon", DEFAULT_ICON);
-        });
+        }
+      } catch(_){
+        injectLink("apple-touch-icon", DEFAULT_ICON);
+      }
     }
 
     var sp = getParams();
@@ -489,7 +574,7 @@
           <div class="brand-sub">PERSONAL SMART CARD DELIVERY</div>
         </div>
         <div class="delivery-pill">專屬名片入口</div>
-        <p class="hero-tagline">一張名片，讓你被看見，也慢慢被懂得。</p>
+        <p class="hero-tagline">一張名片,讓你被看見,也慢慢被懂得。</p>
       </div>
 
       <div class="hero-body">
@@ -511,7 +596,7 @@
                 <div id="qrLinkFallback" class="qr-link-fallback"></div>
               </div>
               <div class="qr-caption">
-                <div class="qr-caption-line">掃一下，帶你認識我</div>
+                <div class="qr-caption-line">掃一下,帶你認識我</div>
               </div>
             </div>
           </div>
@@ -526,14 +611,14 @@
             <button id="downloadBtn"    class="btn btn-download"   type="button">
               <span class="btn-download-icon" aria-hidden="true">↓</span>
               下載我的名片海報
-              <span class="btn-download-sub">存到手機裡，分享更方便</span>
+              <span class="btn-download-sub">存到手機裡,分享更方便</span>
             </button>
             <button id="installDeliveryBtn" class="btn btn-install-delivery" type="button">
               <span class="btn-install-delivery-icon" aria-hidden="true">⊕</span>
               把交付卡加到手機桌面
-              <span class="btn-install-delivery-sub">一鍵打開，隨時查看</span>
+              <span class="btn-install-delivery-sub">一鍵打開,隨時查看</span>
             </button>
-            <button id="renewalBtn" class="btn btn-soft" type="button">繼續用這張名片（續約）</button>
+            <button id="renewalBtn" class="btn btn-soft" type="button">繼續用這張名片(續約)</button>
           </div>
         </section>
 
@@ -543,8 +628,8 @@
         <div id="walletAccordion" class="wallet-accordion" aria-label="服務荷包">
           <button id="walletToggle" class="wallet-toggle" type="button" aria-expanded="false" aria-controls="walletBody">
             <div class="wallet-toggle-left">
-              <span id="walletTitle" class="wallet-toggle-title">服務荷包（體驗中）</span>
-              <span id="walletHint"  class="wallet-toggle-hint">從分享開始，慢慢累積你的成果</span>
+              <span id="walletTitle" class="wallet-toggle-title">服務荷包(體驗中)</span>
+              <span id="walletHint"  class="wallet-toggle-hint">從分享開始,慢慢累積你的成果</span>
             </div>
             <svg class="wallet-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="6 9 12 15 18 9"></polyline>
@@ -554,7 +639,7 @@
           <div id="walletBody" class="wallet-body" role="region" aria-labelledby="walletToggle">
             <div class="wallet-inner">
 
-              <!-- 導引提示（完整版） -->
+              <!-- 導引提示(完整版) -->
               <div id="walletNavHint" class="wallet-nav-hint hidden">
                 <strong>想讓朋友認識你</strong> → 分享我的名片<br>
                 <strong>想累積分潤點數</strong> → 分享推薦連結
@@ -565,7 +650,7 @@
                 <div class="share-block-label">📇 分享我的名片</div>
                 <div class="share-block-desc">讓朋友掃 QR 或點連結認識你</div>
                 <div id="cardLinkDisplay" class="share-link-display">載入中…</div>
-                <p class="link-note">✦ 此連結已帶有你的個人序號，分享給朋友也算推薦紀錄</p>
+                <p class="link-note">✦ 此連結已帶有你的個人序號,分享給朋友也算推薦紀錄</p>
                 <div class="share-btn-row">
                   <button id="copyCardLinkBtn2"  class="btn btn-soft btn-sm"    type="button">一鍵複製</button>
                   <button id="shareCardLinkBtn2" class="btn btn-primary btn-sm" type="button">直接分享</button>
@@ -576,12 +661,12 @@
 
               <!-- 推薦連結 -->
               <div class="share-block ref-link-block">
-                <div class="share-block-label">🔗 推薦連結（帶我的序號）</div>
+                <div class="share-block-label">🔗 推薦連結(帶我的序號)</div>
                 <div id="refLinkTrialNote" class="ref-link-note hidden">
-                  朋友從這個連結進來建卡，成交後自動記在你名下，累積點數。
+                  朋友從這個連結進來建卡,成交後自動記在你名下,累積點數。
                 </div>
                 <div id="refLinkFullNote" class="ref-link-note hidden">
-                  朋友從這個連結進來建卡，推薦與分潤會自動記錄。
+                  朋友從這個連結進來建卡,推薦與分潤會自動記錄。
                 </div>
                 <div id="refLinkDisplay" class="share-link-display">載入中…</div>
                 <div id="refLinkBtnRow" class="share-btn-row">
@@ -589,7 +674,7 @@
                   <button id="shareRefLinkBtn2" class="btn btn-primary btn-sm" type="button">直接分享</button>
                 </div>
                 <div id="refLinkMissingNote" class="ref-link-missing hidden">
-                  推薦序號尚未建立，請聯繫客服開通。
+                  推薦序號尚未建立,請聯繫客服開通。
                 </div>
               </div>
 
@@ -607,7 +692,7 @@
                   <div id="trialProgressFill" class="trial-progress-bar-fill" style="width:0%"></div>
                 </div>
                 <div id="trialProgressCaption" class="trial-progress-caption">
-                  累積 5 點後，自動升級為推薦代理，開啟完整服務荷包
+                  累積 5 點後,自動升級為推薦代理,開啟完整服務荷包
                 </div>
               </div>
 
@@ -628,7 +713,7 @@
                     <div id="statConvertedCount" class="wallet-stat-value">0</div>
                   </div>
                 </div>
-                <!-- 金牌收益（partner 才顯示） -->
+                <!-- 金牌收益(partner 才顯示) -->
                 <div id="partnerEarningsBlock" class="wallet-stats-grid hidden" style="margin-top:8px;">
                   <div class="wallet-stat-item">
                     <div class="wallet-stat-label">本月分潤</div>
@@ -644,7 +729,7 @@
               <!-- 服務快記 -->
               <div id="serviceLogBlock" class="service-log-block hidden">
                 <div class="service-log-label">記一下今天的服務</div>
-                <div class="service-log-hint">服務完，點一下就好</div>
+                <div class="service-log-hint">服務完,點一下就好</div>
                 <button id="logServiceBtn" class="btn btn-soft btn-sm" type="button">開始記錄</button>
               </div>
 
@@ -653,7 +738,7 @@
                 <button id="viewServiceLogsBtn" class="btn btn-soft btn-sm" type="button">看看我做了哪些服務</button>
               </div>
 
-              <!-- 合作說明（荷包內唯一入口） -->
+              <!-- 合作說明(荷包內唯一入口) -->
               <button id="openCollabBtn" class="btn btn-soft btn-sm" type="button">看看怎麼一起合作</button>
 
             </div><!-- /wallet-inner -->
@@ -724,9 +809,9 @@
         <!-- 客服 -->
         <section class="action-group" aria-label="客服">
           <div class="actions">
-            <button id="lineOABtn" class="btn btn-support" type="button">需要幫忙，找我</button>
+            <button id="lineOABtn" class="btn btn-support" type="button">需要幫忙,找我</button>
           </div>
-          <p style="margin:8px 0 0;text-align:center;font-size:12px;color:var(--muted);">有任何問題，這裡都有人幫你</p>
+          <p style="margin:8px 0 0;text-align:center;font-size:12px;color:var(--muted);">有任何問題,這裡都有人幫你</p>
         </section>
 
         <div id="statusText" class="status"></div>
@@ -735,7 +820,7 @@
     </section>
   </main>
 
-  <!-- Dialog：合作說明 -->
+  <!-- Dialog:合作說明 -->
   <div id="collabDialog" class="dialog-mask" aria-hidden="true">
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="collabDialogTitle">
       <h3 id="collabDialogTitle" class="dialog-title">一起合作的方式</h3>
@@ -743,20 +828,20 @@
         <div class="collab-tier">
           <div class="collab-tier-title">🥈 銀牌推薦代理</div>
           <div class="collab-tier-body">
-            推薦朋友使用名片，每次成交累積點數。<br>
+            推薦朋友使用名片,每次成交累積點數。<br>
             點數可兌換功能升級或續約折抵。<br>
-            也享有續約分潤（以點數計）。
+            也享有續約分潤(以點數計)。
           </div>
         </div>
         <div class="collab-tier">
           <div class="collab-tier-title">🥇 金牌合作代理</div>
           <div class="collab-tier-body">
-            提供服務並記錄，每筆核准的服務獲得現金獎勵。<br>
-            推薦成交享現金分潤，續約也有分潤（以現金計）。<br>
-            服務獎勵需核准的服務紀錄才會觸發，非自動給予。
+            提供服務並記錄,每筆核准的服務獲得現金獎勵。<br>
+            推薦成交享現金分潤,續約也有分潤(以現金計)。<br>
+            服務獎勵需核准的服務紀錄才會觸發,非自動給予。
           </div>
         </div>
-        <div class="collab-core-line">服務都會被記錄，成果才會被獎勵。</div>
+        <div class="collab-core-line">服務都會被記錄,成果才會被獎勵。</div>
       </div>
       <div class="dialog-actions">
         <button id="collabDialogCloseBtn" class="btn btn-primary dialog-close" type="button">我知道了</button>
@@ -764,13 +849,13 @@
     </div>
   </div>
 
-  <!-- Dialog：分享名片 -->
+  <!-- Dialog:分享名片 -->
   <div id="shareCardDialog" class="dialog-mask" aria-hidden="true">
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="shareCardDialogTitle">
       <h3 id="shareCardDialogTitle" class="dialog-title">分享我的名片</h3>
       <div class="dialog-body">
-        <p>讓朋友認識你，看看你在做什麼。</p>
-        <p>以下是你的名片連結，可以直接傳給對方：</p>
+        <p>讓朋友認識你,看看你在做什麼。</p>
+        <p>以下是你的名片連結,可以直接傳給對方:</p>
         <div id="shareCardLinkDisplay" class="share-link-display">載入中…</div>
       </div>
       <div class="dialog-actions" style="gap:8px;display:flex;">
@@ -780,7 +865,7 @@
     </div>
   </div>
 
-  <!-- Dialog：服務快記 -->
+  <!-- Dialog:服務快記 -->
   <div id="serviceLogDialog" class="dialog-mask" aria-hidden="true">
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="serviceLogDialogTitle">
       <h3 id="serviceLogDialogTitle" class="dialog-title">記一下今天的服務</h3>
@@ -796,7 +881,7 @@
           </div>
         </div>
         <div style="margin-bottom:10px;">
-          <div class="info-label" style="margin-bottom:6px;">補充說明（選填）</div>
+          <div class="info-label" style="margin-bottom:6px;">補充說明(選填)</div>
           <textarea id="serviceLogNote" rows="2"
             style="width:100%;border-radius:12px;border:1px solid rgba(98,76,56,.12);padding:10px 12px;font-size:14px;font-family:inherit;color:var(--ink);background:rgba(255,255,255,.8);resize:none;box-sizing:border-box;"
             placeholder="簡單說一下就好…"></textarea>
@@ -811,7 +896,7 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
-       交付卡 PWA 安裝功能（掛在 poster.js 之前）
+       交付卡 PWA 安裝按鈕綁定(掛在 poster.js 之前)
   ═══════════════════════════════════════════════════════════ -->
   <script>
   (function(){
