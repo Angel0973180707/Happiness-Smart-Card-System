@@ -1060,14 +1060,15 @@
     }
   }
 
-  function syncRenewQuote() {
+ function syncRenewQuote() {
     const targetPlan = state.renewFlow.targetPlan || getSelectedPlan() || "free";
-    const basePrice  = CONFIG.BASE_LIMITS[targetPlan]?.price || 1500;
+    // 🆕 續約費為固定 NT$ 500(不是新購價)
+    const RENEWAL_FEE = 500;
+    const basePrice  = RENEWAL_FEE;
     const addonItems = getAddonItemsForQuote(getLimitsRenew());
     const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
     const unlimitedFee = state.renewFlow.renewUnlimitedUpdate ? 300 : 0;
     let total = basePrice + addonAmount + unlimitedFee;
-
     const originalPlan = state.runtime.renewCard?.plan;
     let planDiffFee = 0;
     if (originalPlan && originalPlan !== targetPlan) {
