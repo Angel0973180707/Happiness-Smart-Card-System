@@ -298,7 +298,7 @@
    */
   function buildCardUrl(item) {
     const cardId = txt(item?.id) || id;
-    return buildUrl("index.html", { id: cardId });
+   return buildUrl("index.html", { id: cardId, view: 1 });
   }
 
   function buildRefUrl(payload, item) {
