@@ -53,12 +53,12 @@
     UPDATE_SUBMIT_ACTION: "updateCardByToken",
     UPDATE_CREATE_PAYMENT_ACTION: "createUpdateFeePayment",
 
-    RENEW_LOAD_CARD_ACTION: "getCard",
-    RENEW_PAYMENT_SUMMARY_ACTION: "getCardPaymentSummary",
-    RENEW_ADDON_SUMMARY_ACTION: "getAddonOrders",
-    RENEW_QUOTE_ACTION: "createRenewalQuote",
+   RENEW_LOAD_CARD_ACTION: "getCardForRenewal",
+    RENEW_PAYMENT_SUMMARY_ACTION: "getRenewalSummary",
+    RENEW_ADDON_SUMMARY_ACTION: "getRenewalSummary",
+    RENEW_QUOTE_ACTION: "getRenewalSummary",
     RENEW_CREATE_PAYMENT_ACTION: "createRenewalPayment",
-    RENEW_MARK_RENEWED_ACTION: "markCardRenewed",
+    RENEW_MARK_RENEWED_ACTION: "",
     ADMIN_BUILD_BUNDLE_ACTION: "adminBuildBundleText",
 
     // ── 銀行付款資訊 ──────────────────────────────
