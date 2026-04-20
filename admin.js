@@ -246,23 +246,14 @@
     return `您好 ${name}，\n\n✅ 已確認收到您的付款，感謝您！\n\n━━━━━━━━━━━━━━━━━\n💰【付款確認明細】\n收款金額：NT$ ${amount}\n服務使用期限：${expiresAt} 到期\n━━━━━━━━━━━━━━━━━\n\n📋【續約說明】\n・本服務為年費方案，到期前 30 天將通知續約\n・續約連結：${renewUrl}\n・如有問題請透過 LINE 聯繫\n\n📩 客服 LINE：${CONFIG.CONTACT_LINE}\n\n感謝您的支持，啟用通知請稍候，我們將儘快完成交付！`;
   }
 
-  function buildDeliveryNotice(card) {
-    const name = textOf(card.name || card.owner_name) || '您';
-    const cardId = textOf(card.id || card.card_id);
-    const previewUrl = `${CONFIG.HUB_URL}index.html?id=${encodeURIComponent(cardId)}`;
-    const updateUrl  = `${CONFIG.HUB_URL}update.html?id=${encodeURIComponent(cardId)}`;
-    const renewUrl   = `${CONFIG.HUB_URL}renew.html?id=${encodeURIComponent(cardId)}`;
-    const expiresAt  = card.expires_at || '—';
-    const hasUnlimitedUpdate = state.addons.some(a => {
-      const isSameCard = String(a.card_id || '').trim() === String(cardId).trim();
-      const isPaid = String(a.status || '').toLowerCase() === 'paid';
-      const type = String(a.addon_type || '').toLowerCase();
-      return isSameCard && isPaid && (type.includes('unlimited') || type.includes('無限') || type.includes('update') || type.includes('更新'));
-    });
-    const updateDesc = hasUnlimitedUpdate
-      ? `✏️【更新服務】\n・無限次更新，與名片同期限（到 ${expiresAt} 止）\n・更新連結：${updateUrl}\n・隨時修改，所有人即時看到最新版本`
-      : `✏️【更新服務】\n・贈送 3 次免費更新，用完後每次 NT$300\n・更新連結：${updateUrl}\n・建議先規劃好內容再進行更新，節省次數`;
-    return `您好 ${name}，\n\n🎉 您的 HSC 智慧名片已正式交付啟用！\n\n━━━━━━━━━━━━━━━━━\n🔗【您的名片連結】\n${previewUrl}\n\n📌 請將此連結加入 LINE 個人資料、IG 簡介或名片簽名欄\n━━━━━━━━━━━━━━━━━\n\n${updateDesc}\n\n━━━━━━━━━━━━━━━━━\n🔄【續約提醒】\n・服務使用期限：${expiresAt} 到期\n・到期前 30 天將自動通知續約\n・續約連結：${renewUrl}\n\n━━━━━━━━━━━━━━━━━\n📩 如有任何問題請聯繫：${CONFIG.CONTACT_LINE}\n\n感謝您使用 HSC 智慧名片服務！`;
+ function buildDeliveryNotice(card) {
+    const name        = textOf(card.name || card.owner_name) || '您';
+    const cardId      = textOf(card.id || card.card_id);
+    const cardUrl     = `${CONFIG.HUB_URL}index.html?id=${encodeURIComponent(cardId)}`;
+    const deliveryUrl = `${CONFIG.HUB_URL}poster.html?id=${encodeURIComponent(cardId)}`;
+    const hubUrl      = CONFIG.HUB_URL;
+    const expiresAt   = card.expires_at || '—';
+    return `✅ 付款確認完成,感謝 ${name} 的信任 ❤️\n\n服務使用期限:${expiresAt} 到期\n\n━━━━━━━━━━━━━━━━━\n🔐【您的專屬交付卡】\n${deliveryUrl}\n\n⚠️ 這是個人管理入口,請勿轉傳\n建議加到手機桌面,隨時使用 📱\n\n打開可以:\n✏️ 更新名片 / 🔄 辦理續約 / 📊 查推薦點數\n━━━━━━━━━━━━━━━━━\n\n💡 想讓朋友認識您?請用下面三種 👇\n\n📇 我的智慧名片(主要分享連結)\n${cardUrl}\n→ 放 LINE 簡介、IG、簽名檔、群組\n\n🖼️ 名片海報\n打開交付卡 → 點「下載海報」→ 存圖分享\n\n🏛️ 智慧名片館(推薦服務用)\n${hubUrl}\n\n━━━━━━━━━━━━━━━━━\n有問題隨時聯繫:${CONFIG.CONTACT_LINE}\n感謝您使用 HSC 智慧名片服務!`;
   }
 
   // ── INVITE HELPERS ──
