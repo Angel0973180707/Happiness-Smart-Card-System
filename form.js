@@ -1793,11 +1793,13 @@
       const quote = await requestRenewQuote();
       setProgressStep(2, "建立續約付款資訊…");
 
+    // 🔒 續約鎖死原方案,不允許換方案
+      const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
       const paymentPayload = {
         action:                CONFIG.RENEW_CREATE_PAYMENT_ACTION,
         card_id:               state.modeContext.cardId,
         renew_token:           state.modeContext.renewToken,
-        target_plan:           state.renewFlow.targetPlan,
+        target_plan:           originalPlan,
         selected_addons:       collectRenewSelectedAddons(),
         renew_unlimited_update:state.renewFlow.renewUnlimitedUpdate,
         quote_items:           quote.quote_items || [],
