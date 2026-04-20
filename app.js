@@ -1856,7 +1856,7 @@ function updateInstallUi_(){
   if(dock) dock.style.display = cleanMode ? "" : "none";
 }
 async function triggerPwaInstall_(){
-  if(isStandalone_()){ alert("✅ 已經安裝在桌面上了"); return; }
+  if(isStandalone_()){ alert("✅ 已經在桌面上了"); return; }
   if(deferredInstallPrompt){
     try{ deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; }
     catch(err){ console.error(err); }
