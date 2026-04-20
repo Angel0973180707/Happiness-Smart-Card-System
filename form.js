@@ -760,13 +760,21 @@
       address: "address", website: "website", social1: "social1", social2: "social2",
       social3: "social3", video1: "video1", video2: "video2", video3: "video3"
     };
-    for (const [field, prop] of Object.entries(map)) {
+   for (const [field, prop] of Object.entries(map)) {
       if (card[prop] !== undefined) setInputValue(field, card[prop]);
     }
     if (card.plan) {
       const radio = document.querySelector(`input[name="plan"][value="${card.plan}"]`);
       if (radio) radio.checked = true;
     }
+
+    // 🆕 讀跑馬燈狀態(續約/更新模式都需要)
+    const marqueeOn = String(card.marquee_enabled || "").toLowerCase() === "true";
+    if (marqueeOn) {
+      if (els["addon_marquee_enabled"]) els["addon_marquee_enabled"].checked = true;
+      if (card.marquee_text) setInputValue("marquee_text", card.marquee_text);
+    }
+
     hydrateThemeFromCard(card);
     hydrateMediaFromCard(card);
     hydrateCtasFromCard(card);
