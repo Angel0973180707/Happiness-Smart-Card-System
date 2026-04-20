@@ -1900,11 +1900,13 @@
   async function requestRenewQuote() {
     const cardId = state.modeContext.cardId;
     const token  = state.modeContext.renewToken;
+    // 🔒 續約鎖死原方案
+    const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
     const payload = {
       action:                CONFIG.RENEW_QUOTE_ACTION,
       card_id:               cardId,
       renew_token:           token,
-      target_plan:           state.renewFlow.targetPlan,
+      target_plan:           originalPlan,
       selected_addons:       collectRenewSelectedAddons(),
       renew_unlimited_update:state.renewFlow.renewUnlimitedUpdate,
       renew_term:            state.renewFlow.renewTerm
