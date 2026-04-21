@@ -1904,7 +1904,7 @@
       btn.title = "";
     }
 
-    // ── 主流程 ──
+// ── 主流程 ──
     function bootLiff() {
       lockSubmit("正在驗證 LINE 身分…");
 
@@ -1929,17 +1929,30 @@
             return;
           }
 
+          var uid = profile.userId;
+          var name = profile.displayName;
+
+          // 🆕 檢查 URL 是不是「綁定模式」
+          var urlParams = new URLSearchParams(location.search);
+          var bindCardId = urlParams.get("bind");
+
+          if (bindCardId) {
+            // 綁定模式:不填表,直接呼叫 rebindLineUserId_ API
+            handleBindMode(bindCardId, uid, name);
+            return;
+          }
+
+          // 一般填表模式
           var uidInput  = document.getElementById("line_user_id");
           var nameInput = document.getElementById("line_display_name");
-          if (uidInput)  uidInput.value  = profile.userId || "";
-          if (nameInput) nameInput.value = profile.displayName || "";
+          if (uidInput)  uidInput.value  = uid;
+          if (nameInput) nameInput.value = name;
 
           hideLineRequiredWarning();
           unlockSubmit();
 
-          // 讓 form.js 也知道(備援)
-          window.HSC_LINE_UID  = profile.userId;
-          window.HSC_LINE_NAME = profile.displayName;
+          window.HSC_LINE_UID  = uid;
+          window.HSC_LINE_NAME = name;
         })
         .catch(function (err) {
           console.error("[LIFF] init failed:", err);
@@ -1950,10 +1963,68 @@
         });
     }
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", bootLiff);
-    } else {
-      bootLiff();
+    // 🆕 綁定模式處理
+    function handleBindMode(cardId, uid, name) {
+      // 隱藏整個表單
+      var form = document.getElementById("smart-card-form");
+      var shell = document.querySelector(".form-shell");
+      if (form) form.style.display = "none";
+
+      // 顯示綁定進度畫面
+      var bindBox = document.createElement("div");
+      bindBox.id = "bind-mode-box";
+      bindBox.style.cssText =
+        "max-width:520px;margin:40px auto;padding:32px 24px;" +
+        "background:#fff;border-radius:24px;" +
+        "box-shadow:0 16px 36px rgba(0,0,0,.08);" +
+        "text-align:center;font-family:inherit;";
+      bindBox.innerHTML =
+        "<div style='font-size:64px;margin-bottom:16px;'>🔗</div>" +
+        "<h2 style='font-size:22px;font-weight:900;margin-bottom:12px;color:#2a241e;'>LINE 綁定中…</h2>" +
+        "<p style='font-size:14px;color:#6b5f55;line-height:1.7;margin-bottom:8px;'>卡片編號:<strong>" + cardId + "</strong></p>" +
+        "<p style='font-size:14px;color:#6b5f55;line-height:1.7;margin-bottom:24px;'>你的 LINE:<strong>" + (name || "未知") + "</strong></p>" +
+        "<div id='bind-status' style='font-size:14px;color:#888;font-weight:700;'>處理中…</div>";
+      if (shell) shell.prepend(bindBox);
+
+      // 呼叫 GAS API
+      var GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+      var payload = {
+        action: "rebindLineUserId",
+        card_id: cardId,
+        line_user_id: uid,
+        line_display_name: name || ""
+      };
+
+      fetch(GAS_URL, {
+        method: "POST",
+        redirect: "follow",
+        body: JSON.stringify(payload)
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var statusEl = document.getElementById("bind-status");
+        if (!statusEl) return;
+
+        if (data && data.ok) {
+          var msg = "✅ <strong style='color:#06a66a;'>綁定成功!</strong><br><br>" +
+                    "從現在起,系統通知會推給你的 LINE。<br>" +
+                    "你可以關閉這個頁面了。";
+          statusEl.innerHTML = msg;
+          statusEl.style.color = "#2a241e";
+          statusEl.style.fontSize = "15px";
+        } else {
+          var errMsg = (data && (data.error || data.message)) || "未知錯誤";
+          statusEl.innerHTML = "❌ <strong style='color:#d34e69;'>綁定失敗</strong><br><br>錯誤訊息:" + errMsg;
+          statusEl.style.color = "#a83d3d";
+        }
+      })
+      .catch(function (err) {
+        var statusEl = document.getElementById("bind-status");
+        if (statusEl) {
+          statusEl.innerHTML = "❌ 網路錯誤,請重試<br>" + err.message;
+          statusEl.style.color = "#a83d3d";
+        }
+      });
     }
   })();
   </script>
