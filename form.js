@@ -1,5 +1,11 @@
 /* ============================================================
-   天使幸福智慧名片館 form.js — v4.0 乾淨版
+   天使幸福智慧名片館 form.js — v4.1 草稿綁邀請碼
+
+   v4.1 改動:草稿 key 綁定邀請碼
+   - 每個邀請碼有獨立草稿(互不干擾)
+   - 新客戶看到的表單一定是空白的
+   - 沒有邀請碼 → 不儲存、不還原(防止污染)
+   - 自動清除舊版 legacy 草稿
 
    v4.0 改動:徹底修復續約模式
    1. ✅ 續約模式正常顯示(mode=renew 可辨識)
@@ -19,7 +25,10 @@
     SERVICE_URL: "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v834_v151",
+    // 🆕 v4.1: 動態草稿 key 前綴(會拼接邀請碼)
+    DRAFT_KEY_PREFIX: "hsc_draft_",
+    // 🔄 v4.1: 舊版 key,用於自動清除
+    LEGACY_DRAFT_KEY: "hsc_form_draft_v834_v151",
 
     CREATE_ACTION: "createCardWithOfflinePayment",
     DELIVER_ACTION: "markCardDelivered",
@@ -360,6 +369,8 @@
     applyModeUi();
     upgradeExperienceToTextarea();
     bindStaticEvents();
+    // 🆕 v4.1: 清除舊版 legacy 草稿(避免跨版本污染)
+    try { localStorage.removeItem(CONFIG.LEGACY_DRAFT_KEY); } catch(_){}
     restoreDraft();
     ensureDefaultPlan();
     state.tempCardId = "TEMP_" + Date.now();
@@ -634,6 +645,13 @@
       (params.get("invite_code") || "").trim() ||
       (params.get("invite") || "").trim()
     );
+  }
+
+  // 🆕 v4.1: 動態草稿 key — 綁定邀請碼
+  function getDraftKey() {
+    const invite = getInviteCodeFromPage();
+    if (!invite) return null; // 沒邀請碼不儲存
+    return CONFIG.DRAFT_KEY_PREFIX + invite;
   }
 
   function buildSharedCardData() {
@@ -1545,7 +1563,9 @@
       setProgressStep(5, "✅ 申請完成");
       showCreateSuccessPanel(result);
       setStatus("名片已成功建立,請依下方步驟完成付款。", "success");
-      localStorage.removeItem(CONFIG.DRAFT_KEY);
+      // 🆕 v4.1: 提交成功後清除當前邀請碼的草稿
+      const draftKey = getDraftKey();
+      if (draftKey) { try { localStorage.removeItem(draftKey); } catch(_){} }
     } catch (err) {
       console.error(err);
       setStatus("送出失敗:" + err.message, "error");
@@ -2073,9 +2093,12 @@
   }
 
   function saveDraft() {
+    // 🆕 v4.1: 沒邀請碼就不儲存(防止跨客戶污染)
+    const key = getDraftKey();
+    if (!key) return;
     const values = collectFormValues();
     try {
-      localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify({ values, photoMeta: state.photoMeta, mode: state.mode }));
+      localStorage.setItem(key, JSON.stringify({ values, photoMeta: state.photoMeta, mode: state.mode }));
     } catch (_) {}
   }
 
@@ -2092,7 +2115,18 @@
       return;
     }
     let draft = null;
-    try { draft = JSON.parse(localStorage.getItem(CONFIG.DRAFT_KEY) || "null"); } catch (_) {}
+    // 🆕 v4.1: 用動態 key 還原
+    const key = getDraftKey();
+    if (!key) {
+      // 沒邀請碼,不還原任何草稿
+      const inviteOnly = getInviteCodeFromPage();
+      if (inviteOnly && document.getElementById("invite_code")) {
+        document.getElementById("invite_code").value = inviteOnly;
+        state.modeContext.inviteCode = inviteOnly;
+      }
+      return;
+    }
+    try { draft = JSON.parse(localStorage.getItem(key) || "null"); } catch (_) {}
     if (!draft || typeof draft !== "object") {
       const inviteOnly = getInviteCodeFromPage();
       if (inviteOnly && document.getElementById("invite_code")) {
@@ -2131,7 +2165,11 @@
   }
 
   function clearDraft() {
-    localStorage.removeItem(CONFIG.DRAFT_KEY);
+    // 🆕 v4.1: 清除當前邀請碼的草稿
+    const key = getDraftKey();
+    if (key) {
+      try { localStorage.removeItem(key); } catch(_){}
+    }
     localStorage.removeItem(CONFIG.QUOTE_STORAGE_KEY);
     location.reload();
   }
