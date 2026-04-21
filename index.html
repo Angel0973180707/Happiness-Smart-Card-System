@@ -25,14 +25,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="./style.css?v=v1.5.7" />
 
- <!-- ═══════════════════════════════════════════════════════════
-       HSC PWA 動態 manifest 注入(v1.2-canvas-icon)
+<!-- ═══════════════════════════════════════════════════════════
+       HSC PWA 動態 manifest 注入(v1.3-sync-inject)
        - 成品卡模式(?id=TWxxxx&view=1 且非 TW0001)
-         → 動態產生 manifest:
-           name="王小明 · 智慧名片" + Canvas 合成頭像 icon + 打開成品卡
+         → 🆕 同步預先注入 manifest(用 cache 或頭像 URL 當 icon)
+         → 🆕 背景再抓最新 card 資料,成功就替換為 Canvas 合成 icon
        - 門面模式 / TW0001 樣品卡
-         → 用原本的靜態 manifest.json(名片館 icon + 打開門面)
-       - Canvas 合成失敗 → fallback 到純頭像 URL 或預設 icon
+         → 用原本的靜態 manifest.json
   ═══════════════════════════════════════════════════════════ -->
   <script>
   (function(){
@@ -50,6 +49,8 @@
     }
 
     function injectLink(rel, href, attrs){
+      // 先移除同 rel 的舊 link(避免重複)
+      document.querySelectorAll("link[rel=\"" + rel + "\"]").forEach(function(l){ l.remove(); });
       var link = document.createElement("link");
       link.rel = rel;
       link.href = href;
@@ -65,7 +66,53 @@
       injectLink("apple-touch-icon", DEFAULT_ICON);
     }
 
-    // === Canvas 合成頭像 icon(純頭像,不加鎖頭)===
+    // === 建立 manifest Blob URL ===
+    function buildManifestBlobUrl(cardId, cardData, iconUrl){
+      var cardUrl = BASE_URL + "index.html?id=" + encodeURIComponent(cardId) + "&view=1";
+      var cardName = (cardData && cardData.name) || cardId;
+      var displayName = cardName + " · 智慧名片";
+
+      var manifest = {
+        name: displayName,
+        short_name: cardName || displayName,
+        start_url: cardUrl,
+        scope: "./",
+        display: "standalone",
+        orientation: "portrait",
+        background_color: "#f8f4ee",
+        theme_color: "#f8f4ee",
+        description: cardName + " 的智慧名片",
+        icons: [
+          { src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+        ]
+      };
+
+      var json = JSON.stringify(manifest);
+      var blob = new Blob([json], { type: "application/manifest+json" });
+      return URL.createObjectURL(blob);
+    }
+
+    // === 注入 / 替換 manifest ===
+    function installManifest(cardId, cardData, iconUrl){
+      try {
+        var blobUrl = buildManifestBlobUrl(cardId, cardData, iconUrl);
+        injectLink("manifest", blobUrl);
+        injectLink("apple-touch-icon", iconUrl);
+
+        var cardName = (cardData && cardData.name) || cardId;
+        var displayName = cardName + " · 智慧名片";
+        try {
+          var metaTitle = document.querySelector("meta[name=\"apple-mobile-web-app-title\"]");
+          if (metaTitle) metaTitle.setAttribute("content", displayName);
+          document.title = displayName;
+        } catch(_){}
+      } catch(e){
+        console.warn("[HSC] installManifest failed:", e);
+      }
+    }
+
+    // === Canvas 合成頭像 icon(背景執行,成功才替換)===
     function buildAvatarIconDataUrl(avatarUrl){
       return new Promise(function(resolve){
         if (!avatarUrl) { resolve(null); return; }
@@ -77,12 +124,8 @@
             canvas.width = 512;
             canvas.height = 512;
             var ctx = canvas.getContext("2d");
-
-            // 底色
             ctx.fillStyle = "#f8f4ee";
             ctx.fillRect(0, 0, 512, 512);
-
-            // 圓形頭像(cover 填滿)
             ctx.save();
             ctx.beginPath();
             ctx.arc(256, 256, 256, 0, Math.PI * 2);
@@ -93,99 +136,87 @@
             var h = img.height * ratio;
             ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
             ctx.restore();
-
             resolve(canvas.toDataURL("image/png", 0.95));
-          } catch(e) {
-            console.warn("[HSC personal icon] canvas composite failed:", e);
+          } catch(e){
+            console.warn("[HSC] canvas composite failed:", e);
             resolve(null);
           }
         };
         img.onerror = function(){
-          console.warn("[HSC personal icon] avatar CORS or load failed");
+          console.warn("[HSC] avatar load failed");
           resolve(null);
         };
         img.src = avatarUrl;
       });
     }
 
-    async function buildDynamicManifest(cardId, cardData){
-      var cardUrl = BASE_URL + "index.html?id=" + encodeURIComponent(cardId) + "&view=1";
-      var avatarUrl = cardData.avatar_url || "";
-      var cardName = cardData.name || cardId;
-      var displayName = cardName + " · 智慧名片";
-
-      // 嘗試 Canvas 合成「純頭像」icon,失敗就 fallback
-      var iconUrl = DEFAULT_ICON;
-      if (avatarUrl) {
-        var composite = await buildAvatarIconDataUrl(avatarUrl);
-        iconUrl = composite || avatarUrl;  // 合成失敗退回純頭像 URL
-      }
-
-      var manifest = {
-        name: displayName,
-        short_name: displayName,
-        start_url: cardUrl,
-        scope: "./",
-        display: "standalone",
-        orientation: "portrait",
-        background_color: "#f8f4ee",
-        theme_color: "#f8f4ee",
-        description: cardName + " 的智慧名片",
-        icons: [
-          { src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any" }
-        ]
-      };
-
-      var json = JSON.stringify(manifest);
-      var blob = new Blob([json], { type: "application/manifest+json" });
-      var blobUrl = URL.createObjectURL(blob);
-
-      injectLink("manifest", blobUrl);
-      injectLink("apple-touch-icon", iconUrl);
-
-      try {
-        var metaTitle = document.querySelector("meta[name=\"apple-mobile-web-app-title\"]");
-        if (metaTitle) metaTitle.setAttribute("content", displayName);
-        document.title = displayName;
-      } catch(_){}
-    }
-
-    async function fetchCardAndBuildManifest(cardId){
+    // === 主邏輯:同步注入 + 背景升級 ===
+    function bootDynamicManifest(cardId){
+      // 1. 先嘗試用 localStorage 快取立刻注入(同步)
+      var cachedData = null;
       try {
         var cached = localStorage.getItem("HSC_shell_" + cardId);
         if (cached){
           var parsed = JSON.parse(cached);
           if (parsed && parsed.data){
-            await buildDynamicManifest(cardId, parsed.data);
-            return;
+            cachedData = parsed.data;
           }
         }
       } catch(_){}
 
-      var url = GAS_URL + "?action=getCardPublicShell&id=" + encodeURIComponent(cardId) + "&tenant=angel&v=" + VERSION;
-      try {
-        var res = await fetch(url, { method: "GET", cache: "default" });
-        var text = await res.text();
-        var data = JSON.parse(text);
-        var card = data.item || data.card || data.row || data.data || data;
-        if (card && (card.name || card.avatar_url)){
-          await buildDynamicManifest(cardId, card);
-        } else {
-          useDefaultManifest();
-        }
-      } catch(_){
+      // 2. 如果有 cache 資料,立刻用頭像 URL 當 icon 注入
+      if (cachedData && cachedData.avatar_url){
+        installManifest(cardId, cachedData, cachedData.avatar_url);
+        // 背景:再試 Canvas 合成,成功就替換為更好看的圓形 icon
+        buildAvatarIconDataUrl(cachedData.avatar_url).then(function(dataUrl){
+          if (dataUrl){
+            installManifest(cardId, cachedData, dataUrl);
+          }
+        });
+      } else {
+        // 沒 cache,先用預設 icon
         useDefaultManifest();
       }
+
+      // 3. 不管有沒有 cache,都去抓最新資料(背景)
+      var url = GAS_URL + "?action=getCardPublicShell&id=" + encodeURIComponent(cardId) + "&tenant=angel&v=" + VERSION;
+      fetch(url, { method: "GET", cache: "default" })
+        .then(function(res){ return res.text(); })
+        .then(function(text){
+          try {
+            var data = JSON.parse(text);
+            var card = data.item || data.card || data.row || data.data || data;
+            if (card && card.avatar_url){
+              // 寫回 cache,下次就能立刻用
+              try {
+                localStorage.setItem("HSC_shell_" + cardId, JSON.stringify({ data: card, ts: Date.now() }));
+              } catch(_){}
+              // 立刻用頭像 URL 注入
+              installManifest(cardId, card, card.avatar_url);
+              // 再試 Canvas 合成
+              buildAvatarIconDataUrl(card.avatar_url).then(function(dataUrl){
+                if (dataUrl){
+                  installManifest(cardId, card, dataUrl);
+                }
+              });
+            }
+          } catch(e){
+            console.warn("[HSC] fetch card parse failed:", e);
+          }
+        })
+        .catch(function(e){
+          console.warn("[HSC] fetch card failed:", e);
+        });
     }
 
+    // === 進入點 ===
     var sp = getParams();
     var urlId = (sp.get("id") || "").trim();
     var isViewMode = sp.get("view") === "1";
     var isPersonalCard = !!(urlId && isViewMode && urlId !== "TW0001");
 
     if (isPersonalCard){
-      fetchCardAndBuildManifest(urlId);
+      bootDynamicManifest(urlId);
     } else {
       useDefaultManifest();
     }
