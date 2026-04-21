@@ -2026,7 +2026,11 @@
         }
       });
     }
-  })();
+ if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", bootLiff);
+    } else {
+      bootLiff();
+    } })();
   </script>
 
   <script type="module" src="./form.js"></script>
