@@ -1870,7 +1870,7 @@ async function triggerPwaInstall_(){
     return;
   }
 if(isIos_()){ alert("📱 新增到主畫面的方法:\n\n1. 點下方「分享」鈕 ⬆\n2. 往下滑找「加入主畫面」\n3. 點右上角「新增」\n\n就會在桌面看到圖示囉 🎉"); return; }
- alert("📱 新增到主畫面的方法:\n\n1. 點右上角「⋮」三個點\n2. 選「新增到主畫面」\n3. 按「新增」確認\n\n就會在桌面看到圖示囉 🎉");
+ alert("📱 新增到主畫面的方法:\n\n1. 點右上角或右下角「⋮」三個點\n2. 選「新增到主畫面」\n3. 按「新增」確認\n\n就會在桌面看到圖示囉 🎉");
 }
 window.__triggerPwaInstall = triggerPwaInstall_;
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; updateInstallUi_(); });
