@@ -664,7 +664,7 @@ function syncDeliveryControlPanel(card) {
       summaryEl.querySelector('#btnCopyCardPublicUrl')?.addEventListener('click', () => copyText(buildPreviewLink(id), '📇 已複製智慧名片連結(可分享)'));
     }
 
-    if (typeof window.renderDeliveryLinks === 'function') window.renderDeliveryLinks(id, meta.referral_link);
+    if (typeof window.renderDeliveryLinks === 'function') window.renderDeliveryLinks(id, meta.referral_link, card.line_user_id);
     if (typeof window.renderDeliveryCopyTexts === 'function') {
       const texts = [
         { label: 'Trial 分享文案', value: `🎉 體驗 HSC 智慧名片！點擊連結搶先試用：${buildPreviewLink(id)}` },
