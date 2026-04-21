@@ -8,7 +8,7 @@
 
   <meta name="theme-color" content="#f8f4ee" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <link rel="icon" href="./icon-192.png?v=v1.6" />
+  <link rel="icon" href="./icon-192.png?v=v1.7" />
   <!-- manifest 和 apple-touch-icon 由下方 JS 動態注入 -->
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -18,15 +18,15 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=v1.6" />
+  <meta property="og:image" content="og-card.png?v=v1.7" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=v1.6" />
+  <link rel="stylesheet" href="./style.css?v=v1.7" />
 
   <!-- ═══════════════════════════════════════════════════════════
-       HSC PWA 動態 manifest 注入(v1.6-card-icon)
+       HSC PWA 動態 manifest 注入(v1.7-hub-vs-card)
        結構複製 poster.html(已驗證有效)
        - 有 id 參數 → 動態產生頭像 manifest
        - 無 id → 用預設 icon
@@ -35,7 +35,7 @@
   (function(){
     "use strict";
 
-    var VERSION = "v1.6-card-icon";
+    var VERSION = "v1.7-hub-vs-card";
     var DEFAULT_ICON = "./icon-192.png?v=" + VERSION;
     var GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
     var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
@@ -169,8 +169,11 @@
 
     var sp = getParams();
     var urlId = (sp.get("id") || "").trim();
+    var isViewMode = sp.get("view") === "1";
 
-    if (urlId){
+    // 🔑 關鍵:只有「成品卡模式」(view=1) 才動態注入頭像 icon
+    // 名片館(無 view 或只有 id 自動填入)→ 用小太陽 icon
+    if (urlId && isViewMode){
       fetchCardAndBuildManifest(urlId);
     } else {
       injectLink("apple-touch-icon", DEFAULT_ICON);
@@ -998,7 +1001,7 @@
             </div>
           </div>
 
-          <div class="version-tag" id="versionTag">v1.6</div>
+          <div class="version-tag" id="versionTag">v1.7</div>
         </div>
       </section>
     </div>
@@ -1068,14 +1071,14 @@
     </div>
   </div>
 
-  <script src="./card-renderer.js?v=v1.6"></script>
-  <script src="./app.js?v=v1.6"></script>
+  <script src="./card-renderer.js?v=v1.7"></script>
+  <script src="./app.js?v=v1.7"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "v1.6";
+      var VERSION = "v1.7";
       var LINE_OA_URL = "https://lin.ee/G3VJoRm";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
