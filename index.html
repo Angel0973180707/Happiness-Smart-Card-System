@@ -8,8 +8,8 @@
 
   <meta name="theme-color" content="#f8f4ee" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <link rel="icon" href="./icon-192.png?v=v1.5.7" />
-  <!-- manifest 和 apple-touch-icon 由下方 JS 動態注入（支援成品卡專屬 icon）-->
+  <link rel="icon" href="./icon-192.png?v=v1.6" />
+  <!-- manifest 和 apple-touch-icon 由下方 JS 動態注入 -->
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,27 +18,24 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=v1.5.7" />
+  <meta property="og:image" content="og-card.png?v=v1.6" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=v1.5.7" />
+  <link rel="stylesheet" href="./style.css?v=v1.6" />
 
-<!-- ═══════════════════════════════════════════════════════════
-       HSC PWA 動態 manifest 注入(v1.3-sync-inject)
-       - 成品卡模式(?id=TWxxxx&view=1 且非 TW0001)
-         → 🆕 同步預先注入 manifest(用 cache 或頭像 URL 當 icon)
-         → 🆕 背景再抓最新 card 資料,成功就替換為 Canvas 合成 icon
-       - 門面模式 / TW0001 樣品卡
-         → 用原本的靜態 manifest.json
+  <!-- ═══════════════════════════════════════════════════════════
+       HSC PWA 動態 manifest 注入(v1.6-card-icon)
+       結構複製 poster.html(已驗證有效)
+       - 有 id 參數 → 動態產生頭像 manifest
+       - 無 id → 用預設 icon
   ═══════════════════════════════════════════════════════════ -->
   <script>
   (function(){
     "use strict";
 
-    var VERSION = "v1.5.7";
-    var DEFAULT_MANIFEST_URL = "./manifest.json?v=" + VERSION;
+    var VERSION = "v1.6-card-icon";
     var DEFAULT_ICON = "./icon-192.png?v=" + VERSION;
     var GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
     var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
@@ -49,8 +46,6 @@
     }
 
     function injectLink(rel, href, attrs){
-      // 先移除同 rel 的舊 link(避免重複)
-      document.querySelectorAll("link[rel=\"" + rel + "\"]").forEach(function(l){ l.remove(); });
       var link = document.createElement("link");
       link.rel = rel;
       link.href = href;
@@ -61,58 +56,7 @@
       return link;
     }
 
-    function useDefaultManifest(){
-      injectLink("manifest", DEFAULT_MANIFEST_URL);
-      injectLink("apple-touch-icon", DEFAULT_ICON);
-    }
-
-    // === 建立 manifest Blob URL ===
-    function buildManifestBlobUrl(cardId, cardData, iconUrl){
-      var cardUrl = BASE_URL + "index.html?id=" + encodeURIComponent(cardId) + "&view=1";
-      var cardName = (cardData && cardData.name) || cardId;
-      var displayName = cardName + " · 智慧名片";
-
-      var manifest = {
-        name: displayName,
-        short_name: cardName || displayName,
-        start_url: cardUrl,
-        scope: "./",
-        display: "standalone",
-        orientation: "portrait",
-        background_color: "#f8f4ee",
-        theme_color: "#f8f4ee",
-        description: cardName + " 的智慧名片",
-        icons: [
-          { src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any maskable" }
-        ]
-      };
-
-      var json = JSON.stringify(manifest);
-      var blob = new Blob([json], { type: "application/manifest+json" });
-      return URL.createObjectURL(blob);
-    }
-
-    // === 注入 / 替換 manifest ===
-    function installManifest(cardId, cardData, iconUrl){
-      try {
-        var blobUrl = buildManifestBlobUrl(cardId, cardData, iconUrl);
-        injectLink("manifest", blobUrl);
-        injectLink("apple-touch-icon", iconUrl);
-
-        var cardName = (cardData && cardData.name) || cardId;
-        var displayName = cardName + " · 智慧名片";
-        try {
-          var metaTitle = document.querySelector("meta[name=\"apple-mobile-web-app-title\"]");
-          if (metaTitle) metaTitle.setAttribute("content", displayName);
-          document.title = displayName;
-        } catch(_){}
-      } catch(e){
-        console.warn("[HSC] installManifest failed:", e);
-      }
-    }
-
-    // === Canvas 合成頭像 icon(背景執行,成功才替換)===
+    // === 關鍵:用 Canvas 合成「純頭像」icon ===
     function buildAvatarIconDataUrl(avatarUrl){
       return new Promise(function(resolve){
         if (!avatarUrl) { resolve(null); return; }
@@ -124,8 +68,10 @@
             canvas.width = 512;
             canvas.height = 512;
             var ctx = canvas.getContext("2d");
+
             ctx.fillStyle = "#f8f4ee";
             ctx.fillRect(0, 0, 512, 512);
+
             ctx.save();
             ctx.beginPath();
             ctx.arc(256, 256, 256, 0, Math.PI * 2);
@@ -136,92 +82,102 @@
             var h = img.height * ratio;
             ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
             ctx.restore();
+
             resolve(canvas.toDataURL("image/png", 0.95));
-          } catch(e){
-            console.warn("[HSC] canvas composite failed:", e);
+          } catch(e) {
+            console.warn("[HSC card icon] canvas composite failed:", e);
             resolve(null);
           }
         };
         img.onerror = function(){
-          console.warn("[HSC] avatar load failed");
+          console.warn("[HSC card icon] avatar CORS or load failed");
           resolve(null);
         };
         img.src = avatarUrl;
       });
     }
 
-    // === 主邏輯:同步注入 + 背景升級 ===
-    function bootDynamicManifest(cardId){
-      // 1. 先嘗試用 localStorage 快取立刻注入(同步)
-      var cachedData = null;
+    async function buildCardManifest(cardId, cardData){
+      var cardUrl = BASE_URL + "index.html?id=" + encodeURIComponent(cardId) + "&view=1";
+      var avatarUrl = cardData.avatar_url || "";
+      var cardName = cardData.name || cardId;
+      var displayName = cardName + " · 智慧名片";
+
+      var iconUrl = BASE_URL + "icon-192.png";
+      if (avatarUrl) {
+        var composite = await buildAvatarIconDataUrl(avatarUrl);
+        iconUrl = composite || avatarUrl;
+      }
+
+      var manifest = {
+        name: displayName,
+        short_name: displayName,
+        start_url: cardUrl,
+        scope: "./",
+        display: "standalone",
+        orientation: "portrait",
+        background_color: "#f8f4ee",
+        theme_color: "#f8f4ee",
+        description: cardName + " 的智慧名片",
+        icons: [
+          { src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any" }
+        ]
+      };
+
+      var json = JSON.stringify(manifest);
+      var blob = new Blob([json], { type: "application/manifest+json" });
+      var blobUrl = URL.createObjectURL(blob);
+
+      injectLink("manifest", blobUrl);
+      injectLink("apple-touch-icon", iconUrl);
+
+      try {
+        var metaTitle = document.querySelector("meta[name=\"apple-mobile-web-app-title\"]");
+        if (metaTitle) metaTitle.setAttribute("content", displayName);
+        document.title = displayName;
+      } catch(_){}
+    }
+
+    async function fetchCardAndBuildManifest(cardId){
       try {
         var cached = localStorage.getItem("HSC_shell_" + cardId);
         if (cached){
           var parsed = JSON.parse(cached);
           if (parsed && parsed.data){
-            cachedData = parsed.data;
+            await buildCardManifest(cardId, parsed.data);
+            return;
           }
         }
       } catch(_){}
 
-      // 2. 如果有 cache 資料,立刻用頭像 URL 當 icon 注入
-      if (cachedData && cachedData.avatar_url){
-        installManifest(cardId, cachedData, cachedData.avatar_url);
-        // 背景:再試 Canvas 合成,成功就替換為更好看的圓形 icon
-        buildAvatarIconDataUrl(cachedData.avatar_url).then(function(dataUrl){
-          if (dataUrl){
-            installManifest(cardId, cachedData, dataUrl);
-          }
-        });
-      } else {
-        // 沒 cache,先用預設 icon
-        useDefaultManifest();
-      }
-
-      // 3. 不管有沒有 cache,都去抓最新資料(背景)
       var url = GAS_URL + "?action=getCardPublicShell&id=" + encodeURIComponent(cardId) + "&tenant=angel&v=" + VERSION;
-      fetch(url, { method: "GET", cache: "default" })
-        .then(function(res){ return res.text(); })
-        .then(function(text){
-          try {
-            var data = JSON.parse(text);
-            var card = data.item || data.card || data.row || data.data || data;
-            if (card && card.avatar_url){
-              // 寫回 cache,下次就能立刻用
-              try {
-                localStorage.setItem("HSC_shell_" + cardId, JSON.stringify({ data: card, ts: Date.now() }));
-              } catch(_){}
-              // 立刻用頭像 URL 注入
-              installManifest(cardId, card, card.avatar_url);
-              // 再試 Canvas 合成
-              buildAvatarIconDataUrl(card.avatar_url).then(function(dataUrl){
-                if (dataUrl){
-                  installManifest(cardId, card, dataUrl);
-                }
-              });
-            }
-          } catch(e){
-            console.warn("[HSC] fetch card parse failed:", e);
-          }
-        })
-        .catch(function(e){
-          console.warn("[HSC] fetch card failed:", e);
-        });
+      try {
+        var res = await fetch(url, { method: "GET", cache: "default" });
+        var text = await res.text();
+        var data = JSON.parse(text);
+        var card = data.item || data.card || data.row || data.data || data;
+        if (card && (card.name || card.avatar_url)){
+          await buildCardManifest(cardId, card);
+        } else {
+          injectLink("apple-touch-icon", DEFAULT_ICON);
+        }
+      } catch(_){
+        injectLink("apple-touch-icon", DEFAULT_ICON);
+      }
     }
 
-    // === 進入點 ===
     var sp = getParams();
     var urlId = (sp.get("id") || "").trim();
-    var isViewMode = sp.get("view") === "1";
-    var isPersonalCard = !!(urlId && isViewMode && urlId !== "TW0001");
 
-    if (isPersonalCard){
-      bootDynamicManifest(urlId);
+    if (urlId){
+      fetchCardAndBuildManifest(urlId);
     } else {
-      useDefaultManifest();
+      injectLink("apple-touch-icon", DEFAULT_ICON);
     }
   })();
   </script>
+
   <style>
     :root{
       --poster-bg:#f8f4ee;
@@ -738,7 +694,6 @@
     body.clean #admin-panel{ display:none !important; }
     body.clean #card-container{ position: relative; z-index: 1; }
 
-    /* ── 成品卡模式：隱藏門面 UI ── */
     body.card-view-mode #admin-panel{ display:none !important; }
     body.card-view-mode #adminHotspotBR{ display:none !important; }
 
@@ -791,7 +746,7 @@
 <body class="mode-free color-1 style-arch paper-1">
   <div id="adminHotspotBR" aria-hidden="true"></div>
 
-  <button id="installFab" type="button" aria-label="一鍵安裝">
+  <button id="installFab" type="button" aria-label="新增到主畫面">
     <i class="fa-solid fa-download" aria-hidden="true"></i>
   </button>
 
@@ -1043,7 +998,7 @@
             </div>
           </div>
 
-          <div class="version-tag" id="versionTag">v1.5.7</div>
+          <div class="version-tag" id="versionTag">v1.6</div>
         </div>
       </section>
     </div>
@@ -1113,14 +1068,14 @@
     </div>
   </div>
 
-  <script src="./card-renderer.js?v=v1.5.7"></script>
-  <script src="./app.js?v=v1.5.7"></script>
+  <script src="./card-renderer.js?v=v1.6"></script>
+  <script src="./app.js?v=v1.6"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "v1.5.7";
+      var VERSION = "v1.6";
       var LINE_OA_URL = "https://lin.ee/G3VJoRm";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
