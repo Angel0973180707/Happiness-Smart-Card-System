@@ -1583,12 +1583,90 @@
 
   async function submitUpdate() {
     if (!validateUpdateBeforeSubmit()) return;
+
+    // ═══════════════════════════════════════════════════════
+    // 🆕 需付款的更新流程(流程 B:先填內容 → 再付費 → 自動套用)
+    // ═══════════════════════════════════════════════════════
     if (state.updateFlow.requiresPayment) {
-      const cardId = state.modeContext.cardId;
-      const feeAmount = state.updateFlow.updateFeeAmount || 300;
-      showUpdatePaymentRequiredPanel({ cardId, updateFeeAmount: feeAmount });
+      state.lastSubmitResult = null;
+      showProgress(true);
+      hideSuccessPanel();
+      setProgressStep(1, "等待圖片上傳完成…");
+
+      try {
+        const cardId = state.modeContext.cardId;
+        const token = state.modeContext.updateToken;
+
+        // Step 1:等圖片上傳完
+        await waitAllUploads();
+
+        // Step 2:產生 update_fee 付款單
+        setProgressStep(2, "建立更新付款單…");
+        const createPaymentRes = await postToGas({
+          action: CONFIG.UPDATE_CREATE_PAYMENT_ACTION,
+          card_id: cardId,
+          update_token: token
+        });
+        if (!createPaymentRes.ok) throw new Error(createPaymentRes.error || "建立付款單失敗");
+
+        const paymentObj = createPaymentRes.payment || {};
+        const paymentId = paymentObj.payment_id || "";
+        const feeAmount = Number(paymentObj.amount) || state.updateFlow.updateFeeAmount || 300;
+        const dueAtRaw = paymentObj.due_at || fallback3Days();
+        const dueAtObj = parseDateSafe(dueAtRaw) || parseDateSafe(fallback3Days());
+
+        if (!paymentId) throw new Error("系統沒有回傳付款單號");
+
+        // Step 3:把客戶填的新內容存到 update_pending_db
+        setProgressStep(3, "暫存您的更新內容…");
+        const updatePayload = buildUpdatePayload();
+        const saveRes = await postToGas({
+          action: "savePendingUpdate",
+          card_id: cardId,
+          payment_id: paymentId,
+          ...updatePayload
+        });
+        if (!saveRes.ok) throw new Error(saveRes.error || "暫存更新內容失敗");
+
+        // Step 4:顯示付款資訊
+        setProgressStep(4, "產生付款資訊…");
+        const result = {
+          cardId,
+          paymentId,
+          updateFeeAmount: feeAmount,
+          totalAmount: feeAmount,
+          paymentDueAt: dueAtObj.toISOString(),
+          dueDateStr: formatDateTime(dueAtObj),
+          customerName: valueOf("display_name") || "您"
+        };
+        state.lastSubmitResult = result;
+
+        setProgressStep(5, "✅ 已建立付款單");
+        showUpdatePaymentRequiredPanel({
+          cardId,
+          updateFeeAmount: feeAmount,
+          paymentId
+        });
+        setStatus("更新付款單已建立,完成付款後系統會自動套用新內容。", "success");
+
+      } catch (err) {
+        console.error(err);
+        setStatus("建立付款單失敗:" + err.message, "error");
+      } finally {
+        if (state.lastSubmitResult) {
+          els.progressSteps?.forEach(s => s.classList.remove("is-active"));
+          if (els["progress-fill"]) els["progress-fill"].style.width = "100%";
+          if (els["progress-text"]) els["progress-text"].textContent = "✅ 完成";
+          if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
+        } else {
+          showProgress(false);
+        }
+      }
       return;
     }
+    // ═══════════════════════════════════════════════════════
+    // 免費更新流程(未變)
+    // ═══════════════════════════════════════════════════════
     state.lastSubmitResult = null;
     showProgress(true);
     hideSuccessPanel();
@@ -1627,7 +1705,6 @@
       }
     }
   }
-
   async function submitRenew() {
     if (!validateRenewBeforeSubmit()) return;
     state.lastSubmitResult = null;
