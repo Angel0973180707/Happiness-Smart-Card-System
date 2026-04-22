@@ -1432,7 +1432,7 @@ const links = [
       {label:'更新入口', value: `${base}update.html?id=${encodeURIComponent(cardId)}`},
       {label:'續約入口', value: `${base}renew.html?id=${encodeURIComponent(cardId)}`},
       {label:'推薦入口', value: referralLink || `${base}index.html?id=${encodeURIComponent(cardId)}`},
-      {label:'LINE 綁定', value: `https://liff.line.me/ 2009864519-odP1LSn7?bind=${encodeURIComponent(cardId)}`},
+      {label:'LINE 綁定', value: `https://liff.line.me/2009864519-odP1LSn7?bind=${encodeURIComponent(cardId)}`},
       {label:'LINE 對話', value: lineUserId ? `https://chat.line.biz/U889bf67e0e0f170b68e21d171933d241/chat/${lineUserId}` : '⚠️ 客戶尚未綁定 LINE'},
     ];
     wrap.innerHTML = links.map(l => `
