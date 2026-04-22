@@ -1,9 +1,14 @@
 /* ============================================================
-   天使幸福智慧名片館 style.css  v8.4.2-photo-wall-carousel-fix
+   天使幸福智慧名片館 style.css  v8.4.3-cta-collapse-toggle
    完整覆蓋版
-   v8.4.2：照片牆輪播修復（carousel 一張一張滿版輪播）
-   v8.4.1：新增 carousel 相關樣式
-   v8.3.3：layout-5 span 掛 .photo-tile、奇數落單規則
+
+   v8.4.3:CTA 智慧收合
+     - 新增 .cta-expand-wrap / .cta-expand-toggle
+     - 支援 free / premium / p6 變體
+     - 配合 card-renderer.js v8.4.3 CTA 收合邏輯
+   v8.4.2:照片牆輪播修復(carousel 一張一張滿版輪播)
+   v8.4.1:新增 carousel 相關樣式
+   v8.3.3:layout-5 span 掛 .photo-tile、奇數落單規則
 ============================================================ */
 
 :root {
@@ -361,6 +366,73 @@ body.mode-premium.p7 .dock-btn{background:radial-gradient(160% 200% at 18% 0%,rg
 body.mode-premium.p7 .dock-btn::before{background:linear-gradient(135deg,rgba(195,165,135,.82),rgba(140,108,80,.76),rgba(66,48,42,.68));opacity:.72;}
 
 /* ============================================================
+   ★ CTA 智慧收合 v8.4.3
+   - 配合 card-renderer.js renderCtaDock 收合邏輯
+   - 顯示前 4 個 CTA,超過出現「展開更多 (N)」按鈕
+============================================================ */
+.cta-expand-wrap{
+  display:flex;
+  justify-content:center;
+  margin-top:10px;
+}
+.cta-expand-toggle{
+  appearance:none;
+  border:1px solid rgba(0,0,0,.08);
+  background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(255,255,255,.86));
+  color:var(--accentText);
+  border-radius:999px;
+  padding:8px 16px;
+  font-size:12px;
+  font-weight:900;
+  line-height:1;
+  letter-spacing:.04em;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  box-shadow:0 8px 18px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.82);
+  transition:transform .12s ease,box-shadow .12s ease;
+  touch-action:manipulation;
+}
+.cta-expand-toggle:hover{
+  transform:translateY(-1px);
+  box-shadow:0 12px 24px rgba(0,0,0,.10),inset 0 1px 0 rgba(255,255,255,.82);
+}
+.cta-expand-toggle:active{
+  transform:scale(.985);
+  box-shadow:0 6px 14px rgba(0,0,0,.08),inset 0 2px 6px rgba(0,0,0,.06);
+}
+.cta-expand-toggle i{
+  font-size:11px;
+}
+body.mode-premium .cta-expand-toggle{
+  border-color:rgba(255,255,255,.16);
+  background:radial-gradient(130% 180% at 20% 0%,rgba(255,255,255,.18),rgba(255,255,255,.08) 54%,rgba(255,255,255,.06)),rgba(255,255,255,.08);
+  color:rgba(255,255,255,.96);
+  box-shadow:0 10px 22px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.14);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+body.mode-premium.p6 .cta-expand-toggle{
+  border-color:rgba(255,240,196,.34);
+  background:radial-gradient(140% 190% at 20% 0%,rgba(255,255,255,.40),rgba(255,248,216,.22) 54%,rgba(255,255,255,.12)),linear-gradient(135deg,rgba(255,248,220,.18),rgba(255,222,138,.18),rgba(191,149,63,.24));
+  color:rgba(255,249,238,.99);
+  box-shadow:0 12px 24px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.20);
+}
+
+/* 收合動畫(可選淡入效果) */
+.cta-dock .dock-btn[data-cta-collapsed="1"]{
+  animation:none;
+}
+.cta-dock .dock-btn:not([data-cta-collapsed]){
+  animation:ctaFadeIn .24s ease-out;
+}
+@keyframes ctaFadeIn{
+  0%{opacity:0;transform:translateY(-4px);}
+  100%{opacity:1;transform:translateY(0);}
+}
+
+/* ============================================================
    ★ Photo Wall  v8.3.3 + v8.4.2 Carousel 修復
 ============================================================ */
 .photo-wall{margin-top:14px;border-radius:18px;padding:10px;border:1px solid rgba(0,0,0,.05);background:rgba(255,255,255,.74);box-shadow:0 10px 24px rgba(0,0,0,.07),inset 0 1px 0 rgba(255,255,255,.64);}
@@ -385,7 +457,7 @@ body.mode-premium .photo-wall{background:rgba(8,10,16,.20);border-color:rgba(255
 .wall-img{width:100%;aspect-ratio:1 / 1;border-radius:14px;object-fit:cover;display:block;box-shadow:0 10px 22px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.05);border:1px solid rgba(0,0,0,.05);background:rgba(255,255,255,.55);transition:transform .16s ease,box-shadow .16s ease;}
 .wall-img:hover{transform:scale(1.025);box-shadow:0 14px 30px rgba(0,0,0,.16),0 2px 4px rgba(0,0,0,.06);}
 
-/* ── v8.4.2 Carousel 修復版（一張一張滿版輪播）── */
+/* ── v8.4.2 Carousel 修復版(一張一張滿版輪播)── */
 .photo-carousel{
   display:block;
   position:relative;
@@ -593,6 +665,7 @@ body.mode-premium.p7 .marquee-shell{border-color:rgba(190,160,130,.14);backgroun
   .announcement-badge{min-height:24px;padding:4px 10px;font-size:10px;}
   .announcement-counter{font-size:10px;}
   .announcement-modal-body{font-size:13px;line-height:1.9;}
+  .cta-expand-toggle{font-size:11px;padding:7px 14px;}
 }
 
 @media (max-width:360px){
@@ -617,10 +690,11 @@ body.mode-premium.p7 .marquee-shell{border-color:rgba(190,160,130,.14);backgroun
   .announcement-card{padding:11px 10px 10px;border-radius:14px;}
   .announcement-title{font-size:13px;}
   .announcement-modal-body{font-size:12px;line-height:1.85;}
+  .cta-expand-toggle{font-size:11px;padding:7px 12px;}
 }
 
 /* ============================================================
-   HSC 版權聲明｜精品弱化版
+   HSC 版權聲明|精品弱化版
 ============================================================ */
 .copyright-block{
   margin-top:14px;
@@ -637,7 +711,7 @@ body.mode-free .copyright-block{color:#a79c92;}
 body.mode-premium .copyright-block{color:rgba(255,255,255,.35);opacity:.5;}
 
 /* ============================================================
-   HSC 浮水印版權層｜精品紙紋最終版
+   HSC 浮水印版權層|精品紙紋最終版
 ============================================================ */
 .card-watermark{
   position:absolute;
