@@ -1,30 +1,26 @@
 /* ============================================================
    card-renderer.js
    HSC 唯一渲染模組
-   v8.4.2-photo-wall-carousel-ratio-fix + v1.5.1-compat-bridge
+   v8.4.3-cta-collapse+photo-limit-buyup+carousel-autoplay-fix
 
-   修正與升級項目：
-   - v7.7.7: 修正 base64 DataURL 圖片無法顯示的問題
-   - v8.4.1: applyThemeClasses 同步更新 document.body，
-             修正預覽成品吃不到 style.css 主程式樣式顏色的問題
-   - v8.4.1: 照片牆智慧排版升級
-     * shouldUsePhotoCarousel_(photoCount, plan) 決策函式
-     * buildPhotoCarousel_(photos, p, preview, allowActions) carousel HTML
-     * initPhotoCarousel_(wall, options) 自動播放 + dots + touch + hover
-     * free 5+ 張 → carousel；premium 4+ 張 → carousel
-     * 1~4 張（free）/ 1~3 張（premium）維持原本 grid
-     * 不影響既有 CTA / QR / 公告 / 跑馬燈 / grid 樣式
-   - v8.4.2: 修正 premium / carousel 照片牆撐爆預覽高度問題
-     * 新增 applyCarouselRatioStyles_()
-     * carousel 視窗鎖定 1:1 / 16:9 比例
-     * 每張 slide 固定為 100% viewport，不再被原圖尺寸撐開
-     * 保留 cover / contain 與 photo_meta 裁切定位
-   - v1.5.1: 相容橋接層
-     * 新增 renderShell(root, shellData, options)
-     * 新增 mergeLite(root, liteData, options)
-     * 新增 mergeCardData(root, fullData, options)
-     * 不破壞原本 renderCard(data, options) 用法
-     * 讓新 app.js 可直接對接舊完整 renderer
+   v8.4.3 更新:
+   - PLAN_LIMITS 保留「預設值」(free 2/1、premium 5/3)
+   - 新增 PHOTO_HARD_CAP = 10(2+8 或 5+5,總上限 10)
+   - 新增 CTA_HARD_CAP = 20(CTA 掃描與加購硬上限)
+   - 新增 CTA_VISIBLE_COUNT = 4(預設顯示前 4 個,超過自動收合)
+   - normalizePhotoMetaMap 迴圈擴大至 PHOTO_HARD_CAP
+   - getPhotoLimitFromPayload / getCtaLimitFromPayload 上限放寬
+   - buildCtaItems 迴圈放寬至 CTA_HARD_CAP,拿掉硬寫死的 3
+   - shouldUsePhotoCarousel_ 統一 ≥5 觸發
+   - 新增 applyWideRuleVisible(處理收合後的 wide 邏輯)
+   - renderCtaDock 加入智慧排版 + 收合展開邏輯
+   - initPhotoCarousel_ 修正輪播卡死 bug(isProgrammaticScroll flag)
+
+   繼承:
+   - v8.4.2: applyCarouselRatioStyles_ / carousel 比例鎖定
+   - v8.4.1: photo wall 智慧排版升級
+   - v7.7.7: base64 DataURL 圖片修正
+   - v1.5.1: 相容橋接層(renderShell / mergeLite / mergeCardData)
 
    設計原則
    - 不依賴 form.js
@@ -46,9 +42,14 @@
   };
 
   var PLAN_LIMITS = {
-    free: { maxPhotos: 2, maxCtas: 1 },
+    free:    { maxPhotos: 2, maxCtas: 1 },   // 預設(未加購)
     premium: { maxPhotos: 5, maxCtas: 3 }
   };
+
+  // v8.4.3 新增:加購 / 顯示 / 掃描上限
+  var PHOTO_HARD_CAP    = 10;  // free 2+8、premium 5+5 最多 10
+  var CTA_HARD_CAP      = 20;  // CTA 掃描與加購硬上限
+  var CTA_VISIBLE_COUNT = 4;   // 預設顯示前 4 個,超過收合
 
   var DEFAULT_PREVIEW_META = {
     theme: "",
@@ -249,7 +250,7 @@
   function normalizePhotoMetaMap(raw) {
     var src = raw && typeof raw === "object" ? raw : {};
     var out = {};
-    for (var i = 1; i <= 10; i++) {
+    for (var i = 1; i <= PHOTO_HARD_CAP; i++) {
       out["photo" + i] = normalizeSinglePhotoMeta(src["photo" + i]);
     }
     return out;
@@ -388,14 +389,14 @@
 
   function getPhotoLimitFromPayload(p) {
     var limit = Number(pick(p, ["photo_limit"]));
-    if (Number.isFinite(limit) && limit > 0 && limit <= 10) return limit;
+    if (Number.isFinite(limit) && limit > 0 && limit <= PHOTO_HARD_CAP) return limit;
     var theme = getEffectiveTheme(p);
     return PLAN_LIMITS[theme] ? PLAN_LIMITS[theme].maxPhotos : PLAN_LIMITS.free.maxPhotos;
   }
 
   function getCtaLimitFromPayload(p) {
     var limit = Number(pick(p, ["cta_limit"]));
-    if (Number.isFinite(limit) && limit > 0 && limit <= 10) return limit;
+    if (Number.isFinite(limit) && limit > 0 && limit <= CTA_HARD_CAP) return limit;
     var theme = getEffectiveTheme(p);
     return PLAN_LIMITS[theme] ? PLAN_LIMITS[theme].maxCtas : PLAN_LIMITS.free.maxCtas;
   }
@@ -439,7 +440,7 @@
   function buildCtaItems(p) {
     var limit = getCtaLimitFromPayload(p);
     var items = [];
-    for (var i = 1; i <= 3; i++) {
+    for (var i = 1; i <= CTA_HARD_CAP; i++) {
       var label = text(pick(p, ["cta_text_" + i, "ctaText" + i, "CTA文字" + i]));
       var link  = normalizeUrl(pick(p, ["cta_link_" + i, "ctaLink" + i, "CTA連結" + i]));
       if (!label || !link) continue;
@@ -491,6 +492,17 @@
     btns.forEach(function (b) { b.classList.remove("wide"); });
     if (btns.length % 2 === 1 && btns.length > 0) {
       btns[btns.length - 1].classList.add("wide");
+    }
+  }
+
+  // v8.4.3:支援「可見按鈕」的 wide 判斷(供收合後使用)
+  function applyWideRuleVisible(container) {
+    if (!container) return;
+    var all = Array.from(container.querySelectorAll(".dock-btn"));
+    all.forEach(function (b) { b.classList.remove("wide"); });
+    var visible = all.filter(function (b) { return b.style.display !== "none"; });
+    if (visible.length % 2 === 1 && visible.length > 0) {
+      visible[visible.length - 1].classList.add("wide");
     }
   }
 
@@ -636,7 +648,7 @@
       '        <div class="dock-buttons" data-primary-link-buttons></div>',
       '      </div>',
       '      <div class="contact-dock" data-media-dock style="display:none;">',
-      '        <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／社群</div>',
+      '        <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音/社群</div>',
       '        <div class="dock-buttons" data-media-buttons></div>',
       '      </div>',
       '      <div class="contact-dock cta-dock" data-cta-dock style="display:none;">',
@@ -650,7 +662,7 @@
       '      <div class="card-expiry" id="cardExpiry" style="display:none;"></div>',
       '      <div class="qr-bottom" data-bottom-qr-section style="display:none;">',
       '        <div class="qr-bottom-head">',
-      '          <div class="qr-bottom-title">掃描 QRcode｜開啟我的智慧名片</div>',
+      '          <div class="qr-bottom-title">掃描 QRcode|開啟我的智慧名片</div>',
       '          <div class="qr-bottom-sub">可收藏・可分享・可快速回看</div>',
       '        </div>',
       '        <div class="qr-bottom-wrap">',
@@ -879,9 +891,9 @@
       return;
     }
 
-    var parts = marqueeText.split("｜").map(function (s) { return s.trim(); }).filter(Boolean);
-    var joined = (parts.length ? parts : [marqueeText]).join("　｜　");
-    textEl.textContent = joined + "　｜　" + joined + "　｜　";
+    var parts = marqueeText.split("|").map(function (s) { return s.trim(); }).filter(Boolean);
+    var joined = (parts.length ? parts : [marqueeText]).join("　|　");
+    textEl.textContent = joined + "　|　" + joined + "　|　";
     dock.style.display = "";
 
     requestAnimationFrame(function () {
@@ -980,24 +992,69 @@
     applyWideRule(btns);
   }
 
+  // v8.4.3:加入收合邏輯
   function renderCtaDock(p, scope, options) {
     var dock = scope.ctaDock;
     var btns = scope.ctaButtons;
     if (!dock || !btns) return;
+
+    // 清舊 DOM(按鈕 + 展開 toggle)
     btns.innerHTML = "";
+    var oldToggleWrap = dock.querySelector("[data-cta-expand-wrap]");
+    if (oldToggleWrap) oldToggleWrap.parentNode.removeChild(oldToggleWrap);
+
     var items = buildCtaItems(p);
     var allowActions = options.allowActions !== false;
     if (!items.length) { dock.style.display = "none"; return; }
+
+    var needsCollapse = items.length > CTA_VISIBLE_COUNT;
+
     items.forEach(function (item, idx) {
-      btns.appendChild(createDockBtn(
+      var btn = createDockBtn(
         item.label,
         idx === 0 ? "fa-solid fa-bolt" : "fa-solid fa-arrow-up-right-from-square",
         items.length === 1 ? "dock-web wide" : "dock-web",
         function () { if (allowActions) openUrl(item.link); }
-      ));
+      );
+      if (needsCollapse && idx >= CTA_VISIBLE_COUNT) {
+        btn.setAttribute("data-cta-collapsed", "1");
+        btn.style.display = "none";
+      }
+      btns.appendChild(btn);
     });
+
     dock.style.display = "";
-    applyWideRule(btns);
+    applyWideRuleVisible(btns);
+
+    if (needsCollapse) {
+      var hiddenCount = items.length - CTA_VISIBLE_COUNT;
+      var toggleWrap  = document.createElement("div");
+      toggleWrap.className = "cta-expand-wrap";
+      toggleWrap.setAttribute("data-cta-expand-wrap", "");
+
+      var toggle = document.createElement("button");
+      toggle.type      = "button";
+      toggle.className = "cta-expand-toggle";
+
+      var expanded = false;
+      function setState(open) {
+        expanded = open;
+        var hiddens = btns.querySelectorAll("[data-cta-collapsed]");
+        Array.prototype.forEach.call(hiddens, function (b) {
+          b.style.display = open ? "" : "none";
+        });
+        toggle.innerHTML = open
+          ? '<i class="fa-solid fa-chevron-up"></i> 收合'
+          : '<i class="fa-solid fa-chevron-down"></i> 展開更多 (' + hiddenCount + ')';
+        applyWideRuleVisible(btns);
+      }
+
+      toggle.addEventListener("click", function () { setState(!expanded); });
+      setState(false);
+
+      toggleWrap.appendChild(toggle);
+      dock.appendChild(toggleWrap);
+    }
   }
 
   function collectPhotos(p) {
@@ -1032,10 +1089,9 @@
     img.style.transform       = "scale(" + scale + ") rotate(" + rotate + "deg)";
   }
 
-  function shouldUsePhotoCarousel_(photoCount, plan) {
-    var normalizedPlan = String(plan || "").toLowerCase() === "premium" ? "premium" : "free";
-    if (normalizedPlan === "premium") return photoCount >= 4;
-    return photoCount >= 5;
+  // v8.4.3:統一 ≥5 觸發 carousel
+  function shouldUsePhotoCarousel_(photoCount /*, plan */) {
+    return Number(photoCount) >= 5;
   }
 
   function buildPhotoCarousel_(photos, p, preview, allowActions) {
@@ -1098,9 +1154,10 @@
     return { carousel: carousel, dotsWrap: dotsWrap };
   }
 
+  // v8.4.3:修正輪播卡死 bug(isProgrammaticScroll flag)
   function initPhotoCarousel_(wall, options) {
     var opts     = options || {};
-    var interval = opts.interval ||4500;
+    var interval = opts.interval || 4500;
 
     var carousel = wall.querySelector("[data-photo-carousel]");
     var track    = wall.querySelector("[data-carousel-track]");
@@ -1116,6 +1173,10 @@
     var timer   = null;
     var paused  = false;
 
+    // v8.4.3:防止 smooth scroll 期間 scroll handler 把 current 倒退回去
+    var isProgrammaticScroll = false;
+    var programmaticTimer    = null;
+
     function syncDots(idx) {
       dots.forEach(function (d, i) {
         d.classList.toggle("active", i === idx);
@@ -1127,12 +1188,19 @@
       current = idx;
       var tile = tiles[idx];
       if (tile) {
+        // 標記程式觸發的 scroll,800ms 內忽略 scroll handler 的 current 更新
+        isProgrammaticScroll = true;
+        if (programmaticTimer) clearTimeout(programmaticTimer);
+        programmaticTimer = setTimeout(function () {
+          isProgrammaticScroll = false;
+        }, 800);
         carousel.scrollTo({ left: tile.offsetLeft, behavior: "smooth" });
       }
       syncDots(idx);
     }
 
     function next() { goTo(current + 1); }
+
     function startAuto() {
       if (timer) return;
       timer = setInterval(function () {
@@ -1155,6 +1223,8 @@
 
     var scrollTimer = null;
     carousel.addEventListener("scroll", function () {
+      // v8.4.3:程式觸發的 scroll 期間,不更新 current(避免倒退)
+      if (isProgrammaticScroll) return;
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = setTimeout(function () {
         var cx = carousel.scrollLeft + carousel.clientWidth / 2;
@@ -1211,7 +1281,7 @@
         preview
       );
 
-      initPhotoCarousel_(wall, { interval:4500});
+      initPhotoCarousel_(wall, { interval: 4500 });
 
     } else {
       grid.style.display = "";
@@ -1318,65 +1388,65 @@
     });
   }
 
- function applyCarouselRatioStyles_(carousel, track, preview) {
-  if (!carousel || !track) return;
+  function applyCarouselRatioStyles_(carousel, track, preview) {
+    if (!carousel || !track) return;
 
-  var is169 = preview && preview.aspect_ratio === "16:9";
-  var fitMode = preview && preview.fit_mode === "contain" ? "contain" : "cover";
+    var is169 = preview && preview.aspect_ratio === "16:9";
+    var fitMode = preview && preview.fit_mode === "contain" ? "contain" : "cover";
 
-  carousel.classList.remove("ratio-1-1", "ratio-16-9", "fit-cover", "fit-contain");
-  carousel.classList.add(is169 ? "ratio-16-9" : "ratio-1-1");
-  carousel.classList.add(fitMode === "contain" ? "fit-contain" : "fit-cover");
+    carousel.classList.remove("ratio-1-1", "ratio-16-9", "fit-cover", "fit-contain");
+    carousel.classList.add(is169 ? "ratio-16-9" : "ratio-1-1");
+    carousel.classList.add(fitMode === "contain" ? "fit-contain" : "fit-cover");
 
-  carousel.style.position = "relative";
-  carousel.style.width = "100%";
-  carousel.style.maxWidth = "100%";
-  carousel.style.overflowX = "auto";
-  carousel.style.overflowY = "hidden";
-  carousel.style.borderRadius = "18px";
-  carousel.style.aspectRatio = is169 ? "16 / 9" : "1 / 1";
-  carousel.style.scrollSnapType = "x mandatory";
-  carousel.style.WebkitOverflowScrolling = "touch";
-  carousel.style.scrollBehavior = "smooth";
-  carousel.style.scrollbarWidth = "none";
-  carousel.style.msOverflowStyle = "none";
+    carousel.style.position = "relative";
+    carousel.style.width = "100%";
+    carousel.style.maxWidth = "100%";
+    carousel.style.overflowX = "auto";
+    carousel.style.overflowY = "hidden";
+    carousel.style.borderRadius = "18px";
+    carousel.style.aspectRatio = is169 ? "16 / 9" : "1 / 1";
+    carousel.style.scrollSnapType = "x mandatory";
+    carousel.style.WebkitOverflowScrolling = "touch";
+    carousel.style.scrollBehavior = "smooth";
+    carousel.style.scrollbarWidth = "none";
+    carousel.style.msOverflowStyle = "none";
 
-  track.style.display = "flex";
-  track.style.width = "100%";
-  track.style.height = "100%";
-  track.style.minHeight = "100%";
-  track.style.overflow = "hidden";
-  track.style.margin = "0";
-  track.style.padding = "0";
-  track.style.alignItems = "stretch";
+    track.style.display = "flex";
+    track.style.width = "100%";
+    track.style.height = "100%";
+    track.style.minHeight = "100%";
+    track.style.overflow = "hidden";
+    track.style.margin = "0";
+    track.style.padding = "0";
+    track.style.alignItems = "stretch";
 
-  Array.from(track.children).forEach(function (tile) {
-    tile.style.flex = "0 0 100%";
-    tile.style.width = "100%";
-    tile.style.maxWidth = "100%";
-    tile.style.height = "100%";
-    tile.style.minHeight = "100%";
-    tile.style.position = "relative";
-    tile.style.overflow = "hidden";
-    tile.style.scrollSnapAlign = "start";
-    tile.style.margin = "0";
-    tile.style.padding = "0";
-    tile.style.borderRadius = "18px";
+    Array.from(track.children).forEach(function (tile) {
+      tile.style.flex = "0 0 100%";
+      tile.style.width = "100%";
+      tile.style.maxWidth = "100%";
+      tile.style.height = "100%";
+      tile.style.minHeight = "100%";
+      tile.style.position = "relative";
+      tile.style.overflow = "hidden";
+      tile.style.scrollSnapAlign = "start";
+      tile.style.margin = "0";
+      tile.style.padding = "0";
+      tile.style.borderRadius = "18px";
 
-    var img = tile.querySelector(".wall-img");
-    if (img) {
-      img.style.position = "absolute";
-      img.style.inset = "0";
-      img.style.width = "100%";
-      img.style.height = "100%";
-      img.style.maxWidth = "none";
-      img.style.maxHeight = "none";
-      img.style.display = "block";
-      img.style.objectFit = fitMode;
-      img.style.margin = "0";
-    }
-  });
-}
+      var img = tile.querySelector(".wall-img");
+      if (img) {
+        img.style.position = "absolute";
+        img.style.inset = "0";
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.maxWidth = "none";
+        img.style.maxHeight = "none";
+        img.style.display = "block";
+        img.style.objectFit = fitMode;
+        img.style.margin = "0";
+      }
+    });
+  }
 
   function renderCard(data, options) {
     var opts = Object.assign({}, DEFAULTS, options || {});
@@ -1405,7 +1475,7 @@
       : buildGeneratedTemplate(opts.root, opts.mode);
 
     if (!scope.cardRoot) {
-      throw new Error("card-renderer.js 找不到 card root，請確認 root 或 HTML 結構");
+      throw new Error("card-renderer.js 找不到 card root,請確認 root 或 HTML 結構");
     }
 
     applyThemeClasses(p, scope, opts);
@@ -1504,7 +1574,7 @@
     renderShell:             renderShell,
     mergeLite:               mergeLite,
     mergeCardData:           mergeCardData,
-    version: "HSC-card-renderer-v8.4.2-photo-wall-carousel-ratio-fix+v1.5.2-dom-fallback-fix"
+    version: "HSC-card-renderer-v8.4.3-cta-collapse+photo-limit-buyup+carousel-autoplay-fix"
   };
 
   global.HscCardRenderer  = api;
