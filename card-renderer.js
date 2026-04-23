@@ -1388,7 +1388,7 @@
     });
   }
 
-  function applyCarouselRatioStyles_(carousel, track, preview) {
+ function applyCarouselRatioStyles_(carousel, track, preview) {
     if (!carousel || !track) return;
 
     var is169 = preview && preview.aspect_ratio === "16:9";
@@ -1411,43 +1411,64 @@
     carousel.style.scrollbarWidth = "none";
     carousel.style.msOverflowStyle = "none";
 
-    track.style.display = "flex";
-    track.style.width = "100%";
-    track.style.height = "100%";
-    track.style.minHeight = "100%";
-    track.style.overflow = "hidden";
-    track.style.margin = "0";
-    track.style.padding = "0";
-    track.style.alignItems = "stretch";
+    // v8.4.4 修正:track 必須撐開到所有 tile 總寬度,carousel 才能橫向滾動
+    function layoutTrack() {
+      var cw = carousel.clientWidth || carousel.getBoundingClientRect().width || 0;
+      if (!cw) return false;
+      var tileCount = track.children.length || 1;
 
-    Array.from(track.children).forEach(function (tile) {
-      tile.style.flex = "0 0 100%";
-      tile.style.width = "100%";
-      tile.style.maxWidth = "100%";
-      tile.style.height = "100%";
-      tile.style.minHeight = "100%";
-      tile.style.position = "relative";
-      tile.style.overflow = "hidden";
-      tile.style.scrollSnapAlign = "start";
-      tile.style.margin = "0";
-      tile.style.padding = "0";
-      tile.style.borderRadius = "18px";
+      track.style.display = "flex";
+      track.style.width = (cw * tileCount) + "px";   // ★ 關鍵:total = N × carousel 寬
+      track.style.height = "100%";
+      track.style.minHeight = "100%";
+      track.style.overflow = "visible";              // ★ 關鍵:不切掉
+      track.style.margin = "0";
+      track.style.padding = "0";
+      track.style.alignItems = "stretch";
 
-      var img = tile.querySelector(".wall-img");
-      if (img) {
-        img.style.position = "absolute";
-        img.style.inset = "0";
-        img.style.width = "100%";
-        img.style.height = "100%";
-        img.style.maxWidth = "none";
-        img.style.maxHeight = "none";
-        img.style.display = "block";
-        img.style.objectFit = fitMode;
-        img.style.margin = "0";
-      }
-    });
+      Array.from(track.children).forEach(function (tile) {
+        tile.style.flex = "0 0 " + cw + "px";        // ★ 關鍵:絕對像素
+        tile.style.width = cw + "px";
+        tile.style.maxWidth = cw + "px";
+        tile.style.height = "100%";
+        tile.style.minHeight = "100%";
+        tile.style.position = "relative";
+        tile.style.overflow = "hidden";
+        tile.style.scrollSnapAlign = "start";
+        tile.style.margin = "0";
+        tile.style.padding = "0";
+        tile.style.borderRadius = "18px";
+
+        var img = tile.querySelector(".wall-img");
+        if (img) {
+          img.style.position = "absolute";
+          img.style.inset = "0";
+          img.style.width = "100%";
+          img.style.height = "100%";
+          img.style.maxWidth = "none";
+          img.style.maxHeight = "none";
+          img.style.display = "block";
+          img.style.objectFit = fitMode;
+          img.style.margin = "0";
+        }
+      });
+      return true;
+    }
+
+    // 立即嘗試布局,若 carousel 寬度還沒算出,下一 frame 再試
+    if (!layoutTrack()) {
+      requestAnimationFrame(layoutTrack);
+    }
+
+    // 視窗大小變動時重新布局(節流 150ms)
+    if (!carousel.__hscResizeBound) {
+      carousel.__hscResizeBound = true;
+      window.addEventListener("resize", function () {
+        if (carousel.__hscResizeTimer) clearTimeout(carousel.__hscResizeTimer);
+        carousel.__hscResizeTimer = setTimeout(layoutTrack, 150);
+      });
+    }
   }
-
   function renderCard(data, options) {
     var opts = Object.assign({}, DEFAULTS, options || {});
     if (!opts.root || !(opts.root instanceof HTMLElement)) {
