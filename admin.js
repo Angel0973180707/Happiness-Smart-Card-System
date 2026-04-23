@@ -397,7 +397,7 @@
   window.copyInviteUrlByRequest = function(requestId) {
     const r = state.requests.find(x => x.request_id === requestId);
     if (!r || !r.assigned_invite_code) return toast("尚未派發");
-    copyText(buildInviteFormUrl(r.assigned_invite_code, r.form_url), "已複製申請連結");
+    copyText(buildInviteFormUrl(r.assigned_invite_code, r.form_url, r.ref), "已複製申請連結");
   };
   window.copyInviteReplyByRequest = function(requestId) {
     const r = state.requests.find(x => x.request_id === requestId);
