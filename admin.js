@@ -257,12 +257,18 @@
   }
 
   // ── INVITE HELPERS ──
-  function buildInviteFormUrl(inviteCode, backendFormUrl = "") {
+  function buildInviteFormUrl(inviteCode, backendFormUrl = "", referrer = "") {
+    // 後端給的 URL 優先用(v7.16 後端已自動帶 ref)
     const directUrl = String(backendFormUrl || "").trim();
     if (directUrl) return directUrl;
     const code = String(inviteCode || "").trim();
     if (!code) return "";
-    return `${CONFIG.FORM_URL}?invite=${encodeURIComponent(code)}`;
+    // 前端 fallback:如果有 referrer,帶上去
+    const params = new URLSearchParams();
+    params.set("invite", code);
+    const ref = String(referrer || "").trim();
+    if (ref) params.set("ref", ref);
+    return `${CONFIG.FORM_URL}?${params.toString()}`;
   }
   function buildInviteReplyText(request) {
     const code = String(request?.assigned_invite_code || "").trim();
