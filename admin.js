@@ -270,13 +270,13 @@
     if (ref) params.set("ref", ref);
     return `${CONFIG.FORM_URL}?${params.toString()}`;
   }
- function buildInviteReplyText(request) {
+function buildInviteReplyText(request) {
     const code = String(request?.assigned_invite_code || "").trim();
     const requestId = String(request?.request_id || "").trim();
     const referrer = String(request?.ref || "").trim();
     const formUrl = buildInviteFormUrl(code, request?.form_url, referrer);
     if (!code) return "";
-    return `您好，這是您的申請入口\n\n申請編號：${requestId}\n邀請碼：${code}\n\n👉 點擊填寫：\n${formUrl}`;
+    return `您好，這是您的申請入口\n\n申請編號：${requestId}\n邀請碼：${code}\n\n👉 請點擊填寫：\n${formUrl}\n\n💡 提示：使用 LINE 開啟即可自動綁定。\n如不使用 LINE，請聯繫業務員協助填寫 ✏️`;
   }
   // ── API ──
   async function fetchWithTimeout(url, options = {}, timeoutMs = CONFIG.API_TIMEOUT_MS) {
