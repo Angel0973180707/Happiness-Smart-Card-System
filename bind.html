@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>綁定 LINE - 天使幸福智慧名片</title>
+<style>
+  body {
+    margin: 0;
+    padding: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif;
+    background: linear-gradient(135deg, #fff8ec, #fef3c7);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    max-width: 420px;
+    width: 100%;
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  h1 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    color: #92400e;
+  }
+  .subtitle {
+    margin: 0 0 20px;
+    font-size: 14px;
+    color: #78350f;
+    line-height: 1.6;
+  }
+  .info-box {
+    background: #fef3c7;
+    border: 1.5px solid rgba(217, 119, 6, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 20px 0;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 14px;
+  }
+  .info-row .label { color: #78350f; font-weight: 600; }
+  .info-row .value { color: #1f2937; font-weight: 700; font-family: monospace; }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: #06c755;
+    color: #fff;
+  }
+  .btn-primary:hover { background: #05b347; }
+  .btn-primary:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background: #fff;
+    color: #6b7280;
+    border: 1.5px solid #e5e7eb;
+  }
+  .status {
+    padding: 14px;
+    border-radius: 10px;
+    margin: 16px 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .status-info {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+  }
+  .status-success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+  }
+  .status-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+  }
+  .loader {
+    text-align: center;
+    padding: 20px;
+    color: #6b7280;
+  }
+  .hidden { display: none !important; }
+  code {
+    background: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>📎 綁定 LINE 帳號</h1>
+  <p class="subtitle">將您的智慧名片綁定到您的 LINE 帳號，未來重要通知將直接推送給您。</p>
+
+  <!-- 載入中 -->
+  <div id="state-loading" class="loader">
+    <div>正在初始化 LINE 連線…</div>
+  </div>
+
+  <!-- 確認綁定 -->
+  <div id="state-confirm" class="hidden">
+    <div class="info-box">
+      <div class="info-row">
+        <span class="label">名片編號</span>
+        <span class="value" id="info-card-id">—</span>
+      </div>
+      <div class="info-row">
+        <span class="label">您的 LINE</span>
+        <span class="value" id="info-line-name">—</span>
+      </div>
+    </div>
+    <div id="status-message" class="hidden"></div>
+    <button class="btn btn-primary" id="btn-confirm">✅ 確認綁定</button>
+    <button class="btn btn-secondary" onclick="window.close()">取消</button>
+  </div>
+
+  <!-- 結果 -->
+  <div id="state-done" class="hidden">
+    <div class="status status-success">
+      <strong>✅ 綁定成功！</strong><br>
+      未來重要通知會推送到您的 LINE。
+    </div>
+    <button class="btn btn-secondary" onclick="window.close()">關閉</button>
+  </div>
+
+  <!-- 錯誤 -->
+  <div id="state-error" class="hidden">
+    <div class="status status-error" id="error-message">
+      <strong>❌ 綁定失敗</strong>
+    </div>
+    <button class="btn btn-primary" onclick="location.reload()">🔁 重試</button>
+    <button class="btn btn-secondary" onclick="window.close()">關閉</button>
+  </div>
+</div>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+  const CONFIG = {
+    GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+    LIFF_ID: "2009864519-odP1LSn7"
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function show(id) { $(id).classList.remove("hidden"); }
+  function hide(id) { $(id).classList.add("hidden"); }
+
+  function showState(stateName) {
+    ["state-loading", "state-confirm", "state-done", "state-error"].forEach(s => hide(s));
+    show(stateName);
+  }
+
+  function showError(msg) {
+    $("error-message").innerHTML = "<strong>❌ 綁定失敗</strong><br>" + msg;
+    showState("state-error");
+  }
+
+  // 從 URL 取得 card_id
+  function getCardId() {
+    const params = new URLSearchParams(window.location.search || "");
+    return (params.get("bind") || params.get("card_id") || "").trim();
+  }
+
+  async function postToGas(payload) {
+    const body = new URLSearchParams();
+    body.append("payload", JSON.stringify(payload || {}));
+    const res = await fetch(CONFIG.GAS_URL, { method: "POST", body });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch (e) {
+      throw new Error("系統回傳格式錯誤");
+    }
+    if (!res.ok || data?.ok === false) {
+      throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+    }
+    return data;
+  }
+
+  let _lineUserId = "";
+  let _cardId = "";
+
+  async function init() {
+    showState("state-loading");
+
+    // 1. 取 card_id
+    _cardId = getCardId();
+    if (!_cardId) {
+      showError("缺少卡片資訊，請從正確的綁定連結進入。");
+      return;
+    }
+
+    try {
+      // 2. 初始化 LIFF
+      await liff.init({ liffId: CONFIG.LIFF_ID });
+
+      // 3. 確認用戶在 LINE 內
+      if (!liff.isInClient() && !liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+
+      // 4. 取得 LINE userId
+      const profile = await liff.getProfile();
+      _lineUserId = profile.userId;
+
+      // 5. 顯示確認介面
+      $("info-card-id").textContent = _cardId;
+      $("info-line-name").textContent = profile.displayName || "(無名稱)";
+      showState("state-confirm");
+    } catch (err) {
+      console.error(err);
+      showError("LINE 連線失敗：" + (err.message || err));
+    }
+  }
+
+  async function confirmBind() {
+    const btn = $("btn-confirm");
+    btn.disabled = true;
+    btn.textContent = "處理中…";
+
+    try {
+      const result = await postToGas({
+        action: "bindCardLine",
+        card_id: _cardId,
+        line_user_id: _lineUserId
+      });
+      console.log("[bind] result:", result);
+      showState("state-done");
+    } catch (err) {
+      console.error(err);
+      btn.disabled = false;
+      btn.textContent = "✅ 確認綁定";
+      const statusEl = $("status-message");
+      statusEl.className = "status status-error";
+      statusEl.innerHTML = "<strong>失敗：</strong>" + (err.message || err);
+      show("status-message");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    $("btn-confirm").addEventListener("click", confirmBind);
+    init();
+  });
+</script>
+</body>
+</html>
