@@ -115,12 +115,10 @@
 <div class="card">
   <h1>📎 綁定 LINE 帳號</h1>
   <p class="subtitle">將您的智慧名片綁定到您的 LINE 帳號，未來重要通知將直接推送給您。</p>
-
   <!-- 載入中 -->
   <div id="state-loading" class="loader">
     <div>正在初始化 LINE 連線…</div>
   </div>
-
   <!-- 確認綁定 -->
   <div id="state-confirm" class="hidden">
     <div class="info-box">
@@ -137,7 +135,6 @@
     <button class="btn btn-primary" id="btn-confirm">✅ 確認綁定</button>
     <button class="btn btn-secondary" onclick="window.close()">取消</button>
   </div>
-
   <!-- 結果 -->
   <div id="state-done" class="hidden">
     <div class="status status-success">
@@ -146,7 +143,6 @@
     </div>
     <button class="btn btn-secondary" onclick="window.close()">關閉</button>
   </div>
-
   <!-- 錯誤 -->
   <div id="state-error" class="hidden">
     <div class="status status-error" id="error-message">
@@ -156,34 +152,32 @@
     <button class="btn btn-secondary" onclick="window.close()">關閉</button>
   </div>
 </div>
-
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
   const CONFIG = {
     GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     LIFF_ID: "2009864519-odP1LSn7"
   };
-
   function $(id) { return document.getElementById(id); }
   function show(id) { $(id).classList.remove("hidden"); }
   function hide(id) { $(id).classList.add("hidden"); }
-
   function showState(stateName) {
     ["state-loading", "state-confirm", "state-done", "state-error"].forEach(s => hide(s));
     show(stateName);
   }
-
   function showError(msg) {
     $("error-message").innerHTML = "<strong>❌ 綁定失敗</strong><br>" + msg;
     showState("state-error");
   }
-
-  // 從 URL 取得 card_id
+  // 從 URL 取得 card_id 和 token
   function getCardId() {
     const params = new URLSearchParams(window.location.search || "");
     return (params.get("bind") || params.get("card_id") || "").trim();
   }
-
+  function getToken() {
+    const params = new URLSearchParams(window.location.search || "");
+    return (params.get("token") || "").trim();
+  }
   async function postToGas(payload) {
     const body = new URLSearchParams();
     body.append("payload", JSON.stringify(payload || {}));
@@ -198,34 +192,33 @@
     }
     return data;
   }
-
   let _lineUserId = "";
   let _cardId = "";
-
+  let _token = "";
   async function init() {
     showState("state-loading");
-
-    // 1. 取 card_id
+    // 1. 取 card_id 和 token
     _cardId = getCardId();
+    _token = getToken();
     if (!_cardId) {
       showError("缺少卡片資訊，請從正確的綁定連結進入。");
       return;
     }
-
+    if (!_token) {
+      showError("此綁定連結缺少必要驗證碼，可能已過期。<br>請聯繫業務員索取新連結。");
+      return;
+    }
     try {
       // 2. 初始化 LIFF
       await liff.init({ liffId: CONFIG.LIFF_ID });
-
       // 3. 確認用戶在 LINE 內
       if (!liff.isInClient() && !liff.isLoggedIn()) {
         liff.login();
         return;
       }
-
       // 4. 取得 LINE userId
       const profile = await liff.getProfile();
       _lineUserId = profile.userId;
-
       // 5. 顯示確認介面
       $("info-card-id").textContent = _cardId;
       $("info-line-name").textContent = profile.displayName || "(無名稱)";
@@ -235,16 +228,15 @@
       showError("LINE 連線失敗：" + (err.message || err));
     }
   }
-
   async function confirmBind() {
     const btn = $("btn-confirm");
     btn.disabled = true;
     btn.textContent = "處理中…";
-
     try {
       const result = await postToGas({
         action: "bindCardLine",
         card_id: _cardId,
+        token: _token,
         line_user_id: _lineUserId
       });
       console.log("[bind] result:", result);
@@ -255,11 +247,23 @@
       btn.textContent = "✅ 確認綁定";
       const statusEl = $("status-message");
       statusEl.className = "status status-error";
-      statusEl.innerHTML = "<strong>失敗：</strong>" + (err.message || err);
+      // 友善錯誤訊息
+      var errMsg = String(err.message || err);
+      if (errMsg.indexOf("INVALID_TOKEN") >= 0) {
+        if (errMsg.indexOf("expired") >= 0) {
+          errMsg = "此綁定連結已過期(超過 24 小時),請聯繫業務員索取新連結。";
+        } else if (errMsg.indexOf("not_found_or_used") >= 0) {
+          errMsg = "此綁定連結已使用過或無效,請聯繫業務員索取新連結。";
+        } else if (errMsg.indexOf("card_id_mismatch") >= 0) {
+          errMsg = "綁定資訊不一致,請聯繫業務員協助。";
+        } else {
+          errMsg = "驗證碼無效,請聯繫業務員索取新連結。";
+        }
+      }
+      statusEl.innerHTML = "<strong>失敗：</strong>" + errMsg;
       show("status-message");
     }
   }
-
   document.addEventListener("DOMContentLoaded", () => {
     $("btn-confirm").addEventListener("click", confirmBind);
     init();
