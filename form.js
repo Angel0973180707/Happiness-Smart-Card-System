@@ -1944,77 +1944,160 @@
     if (els["success-footer-note"]) els["success-footer-note"].innerHTML = buildFlowStepsHtml("renew");
     setSuccessActionLabels("renew", result);
   }
-
+   // ═══════════════════════════════════════════════════════
+  // L2 強制順序付款引導 v1.1 (含強化提示框)
+  // - 必須先複製付款資訊,才能填寫確認單
+  // - 文案:陪伴式,但明確強調「轉完帳後請務必填寫付款確認單」
+  // ═══════════════════════════════════════════════════════
   function setSuccessActionLabels(mode, result) {
-    const primaryBtn = freshBtn("btn-copy-primary-notice");
-    const secondaryBtn = freshBtn("btn-copy-secondary-notice");
-    const contactBtn = freshBtn("progress-contact-service");
-    if (!primaryBtn) return;
-    if (secondaryBtn) secondaryBtn.classList.add("hidden");
-    const upgradeContainer = els["success-actions"];
-
-    if (mode === "create" || mode === "update_paid" || mode === "renew") {
-      primaryBtn.classList.remove("hidden");
-      primaryBtn.textContent = "📋 複製付款資訊(含確認連結)";
-      primaryBtn.addEventListener("click", async () => {
-        let paymentType = "first_payment", targetId = result.cardId;
-        if (mode === "update_paid") { paymentType = "update_fee"; targetId = result.paymentId || ""; }
-        if (mode === "renew") { paymentType = "renewal"; targetId = result.paymentId || result.renewalId || ""; }
-        const bundleText = _buildFullBundleText(result, mode, result.cardId, result.totalAmount, paymentType, targetId);
-        await copyText(bundleText);
-        setStatus("已複製付款資訊(含確認連結)。", "success");
-      });
-      _ensureExtraPaymentButtons(upgradeContainer, result, mode);
-      if (contactBtn) {
-        contactBtn.textContent = "💬 LINE 客服";
-        contactBtn.addEventListener("click", () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
-      }
-      if (mode === "create") {
-        const previewBtn = document.getElementById("btn-open-preview");
-        if (previewBtn && result?.previewUrl) {
-          previewBtn.classList.remove("hidden");
-          const freshPreview = previewBtn.cloneNode(true);
-          previewBtn.parentNode?.replaceChild(freshPreview, previewBtn);
-          freshPreview.addEventListener("click", () => window.open(result.previewUrl, "_blank", "noopener"));
-        }
-      }
-    } else if (mode === "update_done") {
-      primaryBtn.classList.add("hidden");
-      const previewUrl = result?.cardId ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(result.cardId)}&view=1` : "#";
-      ensurePreviewActionButton();
-      const previewBtn = document.getElementById("btn-open-preview");
-      if (previewBtn) {
-        previewBtn.classList.remove("hidden");
-        const freshPreview = previewBtn.cloneNode(true);
-        freshPreview.textContent = "🔗 查看成品";
-        previewBtn.parentNode?.replaceChild(freshPreview, previewBtn);
-        freshPreview.addEventListener("click", () => window.open(previewUrl, "_blank", "noopener"));
-      }
-      if (contactBtn) {
-        contactBtn.textContent = "💬 LINE 客服";
-        contactBtn.addEventListener("click", () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
-      }
+    const wrap = els["success-actions"];
+    if (!wrap) return;
+    
+    wrap.innerHTML = "";
+    
+    if (mode === "update_done") {
+      renderUpdateDoneActions(wrap, result);
+      return;
     }
+    
+    renderForcedSequenceActions(wrap, mode, result);
   }
-
-  function _ensureExtraPaymentButtons(container, result, mode) {
-    if (!container) return;
-    container.querySelectorAll(".btn-pay-note, .btn-pay-confirm, .btn-pay-bundle").forEach(b => b.remove());
+  
+  function renderUpdateDoneActions(wrap, result) {
+    const previewUrl = result?.cardId 
+      ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(result.cardId)}&view=1`
+      : "#";
+    
+    wrap.innerHTML = `
+      <button type="button" class="ghost-btn" id="btn-go-preview" style="margin-right:8px;">🔗 查看成品</button>
+      <button type="button" class="line-btn" id="btn-go-service">💬 LINE 客服</button>
+    `;
+    
+    document.getElementById("btn-go-preview")?.addEventListener("click", () => {
+      window.open(previewUrl, "_blank", "noopener");
+    });
+    document.getElementById("btn-go-service")?.addEventListener("click", () => {
+      window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
+    });
+  }
+  
+  function renderForcedSequenceActions(wrap, mode, result) {
     const cardId = result.cardId || result.card_id || "—";
     const amount = result.totalAmount || result.updateFeeAmount || 0;
-    let paymentType = "first_payment", targetId = cardId;
+    let paymentType = "first_payment";
+    let targetId = cardId;
     if (mode === "update_paid") { paymentType = "update_fee"; targetId = result.paymentId || ""; }
     if (mode === "renew") { paymentType = "renewal"; targetId = result.paymentId || result.renewalId || ""; }
-    const confirmBtn = document.createElement("button");
-    confirmBtn.type = "button";
-    confirmBtn.className = "line-btn btn-pay-confirm";
-    confirmBtn.textContent = "👉 填寫付款確認(已付款?)";
-    confirmBtn.style.cssText = "margin-top:8px;width:100%;";
-    confirmBtn.addEventListener("click", () => {
-      if (window.confirm("即將前往付款確認表單。\n\n建議你先:\n1. 已完成轉帳\n2. 已記下轉帳金額與末 5 碼\n\n現在要前往嗎?"))
-        openPaymentConfirm(cardId, amount, paymentType, targetId);
+    
+    let hasCopied = false;
+    
+    wrap.innerHTML = `
+      <!-- 3 步驟說明 -->
+      <div style="margin-bottom:14px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#fff8ec,#fef3c7);border:1.5px solid #f59e0b;font-size:13px;line-height:1.9;color:#78350f;font-weight:700;">
+        <div style="font-weight:900;font-size:14px;color:#92400e;margin-bottom:8px;">📋 完成付款 = 3 步驟</div>
+        <div><span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:6px;">1</span>複製付款資訊,讓您隨時取用</div>
+        <div><span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:6px;">2</span>用以下資料完成轉帳(備註填卡號)</div>
+        <div><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:6px;">3</span><strong style="color:#15803d;">填寫您剛儲存的付款確認單</strong></div>
+      </div>
+      
+      <!-- Step 1:複製按鈕 -->
+      <button type="button" class="primary-btn" id="hsc-btn-step1-copy" style="width:100%;animation:hsc-pulse 1.6s infinite;font-size:15px;padding:14px;margin-bottom:8px;">
+        📋 複製付款資訊,讓您隨時取用
+      </button>
+      <div style="text-align:center;font-size:12px;color:#78350f;font-weight:700;margin-bottom:14px;">
+        💡 複製後可貼到 LINE 給自己,隨時取用
+      </div>
+      
+      <!-- Step 3:填確認單按鈕 -->
+      <button type="button" class="primary-btn" id="hsc-btn-step3-confirm" disabled style="width:100%;background:#a09288;cursor:not-allowed;opacity:0.65;font-size:15px;padding:14px;margin-bottom:8px;">
+        🔒 請先複製付款資訊
+      </button>
+      
+      <!-- 強化提示框 -->
+      <div id="hsc-step3-tip" style="text-align:center;font-size:13px;color:#78350f;font-weight:800;margin-bottom:14px;line-height:1.9;padding:12px 14px;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;">
+        💡 轉完帳後,請務必填寫付款資訊裡的<br>
+        <span style="font-size:15px;font-weight:900;color:#dc2626;background:#fff;padding:3px 10px;border-radius:6px;border:1.5px solid #dc2626;display:inline-block;margin-top:4px;">
+          📋 付款確認單
+        </span>
+      </div>
+      
+      <!-- 客服 -->
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="ghost-btn" id="hsc-btn-help" style="flex:1;">💬 需要幫忙</button>
+      </div>
+      
+      <style>
+        @keyframes hsc-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.4); }
+          50% { box-shadow: 0 0 0 12px rgba(245,158,11,0); }
+        }
+        @keyframes hsc-shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          75% { transform: translateX(4px); }
+        }
+        .hsc-shake { animation: hsc-shake 0.4s; }
+      </style>
+    `;
+    
+    const step1Btn = document.getElementById("hsc-btn-step1-copy");
+    const step3Btn = document.getElementById("hsc-btn-step3-confirm");
+    const step3Tip = document.getElementById("hsc-step3-tip");
+    
+    if (step1Btn) {
+      step1Btn.addEventListener("click", async () => {
+        const bundleText = _buildFullBundleText(result, mode, cardId, amount, paymentType, targetId);
+        await copyText(bundleText);
+        hasCopied = true;
+        unlockStep3();
+        setStatus("✅ 付款資訊已複製!記得貼到 LINE 給自己存好。", "success");
+      });
+    }
+    
+    if (step3Btn) {
+      step3Btn.addEventListener("click", () => {
+        if (!hasCopied) {
+          step3Btn.classList.add("hsc-shake");
+          setTimeout(() => step3Btn.classList.remove("hsc-shake"), 500);
+          step1Btn?.scrollIntoView({ behavior: "smooth", block: "center" });
+          step1Btn?.classList.add("hsc-shake");
+          setTimeout(() => step1Btn?.classList.remove("hsc-shake"), 500);
+          setStatus("⚠️ 請先點上面的「複製付款資訊」按鈕。", "warn");
+          return;
+        }
+        if (window.confirm("即將前往付款確認表單。\n\n請確認:\n✅ 已複製付款資訊\n✅ 已完成銀行轉帳\n✅ 已記下轉帳金額與末 5 碼\n\n現在要前往嗎?")) {
+          openPaymentConfirm(cardId, amount, paymentType, targetId);
+        }
+      });
+    }
+    
+    document.getElementById("hsc-btn-help")?.addEventListener("click", () => {
+      window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
     });
-    container.appendChild(confirmBtn);
+    
+    function unlockStep3() {
+      if (step1Btn) {
+        step1Btn.textContent = "✅ 付款資訊已複製!記得貼到 LINE 存好";
+        step1Btn.style.background = "linear-gradient(180deg,#22c55e,#16a34a)";
+        step1Btn.style.animation = "none";
+      }
+      
+      if (step3Btn) {
+        step3Btn.disabled = false;
+        step3Btn.textContent = "👉 填寫您剛儲存的付款確認單";
+        step3Btn.style.background = "linear-gradient(180deg,#22c55e,#16a34a)";
+        step3Btn.style.cursor = "pointer";
+        step3Btn.style.opacity = "1";
+        step3Btn.style.animation = "hsc-pulse 1.6s infinite";
+      }
+      
+      if (step3Tip) {
+        step3Tip.style.background = "#dcfce7";
+        step3Tip.style.borderColor = "#16a34a";
+        step3Tip.style.color = "#15803d";
+        step3Tip.innerHTML = "💚 我們會用 LINE 提醒您別忘了 ❤️";
+      }
+    }
   }
 
   // ── 更新資格處理 ─────────────────────────────────────────
