@@ -1494,10 +1494,9 @@ const links = [
       return `https://liff.line.me/2009864519-odP1LSn7?invite=${encodeURIComponent(code)}`;
     }
     function buildText(r) {
-    const code = r.assigned_invite_code;
-   const liffUrl = `https://liff.line.me/2009864519-odP1LSn7?invite=${encodeURIComponent(code)}`;
-   const webUrl = `https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html?invite=${encodeURIComponent(code)}`;
-   return `您好，這是您的申請入口\n\n申請編號：${r.request_id}\n邀請碼：${code}\n\n👉 LINE 客戶點這個（會自動綁定）：\n${liffUrl}\n\n👉 微信或其他客戶點這個：\n${webUrl}`;
+      const code = r.assigned_invite_code;
+      const liffUrl = `https://liff.line.me/2009864519-odP1LSn7?invite=${encodeURIComponent(code)}`;
+      return `您好，這是您的申請入口\n\n申請編號：${r.request_id}\n邀請碼：${code}\n\n👉 請點擊填寫：\n${liffUrl}\n\n💡 提示：使用 LINE 開啟即可自動綁定。\n如不使用 LINE，請聯繫業務員協助填寫 ✏️`;
     }
 
     const copyCodeBtn = $('#btnCopyCode');
