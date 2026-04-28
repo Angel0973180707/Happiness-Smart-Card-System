@@ -276,7 +276,7 @@ function buildInviteReplyText(request) {
     const referrer = String(request?.ref || "").trim();
     const formUrl = buildInviteFormUrl(code, request?.form_url, referrer);
     if (!code) return "";
-    return `您好，這是您的申請入口\n\n申請編號：${requestId}\n邀請碼：${code}\n\n👉 請點擊填寫：\n${formUrl}\n\n💡 提示：使用 LINE 開啟即可自動綁定。\n如不使用 LINE，請聯繫業務員協助填寫 ✏️`;
+    return `✨ 天使幸福智慧名片 ✨\n\n您好，這是您的專屬申請入口 💛\n\n━━━━━━━━━━━━━━━━━\n📋 申請編號：${requestId}\n🎫 邀請碼：${code}\n━━━━━━━━━━━━━━━━━\n\n⭐⭐⭐ 請點擊下方連結開始填寫 ⭐⭐⭐\n\n👇👇👇\n\n${formUrl}\n\n👆👆👆\n\n━━━━━━━━━━━━━━━━━\n💡 填寫小提醒\n━━━━━━━━━━━━━━━━━\n✅ 建議用 LINE 開啟（自動綁定通知）\n✅ 如無 LINE 帳號 → 請聯繫業務員協助\n✅ 填寫約需 3-5 分鐘\n\n期待為您服務 ❤️`;
   }
   // ── API ──
   async function fetchWithTimeout(url, options = {}, timeoutMs = CONFIG.API_TIMEOUT_MS) {
