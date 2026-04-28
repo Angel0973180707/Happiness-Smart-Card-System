@@ -1420,8 +1420,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
     });
   };
   // Render cards list moved to admin.js (single source of truth)
-
- // Render delivery links
+// Render delivery links
   window.renderDeliveryLinks = function(cardId, referralLink, lineUserId, customerName) {
     const wrap = $('#deliveryLinksWrap');
     if (!wrap) return;
@@ -1431,22 +1430,21 @@ input:focus, textarea:focus, select:focus { outline: none; }
     const updateUrl   = `${base}form.html?mode=update&card_id=${encodeURIComponent(cardId)}&update_token=${encodeURIComponent(cardId)}`;
     const renewUrl    = `${base}form.html?mode=renew&card_id=${encodeURIComponent(cardId)}&renew_token=${encodeURIComponent(cardId)}`;
     const refUrl      = referralLink || cardUrl;
-    const bindUrl     = `https://liff.line.me/2009864519-odP1LSn7?bind=${encodeURIComponent(cardId)}`;
     const lineChatUrl = lineUserId ? `https://chat.line.biz/U889bf67e0e0f170b68e21d171933d241/chat/${lineUserId}` : '⚠️ 客戶尚未綁定 LINE';
 
-    // ── 主推：交付給客戶的完整文案 ──
+    // ── 主推:交付給客戶的完整文案 ──
     const customerGreet = customerName ? `${customerName} 您好 💛` : '您好 💛';
     const deliveryText = `✨ 您的智慧名片已開通完成 ✨
 
 ${customerGreet}
 
-恭喜！您的智慧名片已正式啟用 🎉
+恭喜!您的智慧名片已正式啟用 🎉
 
 ━━━━━━━━━━━━━━━━━
-📋 名片編號：${cardId}
+📋 名片編號:${cardId}
 ━━━━━━━━━━━━━━━━━
 
-🎴 您的「交付卡」（請務必收藏）
+🎴 您的「交付卡」(請務必收藏)
 
 ⭐⭐⭐ 請點擊下方連結 ⭐⭐⭐
 
@@ -1460,8 +1458,8 @@ ${posterUrl}
 📌 交付卡內含 5 大功能
 ━━━━━━━━━━━━━━━━━
 ✅ 隨時打開您的智慧名片
-✅ 一鍵分享給朋友／客戶
-✅ 下載名片海報（傳 LINE／微信）
+✅ 一鍵分享給朋友/客戶
+✅ 下載名片海報(傳 LINE/微信)
 ✅ 查看名片使用狀態
 ✅ 到期自動提醒續約
 
@@ -1470,18 +1468,18 @@ ${posterUrl}
 ━━━━━━━━━━━━━━━━━
 ✅ 點開後可選「把交付卡新增到主畫面」
 ✅ 之後從手機桌面就能一鍵打開
-✅ 建議用 LINE 開啟（自動綁定通知）
+✅ 建議用 LINE 開啟(自動綁定通知)
 
 ━━━━━━━━━━━━━━━━━
 🔗 您的個人推薦連結
 ━━━━━━━━━━━━━━━━━
-分享給朋友建卡，會自動記在您名下：
+分享給朋友建卡,會自動記在您名下:
 
 ${refUrl}
 
 期待為您服務 ❤️`;
 
-    // ── 主交付文案區（最顯眼）──
+    // ── 主交付文案區(最顯眼) ──
     const mainDeliveryHtml = `
       <div style="background:linear-gradient(135deg,#fef2e8,#fdf2e8);border:2px solid var(--primary);border-radius:var(--radius);padding:14px;margin-bottom:14px;box-shadow:var(--shadow);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
@@ -1493,24 +1491,35 @@ ${refUrl}
       </div>
     `;
 
-    // ── 個別連結列表（業務員自用）──
+    // ── 個別連結列表(業務員自用) ──
+    // 🔐 v7.16.4:LINE 綁定 URL 改成從 GAS API 動態取(含 token)
     const links = [
       {label:'名片', value: cardUrl},
       {label:'交付卡', value: posterUrl},
       {label:'更新入口', value: updateUrl},
       {label:'續約入口', value: renewUrl},
       {label:'推薦入口', value: refUrl},
-      {label:'LINE 綁定', value: bindUrl},
+      {label:'LINE 綁定', value: '⏳ 載入中... (24 小時內有效)', isPlaceholder: true, slotId: 'bindUrlSlot'},
       {label:'LINE 對話', value: lineChatUrl},
     ];
     const linksHtml = `
-      <div style="font-size:11px;font-weight:800;color:var(--ink3);margin-bottom:6px;letter-spacing:.06em;">個別連結（業務員自用）</div>
-      ${links.map(l => `
-        <div class="copy-row">
-          <span class="copy-row-label">${escHtml(l.label)}</span>
-          <span class="copy-row-value">${escHtml(l.value)}</span>
-          <button class="copy-row-btn" data-copy="${escHtml(l.value)}" title="複製">⎘</button>
-        </div>`).join('')}
+      <div style="font-size:11px;font-weight:800;color:var(--ink3);margin-bottom:6px;letter-spacing:.06em;">個別連結(業務員自用)</div>
+      ${links.map(l => {
+        if (l.isPlaceholder) {
+          return `
+            <div class="copy-row">
+              <span class="copy-row-label">${escHtml(l.label)}</span>
+              <span class="copy-row-value" id="${l.slotId}">${escHtml(l.value)}</span>
+              <button class="copy-row-btn" id="${l.slotId}-btn" disabled style="opacity:0.4;cursor:not-allowed;" title="載入中...">⏳</button>
+            </div>`;
+        }
+        return `
+          <div class="copy-row">
+            <span class="copy-row-label">${escHtml(l.label)}</span>
+            <span class="copy-row-value">${escHtml(l.value)}</span>
+            <button class="copy-row-btn" data-copy="${escHtml(l.value)}" title="複製">⎘</button>
+          </div>`;
+      }).join('')}
     `;
 
     wrap.innerHTML = mainDeliveryHtml + linksHtml;
@@ -1529,8 +1538,59 @@ ${refUrl}
         navigator.clipboard?.writeText(btn.dataset.copy).then(()=>window._hscToast?.('已複製')).catch(()=>{});
       });
     });
+
+    // 🔐 v7.16.4:異步取 LINE 綁定 token URL
+    fetchBindUrl(cardId);
   };
 
+  // 🔐 v7.16.4:從 GAS API 取得帶 token 的綁定 URL
+  function fetchBindUrl(cardId) {
+    const slotEl = document.getElementById('bindUrlSlot');
+    const btnEl = document.getElementById('bindUrlSlot-btn');
+    if (!slotEl || !btnEl) return;
+    
+    const adminKey = (document.getElementById('adminKeyInput') || {}).value || '';
+    if (!adminKey) {
+      slotEl.textContent = '❌ 請先輸入 Admin Key';
+      slotEl.style.color = 'var(--danger)';
+      return;
+    }
+    
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+    
+    fetch(GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      body: JSON.stringify({
+        action: 'adminBuildBindUrl',
+        admin_key: adminKey,
+        card_id: cardId
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data || !data.ok) {
+        slotEl.textContent = '❌ 載入失敗:' + (data?.error || data?.message || '未知錯誤');
+        slotEl.style.color = 'var(--danger)';
+        return;
+      }
+      const bindUrl = data.bind_url;
+      slotEl.textContent = bindUrl;
+      slotEl.style.color = '';
+      btnEl.disabled = false;
+      btnEl.style.opacity = '';
+      btnEl.style.cursor = '';
+      btnEl.title = '複製';
+      btnEl.textContent = '⎘';
+      btnEl.addEventListener('click', () => {
+        navigator.clipboard?.writeText(bindUrl).then(()=>window._hscToast?.('✅ 已複製 LINE 綁定連結(24 小時內有效)')).catch(()=>{});
+      });
+    })
+    .catch(err => {
+      slotEl.textContent = '❌ 網路錯誤:' + err.message;
+      slotEl.style.color = 'var(--danger)';
+    });
+  }
   // Render delivery copy texts
   window.renderDeliveryCopyTexts = function(texts) {
     const wrap = $('#deliveryCopyTextsWrap');
