@@ -1944,11 +1944,7 @@
     if (els["success-footer-note"]) els["success-footer-note"].innerHTML = buildFlowStepsHtml("renew");
     setSuccessActionLabels("renew", result);
   }
-   // ═══════════════════════════════════════════════════════
-  // L2 強制順序付款引導 v1.1 (含強化提示框)
-  // - 必須先複製付款資訊,才能填寫確認單
-  // - 文案:陪伴式,但明確強調「轉完帳後請務必填寫付款確認單」
-  // ═══════════════════════════════════════════════════════
+  
 // ═══════════════════════════════════════════════════════
   // L2 強制順序付款引導 v1.3 (移除填確認單按鈕,避免誤會)
   // - 複製按鈕(主)
@@ -2068,30 +2064,7 @@
     });
   }
     
-    function unlockStep3() {
-      if (step1Btn) {
-        step1Btn.textContent = "✅ 付款資訊已複製!記得貼到 LINE 存好";
-        step1Btn.style.background = "linear-gradient(180deg,#22c55e,#16a34a)";
-        step1Btn.style.animation = "none";
-      }
-      
-      if (step3Btn) {
-        step3Btn.disabled = false;
-        step3Btn.textContent = "👉 填寫您剛儲存的付款確認單";
-        step3Btn.style.background = "linear-gradient(180deg,#22c55e,#16a34a)";
-        step3Btn.style.cursor = "pointer";
-        step3Btn.style.opacity = "1";
-        step3Btn.style.animation = "hsc-pulse 1.6s infinite";
-      }
-      
-      if (step3Tip) {
-        step3Tip.style.background = "#dcfce7";
-        step3Tip.style.borderColor = "#16a34a";
-        step3Tip.style.color = "#15803d";
-        step3Tip.innerHTML = "💚 我們會用 LINE 提醒您別忘了 ❤️";
-      }
-    }
-  }
+  
 
   // ── 更新資格處理 ─────────────────────────────────────────
   function resolveUpdateEligibilityState(eligData) {
