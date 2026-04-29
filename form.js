@@ -1723,7 +1723,7 @@
         selected_addons: collectRenewSelectedAddons(),
         renew_unlimited_update: state.renewFlow.renewUnlimitedUpdate,
         quote_items: quote.quote_items || [],
-        total_amount: state.quote.totalAmount || quote.total_amount   
+        total_amount: total_amount: quote.total_amount || state.quote.totalAmount || 0  
       };
       const paymentRes = await postToGas(paymentPayload);
       if (!paymentRes.ok) throw new Error(paymentRes.error || "建立續約付款資訊失敗");
