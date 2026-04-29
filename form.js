@@ -1715,6 +1715,10 @@
       const quote = await requestRenewQuote();
       setProgressStep(2, "建立續約付款資訊…");
       const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
+       const renewLimits = getLimitsRenew();
+      const keepMarquee = isMarqueeEnabled();
+      const keepPhotoExtraQty = renewLimits.extraWallPhotos || 0;
+      const keepCtaExtraQty = renewLimits.extraCtas || 0;
       const paymentPayload = {
         action: CONFIG.RENEW_CREATE_PAYMENT_ACTION,
         card_id: state.modeContext.cardId,
@@ -1722,6 +1726,10 @@
         target_plan: originalPlan,
         selected_addons: collectRenewSelectedAddons(),
         renew_unlimited_update: state.renewFlow.renewUnlimitedUpdate,
+        update_unlimited_renew: state.renewFlow.renewUnlimitedUpdate,
+        keep_marquee: keepMarquee,
+        keep_photo_extra_qty: keepPhotoExtraQty,
+        keep_cta_extra_qty: keepCtaExtraQty,
         quote_items: quote.quote_items || [],
         total_amount: quote.total_amount || state.quote.totalAmount || 0
       };
