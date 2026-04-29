@@ -1544,14 +1544,32 @@ ${refUrl}
   };
 
   // 🔐 v7.16.4:從 GAS API 取得帶 token 的綁定 URL
-  function fetchBindUrl(cardId) {
+function fetchBindUrl(cardId) {
     const slotEl = document.getElementById('bindUrlSlot');
     const btnEl = document.getElementById('bindUrlSlot-btn');
     if (!slotEl || !btnEl) return;
     
-    const adminKey = (document.getElementById('adminKeyInput') || {}).value || '';
+    // 🔧 多管道抓 admin key(input + localStorage + 全域變數)
+    let adminKey = '';
+    const input = document.getElementById('adminKeyInput');
+    if (input && input.value) adminKey = input.value;
     if (!adminKey) {
-      slotEl.textContent = '❌ 請先輸入 Admin Key';
+      try {
+        adminKey = localStorage.getItem('admin_key') || 
+                   localStorage.getItem('hsc_admin_key') || 
+                   localStorage.getItem('HSC_ADMIN_KEY') ||
+                   localStorage.getItem('adminKey') || '';
+      } catch (e) {}
+    }
+    if (!adminKey && typeof window.HSC_ADMIN_KEY === 'string') adminKey = window.HSC_ADMIN_KEY;
+    if (!adminKey && typeof window.adminKey === 'string') adminKey = window.adminKey;
+    if (!adminKey && typeof window.ADMIN_KEY === 'string') adminKey = window.ADMIN_KEY;
+    if (!adminKey && typeof window.getAdminKey === 'function') {
+      try { adminKey = window.getAdminKey() || ''; } catch (e) {}
+    }
+    
+    if (!adminKey) {
+      slotEl.textContent = '❌ 請先輸入 Admin Key 再重新載入';
       slotEl.style.color = 'var(--danger)';
       return;
     }
