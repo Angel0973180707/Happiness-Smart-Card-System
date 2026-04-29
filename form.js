@@ -1949,6 +1949,12 @@
   // - 必須先複製付款資訊,才能填寫確認單
   // - 文案:陪伴式,但明確強調「轉完帳後請務必填寫付款確認單」
   // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+  // L2 強制順序付款引導 v1.3 (移除填確認單按鈕,避免誤會)
+  // - 複製按鈕(主)
+  // - 完成付款流程清單(說明 4 步驟)
+  // - 客戶從 LINE 訊息點連結進確認單
+  // ═══════════════════════════════════════════════════════
   function setSuccessActionLabels(mode, result) {
     const wrap = els["success-actions"];
     if (!wrap) return;
@@ -1989,36 +1995,45 @@
     if (mode === "update_paid") { paymentType = "update_fee"; targetId = result.paymentId || ""; }
     if (mode === "renew") { paymentType = "renewal"; targetId = result.paymentId || result.renewalId || ""; }
     
-    let hasCopied = false;
-    
     wrap.innerHTML = `
-      <!-- 3 步驟說明 -->
-      <div style="margin-bottom:14px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#fff8ec,#fef3c7);border:1.5px solid #f59e0b;font-size:13px;line-height:1.9;color:#78350f;font-weight:700;">
-        <div style="font-weight:900;font-size:14px;color:#92400e;margin-bottom:8px;">📋 完成付款 = 3 步驟</div>
-        <div><span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:6px;">1</span>複製付款資訊,讓您隨時取用</div>
-        <div><span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:6px;">2</span>用以下資料完成轉帳(備註填卡號)</div>
-        <div><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:6px;">3</span><strong style="color:#15803d;">填寫您剛儲存的付款確認單</strong></div>
-      </div>
-      
-      <!-- Step 1:複製按鈕 -->
+      <!-- Step 1:複製按鈕(大橘色脈動) -->
       <button type="button" class="primary-btn" id="hsc-btn-step1-copy" style="width:100%;animation:hsc-pulse 1.6s infinite;font-size:15px;padding:14px;margin-bottom:8px;">
-        📋 複製付款資訊,讓您隨時取用
+        📋 複製付款資訊,貼到 LINE 儲存起來
       </button>
-      <div style="text-align:center;font-size:12px;color:#78350f;font-weight:700;margin-bottom:14px;">
-        💡 複製後可貼到 LINE 給自己,隨時取用
+      <div style="text-align:center;font-size:12px;color:#78350f;font-weight:700;margin-bottom:18px;">
+        💡 包含轉帳資訊與付款確認單連結
       </div>
       
-      <!-- Step 3:填確認單按鈕 -->
-      <button type="button" class="primary-btn" id="hsc-btn-step3-confirm" disabled style="width:100%;background:#a09288;cursor:not-allowed;opacity:0.65;font-size:15px;padding:14px;margin-bottom:8px;">
-        🔒 請先複製付款資訊
-      </button>
-      
-      <!-- 強化提示框 -->
-      <div id="hsc-step3-tip" style="text-align:center;font-size:13px;color:#78350f;font-weight:800;margin-bottom:14px;line-height:1.9;padding:12px 14px;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;">
-        💡 轉完帳後,請務必填寫付款資訊裡的<br>
-        <span style="font-size:15px;font-weight:900;color:#dc2626;background:#fff;padding:3px 10px;border-radius:6px;border:1.5px solid #dc2626;display:inline-block;margin-top:4px;">
-          📋 付款確認單
-        </span>
+      <!-- 完成付款流程說明 -->
+      <div style="background:linear-gradient(135deg,#fff8ec,#fef3c7);border:1.5px solid #f59e0b;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-size:14px;font-weight:900;color:#92400e;margin-bottom:10px;">
+          📋 完成付款流程
+        </div>
+        <div style="font-size:13px;line-height:1.9;color:#78350f;font-weight:700;">
+          <div style="margin-bottom:4px;">
+            <span style="display:inline-block;background:#f59e0b;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;margin-right:6px;font-weight:900;">1</span>
+            點上方按鈕複製
+          </div>
+          <div style="margin-bottom:4px;">
+            <span style="display:inline-block;background:#f59e0b;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;margin-right:6px;font-weight:900;">2</span>
+            貼到 LINE 給自己,儲存起來
+          </div>
+          <div style="margin-bottom:4px;">
+            <span style="display:inline-block;background:#f59e0b;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;margin-right:6px;font-weight:900;">3</span>
+            隨時轉帳(3 天內完成)
+          </div>
+          <div style="margin-bottom:4px;">
+            <span style="display:inline-block;background:#22c55e;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;margin-right:6px;font-weight:900;">4</span>
+            轉完帳 → 打開之前儲存的付款訊息<br>
+            <span style="margin-left:24px;display:inline-block;margin-top:4px;">→ 點 
+              <span style="font-size:14px;font-weight:900;color:#dc2626;background:#fff;padding:2px 8px;border-radius:6px;border:1.5px solid #dc2626;">📋 付款確認單</span>
+              填寫送出
+            </span>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(180,131,9,.3);font-size:12px;color:#15803d;font-weight:800;text-align:center;">
+          💚 系統比對自動開通您的卡片
+        </div>
       </div>
       
       <!-- 客服 -->
@@ -2031,49 +2046,27 @@
           0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.4); }
           50% { box-shadow: 0 0 0 12px rgba(245,158,11,0); }
         }
-        @keyframes hsc-shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-4px); }
-          75% { transform: translateX(4px); }
-        }
-        .hsc-shake { animation: hsc-shake 0.4s; }
       </style>
     `;
     
     const step1Btn = document.getElementById("hsc-btn-step1-copy");
-    const step3Btn = document.getElementById("hsc-btn-step3-confirm");
-    const step3Tip = document.getElementById("hsc-step3-tip");
     
     if (step1Btn) {
       step1Btn.addEventListener("click", async () => {
         const bundleText = _buildFullBundleText(result, mode, cardId, amount, paymentType, targetId);
         await copyText(bundleText);
-        hasCopied = true;
-        unlockStep3();
-        setStatus("✅ 付款資訊已複製!記得貼到 LINE 給自己存好。", "success");
-      });
-    }
-    
-    if (step3Btn) {
-      step3Btn.addEventListener("click", () => {
-        if (!hasCopied) {
-          step3Btn.classList.add("hsc-shake");
-          setTimeout(() => step3Btn.classList.remove("hsc-shake"), 500);
-          step1Btn?.scrollIntoView({ behavior: "smooth", block: "center" });
-          step1Btn?.classList.add("hsc-shake");
-          setTimeout(() => step1Btn?.classList.remove("hsc-shake"), 500);
-          setStatus("⚠️ 請先點上面的「複製付款資訊」按鈕。", "warn");
-          return;
-        }
-        if (window.confirm("即將前往付款確認表單。\n\n請確認:\n✅ 已複製付款資訊\n✅ 已完成銀行轉帳\n✅ 已記下轉帳金額與末 5 碼\n\n現在要前往嗎?")) {
-          openPaymentConfirm(cardId, amount, paymentType, targetId);
-        }
+        // Step 1 變成完成狀態
+        step1Btn.textContent = "✅ 已複製!請貼到 LINE 儲存";
+        step1Btn.style.background = "linear-gradient(180deg,#22c55e,#16a34a)";
+        step1Btn.style.animation = "none";
+        setStatus("✅ 付款資訊已複製!請貼到 LINE 給自己存好,轉完帳後再從訊息進入確認單。", "success");
       });
     }
     
     document.getElementById("hsc-btn-help")?.addEventListener("click", () => {
       window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
     });
+  }
     
     function unlockStep3() {
       if (step1Btn) {
