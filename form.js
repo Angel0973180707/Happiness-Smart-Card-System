@@ -1716,7 +1716,7 @@
       setProgressStep(2, "建立續約付款資訊…");
       const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
        const renewLimits = getLimitsRenew();
-      const keepMarquee = isMarqueeEnabled();
+      const keepMarquee = !!(state.runtime.renewCard?.marquee_enabled);
       const keepPhotoExtraQty = renewLimits.extraWallPhotos || 0;
       const keepCtaExtraQty = renewLimits.extraCtas || 0;
       const paymentPayload = {
