@@ -1829,7 +1829,11 @@
     if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
     if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
     if (els["success-info-rows"]) {
-      els["success-info-rows"].innerHTML = `
+      els["success-info-rows"].innerHTML = 
+         `<div class="success-info-row" style="background:#fef2f2;border:2px solid #dc2626;border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+      <span class="label" style="color:#991b1b;font-weight:900;">⚠️ 轉帳備註必填</span>
+      <span class="value" style="color:#dc2626;font-weight:900;font-size:16px;letter-spacing:0.05em;">${escapeHtml(result.cardId || "—")}</span>
+    </div>
         <div class="success-info-row"><span class="label">申請人</span><span class="value">${escapeHtml(result.customerName)}</span></div>
         <div class="success-info-row"><span class="label">方案</span><span class="value">${escapeHtml(result.planLabel)}</span></div>
         <div class="success-info-row"><span class="label">應付總額</span><span class="value" style="font-weight:900;color:#d97706;">${money(result.totalAmount)}</span></div>
