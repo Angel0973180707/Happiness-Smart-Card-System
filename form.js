@@ -2155,9 +2155,23 @@
     if (els["mode-info-desc"]) els["mode-info-desc"].textContent = "續約固定 NT$ 500,可加購未擁有的功能。";
   }
 
-  function renderRenewControls() {
+function renderRenewControls() {
     const panel = els["renew-controls-panel"];
     if (!panel) return;
+    
+    const card = state.runtime.renewCard;
+    const hasUnlimited = card?.update_unlimited === "true" 
+                      || card?.update_unlimited === true 
+                      || card?.update_unlimited_current === "true"
+                      || card?.update_unlimited_current === true;
+    
+    // 原卡沒有無限更新 → 不顯示「續用」選項(讓用戶去「功能加購」區首次加購)
+    if (!hasUnlimited) {
+      panel.innerHTML = "";
+      return;
+    }
+    
+    // 原卡有無限更新 → 顯示「續用」選項
     panel.innerHTML = `
       <div class="renew-control-group">
         <label><input type="checkbox" id="renew-unlimited-update" /> 續用無限更新 (+NT$300)</label>
@@ -2170,22 +2184,6 @@
         state.renewFlow.renewUnlimitedUpdate = e.target.checked;
         refreshAll();
       });
-    }
-  }
-
-  function renderUpdateModeActionState() {
-    if (state.mode !== "update") return;
-    const submitBtn = els["btn-submit-form"];
-    const f = state.updateFlow;
-    if (!submitBtn) return;
-    if (f.updateMode === "paid") {
-      submitBtn.classList.remove("hidden");
-      submitBtn.textContent = "送出更新(需付款)";
-    } else if (f.updateMode === "expired") {
-      submitBtn.classList.add("hidden");
-    } else {
-      submitBtn.classList.remove("hidden");
-      submitBtn.textContent = "送出更新申請";
     }
   }
 
