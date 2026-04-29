@@ -1723,7 +1723,7 @@
         selected_addons: collectRenewSelectedAddons(),
         renew_unlimited_update: state.renewFlow.renewUnlimitedUpdate,
         quote_items: quote.quote_items || [],
-        total_amount: quote.total_amount || state.quote.totalAmount
+        total_amount: state.quote.totalAmount || quote.total_amount   
       };
       const paymentRes = await postToGas(paymentPayload);
       if (!paymentRes.ok) throw new Error(paymentRes.error || "建立續約付款資訊失敗");
@@ -1736,7 +1736,7 @@
         renewalId, paymentId,
         paymentDueAt: dueAtObj.toISOString(),
         dueDateStr: formatDateTime(dueAtObj),
-        totalAmount: paymentPayload.total_amount,
+      totalAmount: paymentRes.summary?.total_amount || paymentRes.payment?.total_amount || paymentPayload.total_amount || state.quote.totalAmount || 0,
         targetPlan: state.renewFlow.targetPlan,
         customerName: valueOf("display_name") || "您",
         quoteItems: quote.quote_items || []
