@@ -1736,8 +1736,8 @@ async function requestRenewQuote() {
         keep_marquee: keepMarquee,
         keep_photo_extra_qty: keepPhotoExtraQty,
         keep_cta_extra_qty: keepCtaExtraQty,
-        quote_items: quote.quote_items || [],
-        total_amount: quote.total_amount || state.quote.totalAmount || 0
+        quote_items: quote.quote_items || []
+       
       };
       const paymentRes = await postToGas(paymentPayload);
       if (!paymentRes.ok) throw new Error(paymentRes.error || "建立續約付款資訊失敗");
