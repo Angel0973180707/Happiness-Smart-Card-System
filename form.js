@@ -877,7 +877,6 @@
     syncSummary(limits);
     syncQuoteByMode();
     syncModePanels();
-    renderUpdateModeActionState();
     updatePreview();
     saveDraftSilently();
   }
