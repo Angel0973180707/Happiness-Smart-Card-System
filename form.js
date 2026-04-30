@@ -1581,8 +1581,8 @@ async function requestRenewQuote() {
       renew_token: token,
       target_plan: originalPlan,
       selected_addons: collectRenewSelectedAddons(),
-      renew_unlimited_update: state.renewFlow.renewUnlimitedUpdate,
-      update_unlimited_renew: state.renewFlow.renewUnlimitedUpdate,
+     renew_unlimited_update: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
+     update_unlimited_renew: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
       keep_photo_extra_qty: keepPhotoExtraQty,
       keep_cta_extra_qty: keepCtaExtraQty,
       renew_term: state.renewFlow.renewTerm
@@ -1797,8 +1797,8 @@ async function requestRenewQuote() {
         renew_token: state.modeContext.renewToken,
         target_plan: originalPlan,
         selected_addons: collectRenewSelectedAddons(),
-        renew_unlimited_update: state.renewFlow.renewUnlimitedUpdate,
-        update_unlimited_renew: state.renewFlow.renewUnlimitedUpdate,
+      renew_unlimited_update: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
+      update_unlimited_renew: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
         keep_photo_extra_qty: keepPhotoExtraQty,
         keep_cta_extra_qty: keepCtaExtraQty,
         quote_items: quote.quote_items || []
