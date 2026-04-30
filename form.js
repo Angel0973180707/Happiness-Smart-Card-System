@@ -1784,10 +1784,13 @@ async function requestRenewQuote() {
     hideSuccessPanel();
     setProgressStep(1, "計算續約報價…");
     try {
-      const quote = await requestRenewQuote();
-      setProgressStep(2, "建立續約付款資訊…");
-      const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
-       const renewLimits = getLimitsRenew();
+      const renewLimits = getLimitsRenew();
+const selectedAddons = collectRenewSelectedAddons();
+const unlimitedRenew = !!document.getElementById("addon_update_unlimited_enabled")?.checked;
+
+const quote = await requestRenewQuote();
+setProgressStep(2, "建立續約付款資訊…");
+const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
       const keepMarquee = !!(state.runtime.renewCard?.marquee_enabled);
       const keepPhotoExtraQty = renewLimits.extraWallPhotos || 0;
       const keepCtaExtraQty = renewLimits.extraCtas || 0;
