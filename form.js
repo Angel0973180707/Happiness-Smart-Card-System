@@ -1581,8 +1581,9 @@ async function requestRenewQuote() {
       renew_token: token,
       target_plan: originalPlan,
       selected_addons: collectRenewSelectedAddons(),
-     renew_unlimited_update: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
-     update_unlimited_renew: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
+    selected_addons: selectedAddons,
+renew_unlimited_update: unlimitedRenew,
+update_unlimited_renew: unlimitedRenew,
       keep_photo_extra_qty: keepPhotoExtraQty,
       keep_cta_extra_qty: keepCtaExtraQty,
       renew_term: state.renewFlow.renewTerm
