@@ -1794,6 +1794,12 @@ const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan
       const keepMarquee = !!(state.runtime.renewCard?.marquee_enabled);
       const keepPhotoExtraQty = renewLimits.extraWallPhotos || 0;
       const keepCtaExtraQty = renewLimits.extraCtas || 0;
+      console.log("=== SUBMIT DEBUG ===");
+console.log("renewLimits:", renewLimits);
+console.log("keepPhotoExtraQty:", keepPhotoExtraQty);
+console.log("keepCtaExtraQty:", keepCtaExtraQty);
+console.log("selectedAddons:", selectedAddons);
+console.log("unlimitedRenew:", unlimitedRenew); 
       const paymentPayload = {
         action: CONFIG.RENEW_CREATE_PAYMENT_ACTION,
         card_id: state.modeContext.cardId,
