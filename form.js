@@ -573,18 +573,67 @@
       state.runtime.renewCard = cardRes.card || cardRes.data || cardRes;
       state.runtime.renewPaymentSummary = paymentRes;
       state.runtime.renewAddonSummary = addonRes;
+
+      // === v7.18 偵測舊 pending 並詢問用戶 ===
+      const pendingAmount = paymentRes?.pending_renewal_amount 
+                         || paymentRes?.pending?.total_amount 
+                         || paymentRes?.pending_total_amount
+                         || 0;
+      const pendingPaymentId = paymentRes?.pending_payment_id 
+                            || paymentRes?.pending?.payment_id
+                            || "";
+      
+      if (pendingAmount > 0 && pendingPaymentId) {
+        const cardExpiry = state.runtime.renewCard?.expires_at 
+                        ? formatDateYMD(state.runtime.renewCard.expires_at) 
+                        : "—";
+        const msg = `偵測到您已申請續約\n\n` +
+                    `卡片到期日:${cardExpiry}\n` +
+                    `待付款金額:NT$ ${pendingAmount}\n\n` +
+                    `按「確定」→ 取消舊單,重新續約\n` +
+                    `按「取消」→ 不重新續約,保留舊單`;
+        const confirmed = window.confirm(msg);
+        
+        if (confirmed) {
+          // 用戶選擇重新續約 → 呼叫後端取消舊 pending
+          setStatus("取消舊續約單中…", "info");
+          const cancelRes = await postToGas({
+            action: "cancelPendingRenewal",
+            card_id: cardId,
+            renew_token: token
+          });
+          if (!cancelRes.ok) {
+            setStatus("取消舊續約失敗:" + (cancelRes.error || "未知錯誤"), "error");
+            return;
+          }
+          // 重新載入 paymentSummary(舊單已取消)
+          const newPaymentRes = await postToGas({ 
+            action: CONFIG.RENEW_PAYMENT_SUMMARY_ACTION, 
+            card_id: cardId 
+          });
+          state.runtime.renewPaymentSummary = newPaymentRes;
+          setStatus("舊續約單已取消,可重新填寫續約資訊。", "success");
+        } else {
+          // 用戶選擇不重續 → 顯示提示,但仍允許進入(可能只是要看資料)
+          setStatus(`您有未完成續約 NT$ ${pendingAmount},送出將更新該筆而非新增。`, "info");
+        }
+      }
+      // === v7.18 結束 ===
+
       hydrateFormFromCard(state.runtime.renewCard);
       state.renewFlow.targetPlan = state.runtime.renewCard?.plan || getSelectedPlan() || "free";
       const radio = document.querySelector(`input[name="plan"][value="${state.renewFlow.targetPlan}"]`);
       if (radio) radio.checked = true;
       hideOwnedAddons_();
-      setStatus("已載入續約資料,可加購新功能與延長效期。", "info");
+      
+      if (!state.runtime.renewPaymentSummary?.pending_renewal_amount) {
+        setStatus("已載入續約資料,可加購新功能與延長效期。", "info");
+      }
     } catch (err) {
       console.error(err);
       setStatus(`載入續約資料失敗:${err.message}`, "error");
     }
   }
-
   function hideOwnedAddons_() {
     const card = state.runtime.renewCard || {};
     if (card.marquee_enabled === "true" || card.marquee_enabled === true || card.marquee_enabled === "TRUE") {
