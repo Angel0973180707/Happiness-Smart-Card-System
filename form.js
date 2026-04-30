@@ -1500,10 +1500,14 @@
     return items.map(i => ({ addon_code: i.code, quantity: i.qty, price: i.unit_price }));
   }
 
-  async function requestRenewQuote() {
+async function requestRenewQuote() {
     const cardId = state.modeContext.cardId;
     const token = state.modeContext.renewToken;
     const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
+    const renewLimits = getLimitsRenew();
+    const keepMarquee = !!(state.runtime.renewCard?.marquee_enabled);
+    const keepPhotoExtraQty = renewLimits.extraWallPhotos || 0;
+    const keepCtaExtraQty = renewLimits.extraCtas || 0;
     const payload = {
       action: CONFIG.RENEW_QUOTE_ACTION,
       card_id: cardId,
@@ -1511,6 +1515,10 @@
       target_plan: originalPlan,
       selected_addons: collectRenewSelectedAddons(),
       renew_unlimited_update: state.renewFlow.renewUnlimitedUpdate,
+      update_unlimited_renew: state.renewFlow.renewUnlimitedUpdate,
+      keep_marquee: keepMarquee,
+      keep_photo_extra_qty: keepPhotoExtraQty,
+      keep_cta_extra_qty: keepCtaExtraQty,
       renew_term: state.renewFlow.renewTerm
     };
     const res = await postToGas(payload);
@@ -1518,7 +1526,6 @@
     state.runtime.renewQuote = res;
     return res;
   }
-
   // ── Submit ─────────────────────────────────────────────
   async function submit(e) {
     e.preventDefault();
