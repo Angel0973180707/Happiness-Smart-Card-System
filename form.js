@@ -856,7 +856,7 @@
     };
   }
 
-  function getLimitsRenew() {
+function getLimitsRenew() {
     const plan = state.renewFlow.targetPlan || getSelectedPlan() || "free";
     const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.free;
     const card = state.runtime.renewCard || {};
@@ -864,8 +864,26 @@
     const currentCtas = Math.max(base.ctas, Number(card.cta_limit || 0));
     let ewp = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
     let ect = isAddonChecked("addon_cta")   ? getAddonQty("addon_cta_qty")   : 0;
+    
+    // === DEBUG v7.20 ===
+    window.__DEBUG_renewLimits = {
+      plan: plan,
+      base_ctas: base.ctas,
+      card_cta_limit_raw: card.cta_limit,
+      card_cta_limit_num: Number(card.cta_limit || 0),
+      currentCtas: currentCtas,
+      addon_cta_checked: isAddonChecked("addon_cta"),
+      addon_cta_qty_raw: getAddonQty("addon_cta_qty"),
+      ect_before_min: ect,
+      MAX_CTAS: CONFIG.MAX_CTAS
+    };
+    // === DEBUG END ===
+    
     ewp = Math.min(ewp, CONFIG.MAX_WALL_PHOTOS - currentWallPhotos);
     ect = Math.min(ect, CONFIG.MAX_CTAS - currentCtas);
+    
+    window.__DEBUG_renewLimits.ect_after_min = ect;
+    
     return {
       plan, planLabel: base.label, planPrice: base.price,
       baseWallPhotos: currentWallPhotos,
