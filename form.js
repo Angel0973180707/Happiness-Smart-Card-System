@@ -67,8 +67,8 @@
     },
     RENEWAL_FEE: 500,
     UNLIMITED_UPDATE_FEE: 300,
-    MAX_WALL_PHOTOS: 10,
-    MAX_CTAS: 10,
+    MAX_WALL_PHOTOS: 999,
+    MAX_CTAS: 999,
     DEFAULT_PREVIEW_META: {
       layout: "grid",
       aspect_ratio: "1:1",
