@@ -1750,7 +1750,7 @@ async function requestRenewQuote() {
         renewalId, paymentId,
         paymentDueAt: dueAtObj.toISOString(),
         dueDateStr: formatDateTime(dueAtObj),
-      totalAmount: paymentRes.summary?.total_amount || paymentRes.payment?.total_amount || paymentPayload.total_amount || state.quote.totalAmount || 0,
+     totalAmount: paymentRes.summary?.total_amount || paymentRes.payment?.total_amount || state.quote.totalAmount || 0,
         targetPlan: state.renewFlow.targetPlan,
         customerName: valueOf("display_name") || "您",
         quoteItems: quote.quote_items || []
