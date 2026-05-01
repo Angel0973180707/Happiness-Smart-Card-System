@@ -1697,9 +1697,25 @@ function syncCreateQuote() {
   function buildCreatePayload() {
     const limits = getLimitsCreate();
     const theme = getThemeSelection();
-    const addonItems = getAddonItemsForQuote(limits);
-    const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const totalAmount = limits.planPrice + addonAmount;
+    
+    // R0c-2:改用 calcQuote_R0b 確保 payload 跟即時報價框一致
+    const snapshot = getFormSnapshot_R0b();
+    const quote = calcQuote_R0b(snapshot, CONFIG);
+    
+    // 把 R0b 的 items 轉成舊格式給 GAS 端的 calcCreateCardAmount_ 使用
+    // (GAS 期望 addon_items 每筆有 code/name/qty/unit_price/amount)
+    const addonItems = quote.items
+      .filter(i => i.kind === "addon")
+      .map(i => ({
+        code: i.code,
+        name: i.label.replace(/ × \d+$/, ""),
+        qty: i.qty || 1,
+        unit_price: i.unit_price || i.amount,
+        amount: i.amount
+      }));
+    const addonAmount = quote.addonAmount;
+    const totalAmount = quote.total;
+    
     const shared = buildSharedCardData();
     const refValue = valueOf("ref");
     const inviteCode = getInviteCodeFromPage();
