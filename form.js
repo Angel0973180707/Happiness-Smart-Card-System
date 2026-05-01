@@ -1912,6 +1912,20 @@ async function requestRenewQuote() {
     const keepPhotoExtraQty = renewLimits.extraWallPhotos || 0;
     const keepCtaExtraQty = renewLimits.extraCtas || 0;
     
+    // R0e:計算要送的點數(全有或全無)
+    const pointsBalance = Number(state.runtime.pointsBalance || 0);
+    const useChecked = !!document.getElementById("use_points_checkbox")?.checked;
+    let estimatedTotal = state.quote?.originalAmount || 0;
+    if (!estimatedTotal) {
+      const _items = getAddonItemsForQuote(getLimitsRenew());
+      const _addonAmt = _items.reduce((s, i) => s + Number(i.amount || 0), 0);
+      const _unlimitedFee = state.renewFlow.renewUnlimitedUpdate ? CONFIG.UNLIMITED_UPDATE_FEE : 0;
+      estimatedTotal = CONFIG.RENEWAL_FEE + _addonAmt + _unlimitedFee;
+    }
+    const pointsToApply = (useChecked && pointsBalance >= estimatedTotal && estimatedTotal > 0) 
+      ? estimatedTotal 
+      : 0;
+    
     const payload = {
       action: CONFIG.RENEW_QUOTE_ACTION,
       card_id: cardId,
@@ -1924,15 +1938,15 @@ async function requestRenewQuote() {
       keep_cta_extra_qty: keepCtaExtraQty,
       keep_marquee: keepMarquee,
       direct_partner_upgrade: directPartnerUpgrade,
-      points_to_apply: state.quote?.pointsApplied ? Number(state.quote?.pointsUsed || 0) : 0, 
+      points_to_apply: pointsToApply,
       renew_term: state.renewFlow.renewTerm
     };
     
-const res = await postToGas(payload);
-if (!res.ok) throw new Error(res.error || "取得續約報價失敗");
-state.runtime.renewQuote = res;
-state.runtime.pointsBalance = Number(res.points_balance || 0);
-return res;
+    const res = await postToGas(payload);
+    if (!res.ok) throw new Error(res.error || "取得續約報價失敗");
+    state.runtime.renewQuote = res;
+    state.runtime.pointsBalance = Number(res.points_balance || 0);
+    return res;
   }
   // ── Submit ─────────────────────────────────────────────
   async function submit(e) {
