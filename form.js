@@ -1649,10 +1649,18 @@ function syncCreateQuote() {
   }
 
   function buildPhotoMetaMap() {
-    const out = { avatar: normalizePhotoMeta(state.photoMeta.avatar), logo: normalizePhotoMeta(state.photoMeta.logo) };
-    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) out[`photo${i}`] = normalizePhotoMeta(state.photoMeta[`photo${i}`]);
-    return out;
+  const out = { 
+    avatar: normalizePhotoMeta(state.photoMeta.avatar), 
+    logo: normalizePhotoMeta(state.photoMeta.logo) 
+  };
+  // 🔧 R0c-fix:只輸出當前實際照片牆張數的 meta(不要全部 999 張)
+  // 避免 features_json 超過 Google Sheets 50000 字元上限
+  const currentLimit = state.wallPhotoCount || 0;
+  for (let i = 1; i <= currentLimit; i++) {
+    out[`photo${i}`] = normalizePhotoMeta(state.photoMeta[`photo${i}`]);
   }
+  return out;
+}
 
   // ── 驗證與 Payload ─────────────────────────────────────────
   function validateCreateBeforeSubmit() {
