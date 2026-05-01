@@ -1082,7 +1082,7 @@ function getLimitsRenew() {
     };
   }
 
-  // ★ 核心:續約模式加購不重複計費
+// ★ 核心:續約模式加購不重複計費 + 階梯定價(R0d-final)
   function getAddonItemsForQuote(limits) {
     const items = [];
     const bundleChecked = isAddonChecked("addon_bundle");
@@ -1099,28 +1099,40 @@ function getLimitsRenew() {
       renewCard.marquee_enabled === true ||
       renewCard.marquee_enabled === "TRUE"
     );
-    const ownedPhotoMax = isRenewMode && Number(renewCard.photo_limit || 0) >= 10;
-    const ownedCtaMax   = isRenewMode && Number(renewCard.cta_limit   || 0) >= 10;
     const ownedUpgrade  = isRenewMode && String(renewCard.member_tier || renewCard.agent_type || "").toLowerCase() === "partner";
 
-    if (bundleChecked && !ownedMarquee) {
-      items.push({ code: "addon_bundle", name: "跑馬燈＋更新組合", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_bundle, amount: CONFIG.ADDON_PRICES.addon_bundle });
+    // R0d-final:bundle 處理 — 已有跑馬燈時拆開,只算無限更新
+    if (bundleChecked) {
+      if (ownedMarquee) {
+        // 已有跑馬燈,bundle 拆開,只收無限更新
+        items.push({ code: "addon_update_unlimited", name: "無限更新(跑馬燈已擁有)", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited, amount: CONFIG.ADDON_PRICES.addon_update_unlimited });
+      } else {
+        items.push({ code: "addon_bundle", name: "跑馬燈+更新組合", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_bundle, amount: CONFIG.ADDON_PRICES.addon_bundle });
+      }
     } else {
       if (isAddonChecked("addon_marquee") && !ownedMarquee)
         items.push({ code: "addon_marquee", name: "跑馬燈功能", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_marquee, amount: CONFIG.ADDON_PRICES.addon_marquee });
       if (isAddonChecked("addon_update_unlimited"))
         items.push({ code: "addon_update_unlimited", name: "無限更新", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited, amount: CONFIG.ADDON_PRICES.addon_update_unlimited });
     }
-    if (photoChecked && photoQty > 0 && !ownedPhotoMax)
-      items.push({ code: "addon_photo", name: "照片牆加購", qty: photoQty, unit_price: CONFIG.ADDON_PRICES.addon_photo, amount: photoQty * CONFIG.ADDON_PRICES.addon_photo });
-    if (ctaChecked && ctaQty > 0 && !ownedCtaMax)
-      items.push({ code: "addon_cta", name: "CTA 加購", qty: ctaQty, unit_price: CONFIG.ADDON_PRICES.addon_cta, amount: ctaQty * CONFIG.ADDON_PRICES.addon_cta });
+
+    // R0d-final:照片牆套階梯定價,不擋上限
+    if (photoChecked && photoQty > 0) {
+      const r = calcQuantityAddon(photoQty, PRICING_V2.addon_photo);
+      items.push({ code: "addon_photo", name: "照片牆加購", qty: photoQty, unit_price: r.perUnit, amount: r.amount });
+    }
+
+    // R0d-final:CTA 套階梯定價,不擋上限
+    if (ctaChecked && ctaQty > 0) {
+      const r = calcQuantityAddon(ctaQty, PRICING_V2.addon_cta);
+      items.push({ code: "addon_cta", name: "CTA 加購", qty: ctaQty, unit_price: r.perUnit, amount: r.amount });
+    }
+
     if (isAddonChecked("addon_agent_upgrade") && !ownedUpgrade)
       items.push({ code: "addon_agent_upgrade", name: "金牌級會員", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_agent_upgrade, amount: CONFIG.ADDON_PRICES.addon_agent_upgrade });
 
     return items;
   }
-
   // ── 刷新 UI ─────────────────────────────────────────────
   function refreshAll() {
     const limits = getLimits();
