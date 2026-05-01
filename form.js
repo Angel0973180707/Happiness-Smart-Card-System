@@ -1305,21 +1305,29 @@ function syncCreateQuote() {
   }
 
   // ★ 核心:續約費固定 NT$ 500
-  function syncRenewQuote() {
+function syncRenewQuote() {
     const basePrice = CONFIG.RENEWAL_FEE; // 固定 500
     const addonItems = getAddonItemsForQuote(getLimitsRenew());
     const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
     const unlimitedFee = state.renewFlow.renewUnlimitedUpdate ? CONFIG.UNLIMITED_UPDATE_FEE : 0;
     const total = basePrice + addonAmount + unlimitedFee;
     const targetPlan = state.renewFlow.targetPlan || state.runtime.renewCard?.plan || "free";
-
+    
+    // R0e:點數折抵邏輯(全有或全無)
+    const pointsBalance = Number(state.runtime.pointsBalance || 0);
+    const pointsCanCover = pointsBalance >= total && total > 0;
+    const useChecked = !!document.getElementById("use_points_checkbox")?.checked;
+    const pointsApplied = pointsCanCover && useChecked;
+    const pointsUsed = pointsApplied ? total : 0;
+    const finalAmount = pointsApplied ? 0 : total;
+    
     if (els["quote-kicker"]) els["quote-kicker"].textContent = "續約報價";
     if (els["quote-title"]) els["quote-title"].textContent = "續約費用";
     if (els["quote-state-text"]) els["quote-state-text"].textContent = `${CONFIG.BASE_LIMITS[targetPlan]?.label || targetPlan} 續約`;
     if (els["quote-plan-amount"]) els["quote-plan-amount"].textContent = money(basePrice);
     if (els["quote-addon-amount"]) els["quote-addon-amount"].textContent = money(addonAmount + unlimitedFee);
-    if (els["quote-total-amount"]) els["quote-total-amount"].textContent = money(total);
-
+    if (els["quote-total-amount"]) els["quote-total-amount"].textContent = money(finalAmount);
+    
     if (els["quote-addon-breakdown"]) {
       els["quote-addon-breakdown"].innerHTML = "";
       addonItems.forEach(item => {
@@ -1340,8 +1348,58 @@ function syncCreateQuote() {
         row.innerHTML = `<span>續約主方案</span><strong>${money(basePrice)}</strong>`;
         els["quote-addon-breakdown"].appendChild(row);
       }
+      // R0e:折抵顯示
+      if (pointsApplied) {
+        const row = document.createElement("div");
+        row.className = "quote-breakdown-row";
+        row.style.color = "#168e46";
+        row.innerHTML = `<span>💎 點數折抵 (${pointsUsed} 點)</span><strong>-${money(pointsUsed)}</strong>`;
+        els["quote-addon-breakdown"].appendChild(row);
+      }
     }
-    state.quote = { mode: "renew", planAmount: basePrice, addonAmount, totalAmount: total, quoteItems: addonItems };
+    
+    // R0e:更新點數區塊狀態
+    updatePointsBlock(pointsBalance, total, pointsCanCover, pointsApplied);
+    
+    state.quote = { 
+      mode: "renew", 
+      planAmount: basePrice, 
+      addonAmount, 
+      totalAmount: finalAmount,
+      originalAmount: total,
+      pointsUsed: pointsUsed,
+      pointsApplied: pointsApplied,
+      quoteItems: addonItems 
+    };
+  }
+
+  // R0e:更新點數區塊 UI
+  function updatePointsBlock(balance, total, canCover, applied) {
+    const block = document.getElementById("points_redeem_block");
+    if (!block) return;
+    
+    if (balance <= 0) {
+      block.classList.add("hidden");
+      return;
+    }
+    
+    block.classList.remove("hidden");
+    const balanceEl = document.getElementById("points_balance_display");
+    const statusEl = document.getElementById("points_status_text");
+    const checkbox = document.getElementById("use_points_checkbox");
+    
+    if (balanceEl) balanceEl.textContent = balance.toLocaleString();
+    
+    if (canCover) {
+      if (statusEl) statusEl.textContent = `✅ 可全數折抵 NT$ ${total.toLocaleString()}`;
+      if (checkbox) checkbox.disabled = false;
+    } else {
+      if (statusEl) statusEl.textContent = `⚠️ 點數不足(需 ${total.toLocaleString()} 點才能折抵)`;
+      if (checkbox) {
+        checkbox.disabled = true;
+        checkbox.checked = false;
+      }
+    }
   }
 
   function buildCreateQuoteSummary() {
