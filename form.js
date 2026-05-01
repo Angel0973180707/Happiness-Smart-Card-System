@@ -2749,6 +2749,8 @@ function renderRenewControls() {
       refreshAll();
     }));
     els.addonCheckboxes.forEach(b => b.addEventListener("change", refreshAll));
+   // R0e:點數 checkbox 監聽
+    document.getElementById("use_points_checkbox")?.addEventListener("change", refreshAll);  
     ["addon_photo_qty", "addon_cta_qty"].forEach(id => {
       if (els[id]) {
         els[id].addEventListener("input", refreshAll);
