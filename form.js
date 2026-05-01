@@ -1843,21 +1843,32 @@ async function requestRenewQuote() {
     const token = state.modeContext.renewToken;
     const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
     const renewLimits = getLimitsRenew();
-    const keepMarquee = !!(state.runtime.renewCard?.marquee_enabled);
+    
+    // R0d-final:keep_marquee 邏輯 — 客戶想要 OR 已擁有(綁卡終身)
+    const userWantsMarquee = isAddonChecked("addon_marquee") || isAddonChecked("addon_bundle");
+    const ownsMarquee = !!(state.runtime.renewCard?.marquee_enabled);
+    const keepMarquee = userWantsMarquee || ownsMarquee;
+    
+    const directPartnerUpgrade = isAddonChecked("addon_agent_upgrade");
+    
     const keepPhotoExtraQty = renewLimits.extraWallPhotos || 0;
     const keepCtaExtraQty = renewLimits.extraCtas || 0;
+    
     const payload = {
       action: CONFIG.RENEW_QUOTE_ACTION,
       card_id: cardId,
       renew_token: token,
       target_plan: originalPlan,
       selected_addons: collectRenewSelectedAddons(),
-     renew_unlimited_update: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
-     update_unlimited_renew: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
+      renew_unlimited_update: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
+      update_unlimited_renew: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
       keep_photo_extra_qty: keepPhotoExtraQty,
       keep_cta_extra_qty: keepCtaExtraQty,
+      keep_marquee: keepMarquee,
+      direct_partner_upgrade: directPartnerUpgrade,
       renew_term: state.renewFlow.renewTerm
     };
+    
     const res = await postToGas(payload);
     if (!res.ok) throw new Error(res.error || "取得續約報價失敗");
     state.runtime.renewQuote = res;
