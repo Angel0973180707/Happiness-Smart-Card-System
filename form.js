@@ -1924,6 +1924,7 @@ async function requestRenewQuote() {
       keep_cta_extra_qty: keepCtaExtraQty,
       keep_marquee: keepMarquee,
       direct_partner_upgrade: directPartnerUpgrade,
+      points_to_apply: state.quote?.pointsApplied ? Number(state.quote?.pointsUsed || 0) : 0, 
       renew_term: state.renewFlow.renewTerm
     };
     
