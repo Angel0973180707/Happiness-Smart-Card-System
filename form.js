@@ -46,6 +46,36 @@
    * @param {object} config - PRICING_V2.addon_photo 或 PRICING_V2.addon_cta
    * @returns {object} { amount, perUnit, tier }
    */
+   // ═══════════════════════════════════════════════════════
+  // R0d 階段 4-B:從 GAS 動態取得 PRICING_V2
+  // pricing_db 是唯一真相來源,改 spreadsheet 就改價
+  // ═══════════════════════════════════════════════════════
+  let PRICING_V2_LOADED = false;
+  
+  async function loadPricingV2FromGas() {
+    try {
+      const resp = await fetch(`${CONFIG.GAS_URL}?action=getPricingConfig&tenant=angel`);
+      const data = await resp.json();
+      
+      if (data && data.ok && data.pricing_v2) {
+        // 動態覆蓋寫死的 PRICING_V2(保留物件 reference 不變,只更新內容)
+        if (data.pricing_v2.addon_photo) {
+          PRICING_V2.addon_photo.tiers = data.pricing_v2.addon_photo.tiers || PRICING_V2.addon_photo.tiers;
+          PRICING_V2.addon_photo.unlimited = data.pricing_v2.addon_photo.unlimited || PRICING_V2.addon_photo.unlimited;
+        }
+        if (data.pricing_v2.addon_cta) {
+          PRICING_V2.addon_cta.tiers = data.pricing_v2.addon_cta.tiers || PRICING_V2.addon_cta.tiers;
+          PRICING_V2.addon_cta.unlimited = data.pricing_v2.addon_cta.unlimited || PRICING_V2.addon_cta.unlimited;
+        }
+        PRICING_V2_LOADED = true;
+        console.log("[R0d] PRICING_V2 已從 GAS 載入:", PRICING_V2);
+      } else {
+        console.warn("[R0d] getPricingConfig 回傳異常,使用前端預設 PRICING_V2");
+      }
+    } catch (err) {
+      console.warn("[R0d] 取得 PRICING_V2 失敗(使用前端預設):", err.message);
+    }
+  }
 function calcQuantityAddon(qty, config) {
     if (qty <= 0) return { amount: 0, perUnit: 0, tier: null };
     if (qty === "unlimited") return { amount: config.unlimited, perUnit: 0, tier: "unlimited" };
