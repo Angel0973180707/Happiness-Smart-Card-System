@@ -1581,9 +1581,8 @@ async function requestRenewQuote() {
       renew_token: token,
       target_plan: originalPlan,
       selected_addons: collectRenewSelectedAddons(),
-    selected_addons: selectedAddons,
-renew_unlimited_update: unlimitedRenew,
-update_unlimited_renew: unlimitedRenew,
+     renew_unlimited_update: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
+     update_unlimited_renew: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
       keep_photo_extra_qty: keepPhotoExtraQty,
       keep_cta_extra_qty: keepCtaExtraQty,
       renew_term: state.renewFlow.renewTerm
@@ -1785,22 +1784,13 @@ update_unlimited_renew: unlimitedRenew,
     hideSuccessPanel();
     setProgressStep(1, "計算續約報價…");
     try {
-      const renewLimits = getLimitsRenew();
-const selectedAddons = collectRenewSelectedAddons();
-const unlimitedRenew = !!document.getElementById("addon_update_unlimited_enabled")?.checked;
-
-const quote = await requestRenewQuote();
-setProgressStep(2, "建立續約付款資訊…");
-const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
+      const quote = await requestRenewQuote();
+      setProgressStep(2, "建立續約付款資訊…");
+      const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
+       const renewLimits = getLimitsRenew();
       const keepMarquee = !!(state.runtime.renewCard?.marquee_enabled);
       const keepPhotoExtraQty = renewLimits.extraWallPhotos || 0;
       const keepCtaExtraQty = renewLimits.extraCtas || 0;
-      console.log("=== SUBMIT DEBUG ===");
-console.log("renewLimits:", renewLimits);
-console.log("keepPhotoExtraQty:", keepPhotoExtraQty);
-console.log("keepCtaExtraQty:", keepCtaExtraQty);
-console.log("selectedAddons:", selectedAddons);
-console.log("unlimitedRenew:", unlimitedRenew); 
       const paymentPayload = {
         action: CONFIG.RENEW_CREATE_PAYMENT_ACTION,
         card_id: state.modeContext.cardId,
