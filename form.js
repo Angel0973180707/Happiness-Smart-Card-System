@@ -1167,8 +1167,12 @@ function getLimitsRenew() {
     else if (state.mode === "update") syncUpdateQuote();
     else if (state.mode === "renew")  syncRenewQuote();
   }
-
-  function syncCreateQuote() {
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // R0c 備份:舊版 syncCreateQuote(2026-04-30 改造前)
+  // 如需 rollback:把下面新版 syncCreateQuote 整段刪掉,
+  // 把這個 _OLD_R0c 改回原名 syncCreateQuote 即可
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  function syncCreateQuote_OLD_R0c() {
     const limits = getLimitsCreate();
     const items = getAddonItemsForQuote(limits);
     const addonAmount = items.reduce((s, i) => s + Number(i.amount || 0), 0);
@@ -1195,6 +1199,48 @@ function getLimitsRenew() {
       }
     }
     state.quote = { mode: "create", planAmount: limits.planPrice, addonAmount, totalAmount: total, quoteItems: items };
+  }
+
+ 
+function syncCreateQuote() {
+    // R0c:改用 calcQuote_R0b 計算,但保留舊的 limits 用於 UI 標籤
+    const limits = getLimitsCreate();
+    const snapshot = getFormSnapshot_R0b();
+    const quote = calcQuote_R0b(snapshot, CONFIG);
+    
+    // 把 R0b 的 items 轉成舊格式給 UI 用(舊 UI 期望 item.name)
+    const items = quote.items
+      .filter(i => i.kind === "addon")
+      .map(i => ({
+        code: i.code,
+        name: i.label.replace(/ × \d+$/, ""), // 去掉 "× N" 後綴,讓 UI 自己加
+        qty: i.qty || 1,
+        unit_price: i.unit_price || i.amount,
+        amount: i.amount
+      }));
+    
+    if (els["quote-kicker"]) els["quote-kicker"].textContent = "即時報價";
+    if (els["quote-title"]) els["quote-title"].textContent = "目前費用";
+    if (els["quote-state-text"]) els["quote-state-text"].textContent = `${limits.planLabel}｜${money(quote.total)}`;
+    if (els["quote-plan-amount"]) els["quote-plan-amount"].textContent = money(quote.planAmount);
+    if (els["quote-addon-amount"]) els["quote-addon-amount"].textContent = money(quote.addonAmount);
+    if (els["quote-total-amount"]) els["quote-total-amount"].textContent = money(quote.total);
+    if (els["quote-addon-breakdown"]) {
+      els["quote-addon-breakdown"].innerHTML = "";
+      if (!items.length) {
+        const span = document.createElement("span");
+        span.textContent = "尚未選擇加購";
+        els["quote-addon-breakdown"].appendChild(span);
+      } else {
+        items.forEach(item => {
+          const row = document.createElement("div");
+          row.className = "quote-breakdown-row";
+          row.innerHTML = `<span>${escapeHtml(item.name)}${item.qty > 1 ? ` × ${item.qty}` : ""}</span><strong>${money(item.amount)}</strong>`;
+          els["quote-addon-breakdown"].appendChild(row);
+        });
+      }
+    }
+    state.quote = { mode: "create", planAmount: quote.planAmount, addonAmount: quote.addonAmount, totalAmount: quote.total, quoteItems: items };
   }
 
   function syncUpdateQuote() {
