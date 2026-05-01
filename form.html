@@ -1395,12 +1395,31 @@
             </div>
             <span class="quote-state" id="quote-state-text">請先選擇方案</span>
           </div>
-          <div class="quote-lines">
-            <div class="quote-line"><span>主方案</span><strong id="quote-plan-amount">-</strong></div>
-            <div class="quote-line"><span>加購小計</span><strong id="quote-addon-amount">NT$ 0</strong></div>
-            <div id="quote-addon-breakdown" class="quote-breakdown"><span>尚未選擇加購</span></div>
-            <div class="quote-line quote-total"><span>總價</span><strong id="quote-total-amount">-</strong></div>
-          </div>
+         <div class="quote-lines">
+  <div class="quote-line"><span>主方案</span><strong id="quote-plan-amount">-</strong></div>
+  <div class="quote-line"><span>加購小計</span><strong id="quote-addon-amount">NT$ 0</strong></div>
+  <div id="quote-addon-breakdown" class="quote-breakdown"><span>尚未選擇加購</span></div>
+
+  <!-- R0e:點數折抵區塊 -->
+  <div id="points_redeem_block" class="points-redeem-block hidden">
+    <div class="points-redeem-info">
+      <span class="points-emoji">💎</span>
+      您有 <strong id="points_balance_display">0</strong>
+      <span id="points_status_text" class="points-status">點</span>
+    </div>
+    <label class="points-checkbox-label">
+      <input type="checkbox" id="use_points_checkbox" />
+      <span>使用我的點數折抵</span>
+    </label>
+    <small class="points-rule-note">
+      💡 點數可折抵:續約、續約加購(每點抵 NT$ 1)<br>
+      累積 10,000 點可在加購區兌換金牌會員(兌換後點數歸零)<br>
+      點數需 ≥ 應付金額才能折抵(全有或全無)
+    </small>
+  </div>
+
+  <div class="quote-line quote-total"><span>總價</span><strong id="quote-total-amount">-</strong></div>
+</div>
         </div>
       </section>
 
