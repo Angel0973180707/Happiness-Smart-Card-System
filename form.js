@@ -548,7 +548,7 @@ function calcQuantityAddon(qty, config) {
   }
 
   // ── 初始化 ─────────────────────────────────────────────
-  function init() {
+  async function init() {
     collectEls();
     ensureRendererAlias();
     hydrateQueryParams();
@@ -556,15 +556,17 @@ function calcQuantityAddon(qty, config) {
     applyModeUi();
     upgradeExperienceToTextarea();
     bindStaticEvents();
-    // 🆕 v4.1: 清除舊版 legacy 草稿(避免跨版本污染)
     try { localStorage.removeItem(CONFIG.LEGACY_DRAFT_KEY); } catch(_){}
     restoreDraft();
     ensureDefaultPlan();
     state.tempCardId = "TEMP_" + Date.now();
+    
+    // R0d 階段 4-B:從 GAS 動態取得 PRICING_V2(失敗會 fallback 用前端寫死值)
+    await loadPricingV2FromGas();
+    
     loadModeBootstrap();
     refreshAll();
   }
-
   function upgradeExperienceToTextarea() {
     const old = document.getElementById("experience");
     if (!old || old.tagName === "TEXTAREA") return;
