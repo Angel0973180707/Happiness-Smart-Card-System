@@ -46,17 +46,136 @@
    * @param {object} config - PRICING_V2.addon_photo 或 PRICING_V2.addon_cta
    * @returns {object} { amount, perUnit, tier }
    */
-  function calcQuantityAddon(qty, config) {
+function calcQuantityAddon(qty, config) {
     if (qty <= 0) return { amount: 0, perUnit: 0, tier: null };
     if (qty === "unlimited") return { amount: config.unlimited, perUnit: 0, tier: "unlimited" };
     const tier = config.tiers.find(t => qty >= t.min);
     if (!tier) return { amount: 0, perUnit: 0, tier: null };
     return { amount: qty * tier.perUnit, perUnit: tier.perUnit, tier: tier.min };
   }
-  
-  // 🧪 R0a 暫時暴露給 console 測試,R0b 開始前刪除
+
+  // ═══════════════════════════════════════════════════════
+  // R0b:getFormSnapshot — 唯一 DOM 讀法(R3 會把 3 個 mode 統一過來)
+  // ═══════════════════════════════════════════════════════
+  function getFormSnapshot_R0b() {
+    const planEl = document.querySelector('input[name="plan"]:checked');
+    const isAddonOn = (code) => {
+      const el = document.querySelector(`input[name="addons"][value="${code}"]`);
+      return !!(el && el.checked);
+    };
+    const getQty = (id) => {
+      const el = document.getElementById(id);
+      const n = Number(el?.value || 0);
+      return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    };
+    
+    return {
+      mode: document.body.getAttribute("data-form-mode") || "create",
+      plan: planEl?.value || "",
+      addons: {
+        marquee:        { enabled: isAddonOn("addon_marquee") },
+        photo:          { enabled: isAddonOn("addon_photo"), qty: getQty("addon_photo_qty") },
+        cta:            { enabled: isAddonOn("addon_cta"),   qty: getQty("addon_cta_qty")   },
+        unlimited:      { enabled: isAddonOn("addon_update_unlimited") },
+        bundle:         { enabled: isAddonOn("addon_bundle") },
+        agentUpgrade:   { enabled: isAddonOn("addon_agent_upgrade") }
+      }
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // R0b:calcQuote — 純函式報價計算(R3 會讓前後端共用同一份)
+  // 輸入 snapshot + 設定檔,輸出 { items, planAmount, addonAmount, total }
+  // ═══════════════════════════════════════════════════════
+  function calcQuote_R0b(snapshot, config) {
+    const items = [];
+    let planAmount = 0;
+    let addonAmount = 0;
+    
+    // 主費用
+    if (snapshot.mode === "create") {
+      const planConfig = config.BASE_LIMITS[snapshot.plan];
+      if (planConfig) {
+        planAmount = planConfig.price;
+        items.push({ kind: "plan", code: snapshot.plan, label: planConfig.label, amount: planAmount });
+      }
+    } else if (snapshot.mode === "renew") {
+      planAmount = config.RENEWAL_FEE;
+      items.push({ kind: "renewal", code: "renewal", label: "續約費", amount: planAmount });
+    }
+    // update mode 主費用看資格,這個 R0b 先不處理(維持原邏輯)
+    
+    // 加購:跑馬燈/組合包(互斥)
+    if (snapshot.addons.bundle?.enabled) {
+      const a = config.ADDON_PRICES.addon_bundle;
+      items.push({ kind: "addon", code: "addon_bundle", label: "跑馬燈+更新組合", amount: a });
+      addonAmount += a;
+    } else {
+      if (snapshot.addons.marquee?.enabled) {
+        const a = config.ADDON_PRICES.addon_marquee;
+        items.push({ kind: "addon", code: "addon_marquee", label: "跑馬燈功能", amount: a });
+        addonAmount += a;
+      }
+      if (snapshot.addons.unlimited?.enabled) {
+        const a = config.ADDON_PRICES.addon_update_unlimited;
+        items.push({ kind: "addon", code: "addon_update_unlimited", label: "無限更新", amount: a });
+        addonAmount += a;
+      }
+    }
+    
+    // 加購:照片牆(階梯)
+    if (snapshot.addons.photo?.enabled && snapshot.addons.photo.qty > 0) {
+      const qty = snapshot.addons.photo.qty;
+      const r = calcQuantityAddon(qty, PRICING_V2.addon_photo);
+      items.push({
+        kind: "addon",
+        code: "addon_photo",
+        label: `照片牆加購 × ${qty}`,
+        sublabel: `每張 NT$ ${r.perUnit}`,
+        qty,
+        unit_price: r.perUnit,
+        amount: r.amount
+      });
+      addonAmount += r.amount;
+    }
+    
+    // 加購:CTA(階梯)
+    if (snapshot.addons.cta?.enabled && snapshot.addons.cta.qty > 0) {
+      const qty = snapshot.addons.cta.qty;
+      const r = calcQuantityAddon(qty, PRICING_V2.addon_cta);
+      items.push({
+        kind: "addon",
+        code: "addon_cta",
+        label: `CTA 加購 × ${qty}`,
+        sublabel: `每個 NT$ ${r.perUnit}`,
+        qty,
+        unit_price: r.perUnit,
+        amount: r.amount
+      });
+      addonAmount += r.amount;
+    }
+    
+    // 加購:金牌會員
+    if (snapshot.addons.agentUpgrade?.enabled) {
+      const a = config.ADDON_PRICES.addon_agent_upgrade;
+      items.push({ kind: "addon", code: "addon_agent_upgrade", label: "金牌級會員", amount: a });
+      addonAmount += a;
+    }
+    
+    return {
+      items,
+      planAmount,
+      addonAmount,
+      total: planAmount + addonAmount
+    };
+  }
+
+ // 🧪 R0a/R0b 暫時暴露給 console 測試
   window.__TEST_PRICING_V2 = PRICING_V2;
-  window.__TEST_calcQuantityAddon = calcQuantityAddon; 
+  window.__TEST_calcQuantityAddon = calcQuantityAddon;
+  window.__TEST_getFormSnapshot = getFormSnapshot_R0b;
+  window.__TEST_calcQuote = calcQuote_R0b;
+  window.__TEST_CONFIG = null; // 等 CONFIG 定義後填,見下方 R0b-2
   const CONFIG = {
     GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     SERVICE_URL: "https://lin.ee/G3VJoRm",
@@ -113,7 +232,8 @@
     },
     FIREBASE_MODULE: "./firebase.js"
   };
-
+ // 🧪 R0b 把 CONFIG 也暴露給 console 測試
+  window.__TEST_CONFIG = CONFIG;
   const DEFAULT_PHOTO_META = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
 
   const FLOW_STEP_MAP = {
