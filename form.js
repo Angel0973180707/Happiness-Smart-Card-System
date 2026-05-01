@@ -19,7 +19,40 @@
 
 (() => {
   "use strict";
+// ═══════════════════════════════════════════════════════
+  // R0a:新版定價結構(階梯式 + 不限數量)
+  // 用於替換寫死的 addon_photo/addon_cta NT$100 單價
+  // ═══════════════════════════════════════════════════════
+  const PRICING_V2 = {
+    addon_photo: {
+      tiers: [
+        { min: 10, perUnit: 50 },
+        { min: 1,  perUnit: 80 }
+      ],
+      unlimited: 6000
+    },
+    addon_cta: {
+      tiers: [
+        { min: 10, perUnit: 50 },
+        { min: 1,  perUnit: 80 }
+      ],
+      unlimited: 8000
+    }
+  };
 
+  /**
+   * 計算照片牆/CTA 加購金額(整單套折)
+   * @param {number} qty - 加購數量
+   * @param {object} config - PRICING_V2.addon_photo 或 PRICING_V2.addon_cta
+   * @returns {object} { amount, perUnit, tier }
+   */
+  function calcQuantityAddon(qty, config) {
+    if (qty <= 0) return { amount: 0, perUnit: 0, tier: null };
+    if (qty === "unlimited") return { amount: config.unlimited, perUnit: 0, tier: "unlimited" };
+    const tier = config.tiers.find(t => qty >= t.min);
+    if (!tier) return { amount: 0, perUnit: 0, tier: null };
+    return { amount: qty * tier.perUnit, perUnit: tier.perUnit, tier: tier.min };
+  }
   const CONFIG = {
     GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     SERVICE_URL: "https://lin.ee/G3VJoRm",
