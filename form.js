@@ -2142,23 +2142,40 @@ async function requestRenewQuote() {
     try {
       const quote = await requestRenewQuote();
       setProgressStep(2, "建立續約付款資訊…");
-      const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
-       const renewLimits = getLimitsRenew();
-      const keepMarquee = !!(state.runtime.renewCard?.marquee_enabled);
+const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan;
+      const renewLimits = getLimitsRenew();
+      
+      // R0d-final + R0e:跟 requestRenewQuote 一致的 keep_marquee + 點數邏輯
+      const userWantsMarquee = isAddonChecked("addon_marquee") || isAddonChecked("addon_bundle");
+      const ownsMarquee = !!(state.runtime.renewCard?.marquee_enabled);
+      const keepMarquee = userWantsMarquee || ownsMarquee;
+      const directPartnerUpgrade = isAddonChecked("addon_agent_upgrade");
+      
+      // R0e:點數 payload
+      const pointsBalance = Number(state.runtime.pointsBalance || 0);
+      const useChecked = !!document.getElementById("use_points_checkbox")?.checked;
+      const originalAmount = state.quote?.originalAmount || 0;
+      const pointsToApply = (useChecked && pointsBalance >= originalAmount && originalAmount > 0)
+        ? originalAmount
+        : 0;
+      
       const keepPhotoExtraQty = renewLimits.extraWallPhotos || 0;
       const keepCtaExtraQty = renewLimits.extraCtas || 0;
+      
       const paymentPayload = {
         action: CONFIG.RENEW_CREATE_PAYMENT_ACTION,
         card_id: state.modeContext.cardId,
         renew_token: state.modeContext.renewToken,
         target_plan: originalPlan,
         selected_addons: collectRenewSelectedAddons(),
-      renew_unlimited_update: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
-      update_unlimited_renew: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
+        renew_unlimited_update: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
+        update_unlimited_renew: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
         keep_photo_extra_qty: keepPhotoExtraQty,
         keep_cta_extra_qty: keepCtaExtraQty,
+        keep_marquee: keepMarquee,
+        direct_partner_upgrade: directPartnerUpgrade,
+        points_to_apply: pointsToApply,
         quote_items: quote.quote_items || []
-       
       };
       const paymentRes = await postToGas(paymentPayload);
       if (!paymentRes.ok) throw new Error(paymentRes.error || "建立續約付款資訊失敗");
