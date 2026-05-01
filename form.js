@@ -53,6 +53,10 @@
     if (!tier) return { amount: 0, perUnit: 0, tier: null };
     return { amount: qty * tier.perUnit, perUnit: tier.perUnit, tier: tier.min };
   }
+  
+  // 🧪 R0a 暫時暴露給 console 測試,R0b 開始前刪除
+  window.__TEST_PRICING_V2 = PRICING_V2;
+  window.__TEST_calcQuantityAddon = calcQuantityAddon; 
   const CONFIG = {
     GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     SERVICE_URL: "https://lin.ee/G3VJoRm",
