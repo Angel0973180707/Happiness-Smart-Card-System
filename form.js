@@ -1927,10 +1927,11 @@ async function requestRenewQuote() {
       renew_term: state.renewFlow.renewTerm
     };
     
-    const res = await postToGas(payload);
-    if (!res.ok) throw new Error(res.error || "取得續約報價失敗");
-    state.runtime.renewQuote = res;
-    return res;
+const res = await postToGas(payload);
+if (!res.ok) throw new Error(res.error || "取得續約報價失敗");
+state.runtime.renewQuote = res;
+state.runtime.pointsBalance = Number(res.points_balance || 0);
+return res;
   }
   // ── Submit ─────────────────────────────────────────────
   async function submit(e) {
