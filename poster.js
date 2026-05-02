@@ -560,10 +560,10 @@
     const expDate   = expiresAt ? new Date(expiresAt) : null;
     const now       = new Date();
     const isExpiredCard = expDate && !isNaN(expDate.getTime()) && expDate < now;
-    const isUnlimitedCard =
-      txt(item?.update_limit_override_enabled) === "TRUE" &&
-      txt(item?.update_limit_override_value)   === "-1";
-
+   const isUnlimitedCard =
+  elig?.update_unlimited_enabled === true ||
+  txt(elig?.update_unlimited_enabled) === "TRUE" ||
+  txt(elig?.update_mode) === "unlimited";
     if (!mode) {
       if (isUnlimitedCard || elig?.has_unlimited_update) mode = "unlimited";
       else if (freeRemain > 0)                            mode = "quota";
