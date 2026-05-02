@@ -2241,3 +2241,231 @@ function syncDeliveryControlPanel(card) {
   // 暴露給外部使用
   window.refreshMaintStatus = refreshMaintStatus;
 })();
+/* ============================================================
+   HSC ADMIN · R0g:測試卡清理 PATCH for admin.js
+   ============================================================
+   邏輯:列卡 → 勾選 → 逐一呼叫 adminDeleteTestCard_
+   每張卡都帶 confirm + operated_by + reason 通過嚴格驗證
+============================================================ */
+
+(function initAdminTestCardsPurge() {
+  "use strict";
+
+  const PURGE_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
+  function $p(s) { return document.querySelector(s); }
+
+  function getPurgeAdminKey() {
+    const suffix = localStorage.getItem("hsc_admin_key") || "";
+    if (suffix.startsWith("ANGEL2026")) return suffix;
+    return suffix ? "ANGEL2026" + suffix : "";
+  }
+
+  function purgeToast(msg) {
+    if (typeof window._hscToast === "function") window._hscToast(msg);
+    else alert(msg);
+  }
+
+  function purgeEsc(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  let _testCardsCache = [];
+
+  // ── 載入測試卡 ──
+  async function loadTestCards() {
+    const key = getPurgeAdminKey();
+    if (!key) {
+      purgeToast("⚠️ 請先設定 Admin Key");
+      return;
+    }
+
+    const wrap = $p("#testCardsListWrap");
+    const badge = $p("#testCardsCountBadge");
+    const purgeBtn = $p("#btnPurgeSelectedTestCards");
+    if (wrap) wrap.innerHTML = '<div class="empty-state" style="padding:20px;font-size:13px;">載入中…</div>';
+    if (badge) {
+      badge.textContent = "查詢中…";
+      badge.style.background = "var(--info-bg)";
+      badge.style.color = "var(--info)";
+    }
+
+    try {
+      const res = await fetch(PURGE_GAS_URL, {
+        method: "POST",
+        redirect: "follow",
+        body: JSON.stringify({
+          action: "adminListTestCards",
+          admin_key: key
+        })
+      });
+      const data = await res.json();
+      if (!data || !data.ok) {
+        throw new Error(data?.error || "載入失敗");
+      }
+
+      _testCardsCache = data.cards || [];
+      renderTestCardsList(_testCardsCache);
+
+      if (badge) {
+        badge.textContent = `共 ${data.count || 0} 張`;
+        badge.style.background = data.count > 0 ? "var(--warn-bg)" : "var(--ok-bg)";
+        badge.style.color = data.count > 0 ? "var(--warn)" : "var(--ok)";
+      }
+      if (purgeBtn) purgeBtn.disabled = (data.count || 0) === 0;
+
+    } catch (err) {
+      if (wrap) wrap.innerHTML = `<div class="empty-state" style="padding:20px;font-size:13px;color:var(--danger);">❌ 載入失敗:${purgeEsc(err.message)}</div>`;
+      if (badge) {
+        badge.textContent = "載入失敗";
+        badge.style.background = "var(--danger-bg)";
+        badge.style.color = "var(--danger)";
+      }
+    }
+  }
+
+  // ── 渲染清單 ──
+  function renderTestCardsList(cards) {
+    const wrap = $p("#testCardsListWrap");
+    if (!wrap) return;
+
+    if (!cards || !cards.length) {
+      wrap.innerHTML = '<div class="empty-state" style="padding:20px;font-size:13px;">🎉 沒有測試卡需要清理</div>';
+      return;
+    }
+
+    wrap.innerHTML = cards.map(c => `
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;">
+        <input type="checkbox" class="test-card-cb" value="${purgeEsc(c.id)}" style="width:16px;height:16px;flex-shrink:0;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:800;color:var(--ink);">
+            ${purgeEsc(c.id)}
+            <span style="font-weight:400;color:var(--ink3);">·</span>
+            ${purgeEsc(c.name || "(無名)")}
+          </div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:2px;">
+            ${purgeEsc(c.plan || "-")} · ${purgeEsc(c.billing_status || "-")} · ${purgeEsc(c.match_reason || "")}
+          </div>
+        </div>
+      </label>
+    `).join("");
+
+    wrap.querySelectorAll(".test-card-cb").forEach(cb => {
+      cb.addEventListener("change", updatePurgeBtnState);
+    });
+  }
+
+  function updatePurgeBtnState() {
+    const checked = document.querySelectorAll(".test-card-cb:checked");
+    const purgeBtn = $p("#btnPurgeSelectedTestCards");
+    if (purgeBtn) {
+      purgeBtn.disabled = checked.length === 0;
+      purgeBtn.textContent = checked.length > 0
+        ? `🗑️ 批次刪除選取(${checked.length} 張)`
+        : "🗑️ 批次刪除選取";
+    }
+  }
+
+  // ── 批次刪除 ──
+  async function purgeSelectedTestCards() {
+    const checked = Array.from(document.querySelectorAll(".test-card-cb:checked"));
+    if (!checked.length) {
+      purgeToast("請先勾選要刪的卡");
+      return;
+    }
+
+    const cardIds = checked.map(cb => cb.value);
+
+    if (!confirm(`⚠️ 確定刪除 ${cardIds.length} 張測試卡?\n\n卡號:${cardIds.join(", ")}\n\n此操作會連帶清除 payment / renewal / commission / agent 等所有資料。`)) {
+      return;
+    }
+
+    const reason = prompt(`請輸入刪除原因(必填,審計用):`);
+    if (!reason || !reason.trim()) {
+      purgeToast("❌ 必須輸入刪除原因");
+      return;
+    }
+
+    const operator = prompt(`請輸入操作者名稱(必填,審計用):`, "admin");
+    if (!operator || !operator.trim()) {
+      purgeToast("❌ 必須輸入操作者");
+      return;
+    }
+
+    const key = getPurgeAdminKey();
+    const resultWrap = $p("#testCardsResultWrap");
+    const purgeBtn = $p("#btnPurgeSelectedTestCards");
+
+    if (purgeBtn) {
+      purgeBtn.disabled = true;
+      purgeBtn.textContent = "處理中…";
+    }
+    if (resultWrap) resultWrap.innerHTML = "🔄 開始批次刪除…";
+
+    let succeeded = 0;
+    let failed = 0;
+    const errors = [];
+
+    for (let i = 0; i < cardIds.length; i++) {
+      const cardId = cardIds[i];
+      if (resultWrap) {
+        resultWrap.innerHTML = `🔄 處理中 ${i + 1}/${cardIds.length}:${purgeEsc(cardId)}…`;
+      }
+
+      try {
+        const res = await fetch(PURGE_GAS_URL, {
+          method: "POST",
+          redirect: "follow",
+          body: JSON.stringify({
+            action: "adminDeleteTestCard",
+            admin_key: key,
+            card_id: cardId,
+            confirm: "YES_DELETE_FOREVER",
+            operated_by: operator.trim(),
+            reason: reason.trim()
+          })
+        });
+        const data = await res.json();
+        if (!data || !data.ok) {
+          throw new Error(data?.error || data?.message || "刪除失敗");
+        }
+        succeeded++;
+      } catch (err) {
+        failed++;
+        errors.push(`${cardId}: ${err.message}`);
+      }
+    }
+
+    if (resultWrap) {
+      resultWrap.innerHTML = `
+        <div style="background:${failed > 0 ? 'var(--warn-bg)' : 'var(--ok-bg)'};border-radius:var(--radius-sm);padding:10px 12px;font-weight:800;color:${failed > 0 ? 'var(--warn)' : 'var(--ok)'};">
+          ${failed === 0 ? "✅" : "⚠️"} 完成:成功 ${succeeded} 張,失敗 ${failed} 張
+        </div>
+        ${errors.length ? `<div style="margin-top:8px;color:var(--danger);font-size:11px;">${purgeEsc(errors.join("\n"))}</div>` : ""}
+      `;
+    }
+
+    purgeToast(`✅ 完成:成功 ${succeeded} / 失敗 ${failed}`);
+
+    setTimeout(() => loadTestCards(), 800);
+  }
+
+  // ── 綁定事件 ──
+  function bindPurgeEvents() {
+    $p("#btnLoadTestCards")?.addEventListener("click", loadTestCards);
+    $p("#btnPurgeSelectedTestCards")?.addEventListener("click", purgeSelectedTestCards);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindPurgeEvents);
+  } else {
+    bindPurgeEvents();
+  }
+
+  window.loadTestCards = loadTestCards;
+  window.purgeSelectedTestCards = purgeSelectedTestCards;
+})();
