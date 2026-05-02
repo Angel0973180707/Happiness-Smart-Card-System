@@ -1101,18 +1101,34 @@ input:focus, textarea:focus, select:focus { outline: none; }
         <div class="section-title">系統工具</div>
       </div>
       <div class="tool-list">
-        <!-- ============================================================
-     HSC ADMIN · 維護模式面板 HTML PATCH
-     ============================================================
-     貼法:在 admin.html 中找到「系統工具」section(id="systemSection"),
-     在 <div class="tool-list"> 的最前面插入以下這整塊。
-     大概在這一行附近:
-       <div class="tool-list">
-         ← 貼在這裡(上面)
-         <div class="tool-item">
-           <div><div class="tool-item-label">每日維運</div>...
-============================================================ -->
+        <!-- ═══ R0g:測試卡清理面板 ═══ -->
+<div style="background:linear-gradient(180deg,#fff0f0,#fdf2e8);border:1.5px solid var(--danger);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:var(--shadow);">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:20px;">🧪</span>
+      <span style="font-size:15px;font-weight:900;color:var(--danger);">測試卡清理(高風險)</span>
+    </div>
+    <div id="testCardsCountBadge" style="padding:4px 10px;border-radius:999px;background:var(--surface2);color:var(--ink3);font-size:11px;font-weight:900;">尚未載入</div>
+  </div>
 
+  <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;font-size:12px;line-height:1.6;color:var(--ink2);">
+    💡 此工具會列出所有 <strong>is_test=TRUE</strong> 或名稱含「測試」/「test」的卡片<br>
+    ⚠️ <strong>系統保護帳戶(TW0001 等)會自動排除</strong><br>
+    🗑️ 刪除時會 <strong>連帶清除 payment / renewal / commission / agent 等所有關聯資料</strong>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <button class="btn btn-primary btn-sm" id="btnLoadTestCards" style="flex:1;">🔄 載入測試卡</button>
+    <button class="btn btn-danger btn-sm" id="btnPurgeSelectedTestCards" style="flex:1;" disabled>🗑️ 批次刪除選取</button>
+  </div>
+
+  <div id="testCardsListWrap" style="max-height:300px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);">
+    <div class="empty-state" style="padding:20px;font-size:13px;">點「載入測試卡」開始</div>
+  </div>
+
+  <div id="testCardsResultWrap" style="margin-top:10px;font-size:12px;line-height:1.6;color:var(--ink2);"></div>
+</div>
+<!-- ═══ R0g:測試卡清理面板 結束 ═══ -->
 <!-- ═══ 維護模式控制面板 ═══ -->
 <div style="background:linear-gradient(180deg,#fff8ec,#fdf2e8);border:1.5px solid var(--warn);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:var(--shadow);">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
