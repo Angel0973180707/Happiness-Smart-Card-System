@@ -1728,6 +1728,10 @@ function fetchBindUrl(cardId) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+  function showLoading(on) {
+  var m = document.getElementById('loadingMask');
+  if (m) m.classList.toggle('hidden', !on);
+}
   function getAdminKey() {
   var inputVal = ($('#adminKeyInput') || {}).value || '';
   if (inputVal) return inputVal;
