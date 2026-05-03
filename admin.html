@@ -1728,11 +1728,11 @@ function fetchBindUrl(cardId) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
-  function getAdminKey() { return ($('#adminKeyInput') || {}).value || ''; }
-  function showLoading(on) {
-    var m = $('#loadingMask');
-    if (m) m.classList.toggle('hidden', !on);
-  }
+  function getAdminKey() {
+  var inputVal = ($('#adminKeyInput') || {}).value || '';
+  if (inputVal) return inputVal;
+  try { return localStorage.getItem('hsc_admin_key') || localStorage.getItem('admin_key') || ''; } catch(e) { return ''; }
+}
   function toast(msg) {
     if (typeof window._hscToast === 'function') window._hscToast(msg);
     else console.log('[toast]', msg);
