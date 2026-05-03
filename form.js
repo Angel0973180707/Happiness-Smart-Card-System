@@ -1959,7 +1959,7 @@ async function requestRenewQuote() {
 
   async function submitCreate() {
     if (!validateCreateBeforeSubmit()) return;
-    const payload = buildCreatePayload();
+    const payload = buildCreatePayload();console.log("[DEBUG] payload amount:", payload.amount, payload.total_amount, payload.addon_items);
     state.lastSubmitResult = null;
     showProgress(true);
     hideSuccessPanel();
