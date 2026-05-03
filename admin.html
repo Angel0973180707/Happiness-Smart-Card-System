@@ -1739,15 +1739,16 @@ function fetchBindUrl(cardId) {
   }
 
   // GAS 呼叫工具：使用 POST + text body 避免 CORS preflight
-  function callApi(action, payload) {
-    var body = Object.assign({ action: action, admin_key: getAdminKey() }, payload || {});
-    return fetch(GAS_URL, {
-      method: 'POST',
-      redirect: 'follow',
-      body: JSON.stringify(body)
-    }).then(function(r) { return r.json(); });
-  }
-
+ function callApi(action, payload) {
+  var data = Object.assign({ action: action, admin_key: getAdminKey() }, payload || {});
+  var body = new URLSearchParams();
+  body.append('payload', JSON.stringify(data));
+  return fetch(GAS_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    body: body
+  }).then(function(r) { return r.json(); });
+}
   function paymentTypeBadge(pt) {
     pt = String(pt || 'first_payment').toLowerCase();
     if (pt === 'first_payment') return '<span class="badge badge-warn">首次付款</span>';
