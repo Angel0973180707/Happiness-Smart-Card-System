@@ -25,7 +25,7 @@ const CONFIG = {
   VERSION: "v8.3.5-perf-optimized",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
-  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
+  HUB_URL: "https://angel-namecard.letssyncus.com/",
   // 快取 TTL 設定
   CACHE_SHELL_MS:  5 * 60 * 1000,   // 5 分鐘
   CACHE_LITE_MS:   3 * 60 * 1000,   // 3 分鐘（更動較頻繁）

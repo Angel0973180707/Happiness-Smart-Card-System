@@ -20,7 +20,7 @@
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
   const DEFAULT_BASE =
-    "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+    "https://angel-namecard.letssyncus.com/";
 
   const DEFAULT_LINE_OA = "https://lin.ee/3r2ZePN";
 
