@@ -924,7 +924,32 @@ input:focus, textarea:focus, select:focus { outline: none; }
         <div class="section-title">異常中心</div>
         <button class="btn btn-soft btn-sm" id="btnRefreshException">↻ 重整</button>
       </div>
-
+<!-- 客服填入入帳資料 -->
+<div class="collapsible" id="agentInboxCollapsible">
+  <div class="collapsible-head" id="agentInboxHead">
+    <span>💳 填入銀行入帳資料</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="collapsible-body">
+    <div class="field">
+      <label>名片序號 <span style="color:var(--danger)">*</span></label>
+      <input type="text" id="agentInboxCardId" placeholder="TW0001">
+    </div>
+    <div class="field">
+      <label>入帳金額 <span style="color:var(--danger)">*</span></label>
+      <input type="number" id="agentInboxAmount" placeholder="例：12080" min="0">
+    </div>
+    <div class="field">
+      <label>末5碼 <span style="color:var(--danger)">*</span></label>
+      <input type="text" id="agentInboxLast5" placeholder="例：12345" maxlength="5" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label>備註（選填）</label>
+      <input type="text" id="agentInboxNote" placeholder="選填">
+    </div>
+    <button class="btn btn-primary btn-full" id="btnSubmitAgentInbox">✅ 送出入帳資料</button>
+  </div>
+</div>
       <div class="stats-row">
         <div class="stat-tile urgent">
           <div class="stat-label">待處理</div>
