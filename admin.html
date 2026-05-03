@@ -1954,7 +1954,52 @@ function fetchBindUrl(cardId) {
     if (head && collapsible) {
       head.addEventListener('click', function() { collapsible.classList.toggle('open'); });
     }
+// 客服填入入帳資料
+var agentInboxHead = $('#agentInboxHead');
+var agentInboxCollapsible = $('#agentInboxCollapsible');
+if (agentInboxHead && agentInboxCollapsible) {
+  agentInboxHead.addEventListener('click', function() {
+    agentInboxCollapsible.classList.toggle('open');
+  });
+}
 
+var btnSubmitAgentInbox = $('#btnSubmitAgentInbox');
+if (btnSubmitAgentInbox) {
+  btnSubmitAgentInbox.addEventListener('click', function() {
+    var cardId = (($('#agentInboxCardId') || {}).value || '').trim();
+    var amount = (($('#agentInboxAmount') || {}).value || '').trim();
+    var last5  = (($('#agentInboxLast5')  || {}).value || '').trim();
+    var note   = (($('#agentInboxNote')   || {}).value || '').trim();
+
+    if (!cardId) { toast('請填寫名片序號'); return; }
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) { toast('請填寫正確金額'); return; }
+    if (!last5 || !/^\d{5}$/.test(last5)) { toast('末5碼請填5位數字'); return; }
+
+    showLoading(true);
+    callApi('submitAgentPaymentInbox', {
+      card_id: cardId,
+      amount:  Number(amount),
+      last5:   last5,
+      note:    note
+    }).then(function(data) {
+      showLoading(false);
+      if (!data || !data.ok) {
+        toast('送出失敗：' + ((data && (data.error || data.message)) || '未知錯誤'));
+        return;
+      }
+      toast('✅ 入帳資料已送出，系統自動比對中');
+      if ($('#agentInboxCardId')) $('#agentInboxCardId').value = '';
+      if ($('#agentInboxAmount')) $('#agentInboxAmount').value = '';
+      if ($('#agentInboxLast5'))  $('#agentInboxLast5').value  = '';
+      if ($('#agentInboxNote'))   $('#agentInboxNote').value   = '';
+      if (agentInboxCollapsible) agentInboxCollapsible.classList.remove('open');
+      loadException();
+    }).catch(function(err) {
+      showLoading(false);
+      toast('錯誤：' + err.message);
+    });
+  });
+}
     // 進入 tab 時自動載入
     document.querySelectorAll('[data-section="paymentExceptionSection"]').forEach(function(btn) {
       btn.addEventListener('click', function() { setTimeout(loadException, 150); });
