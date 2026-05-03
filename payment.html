@@ -301,35 +301,32 @@
 
       <button class="btn-submit" id="btn-pay-submit">✅ 送出付款確認</button>
 
-      <div class="safety-note">
+   <div class="safety-note">
         🔒 本表單僅用於付款比對，不會收集其他個人資料。<br>
         如有疑問請直接聯繫官方客服確認。
       </div>
-
     </div>
 
     <!-- 成功畫面 -->
     <div class="success-panel" id="pay-success-panel">
       <div class="success-icon">✅</div>
-      <div class="success-title">已收到付款確認！</div>
+      <div class="success-title">已收到您的付款確認！</div>
       <div class="success-desc">
-        系統將於 <strong>1～5 分鐘內</strong>自動比對並開通名片。<br>
-        若未自動開通，資料會進入異常中心，由後台補處理。<br>
-        完成後可重新整理名片頁面確認是否已開通。
+        系統將於 <strong>24小時內</strong>自動開通名片，<br>
+        並透過 LINE 通知您。<br>
+        無需再聯繫客服，請耐心等候。
       </div>
       <div class="success-note">
-        📌 收到確認後無需再聯繫客服，系統會自動處理。<br>
-        如 10 分鐘後仍未開通，再透過客服回報序號即可。
+        📌 若超過24小時仍未收到交付通知，<br>
+        請透過 LINE 客服回報問題和序號。
       </div>
       <button class="btn-back" id="btn-pay-back">← 返回上一頁</button>
     </div>
 
   </div>
-
   <script>
   (() => {
     "use strict";
-
     const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
     const BANK = {
