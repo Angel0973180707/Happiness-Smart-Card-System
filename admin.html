@@ -1733,9 +1733,9 @@ function fetchBindUrl(cardId) {
   if (m) m.classList.toggle('hidden', !on);
 }
   function getAdminKey() {
-  var inputVal = ($('#adminKeyInput') || {}).value || '';
-  if (inputVal) return inputVal;
-  try { return localStorage.getItem('hsc_admin_key') || localStorage.getItem('admin_key') || ''; } catch(e) { return ''; }
+  var suffix = localStorage.getItem('hsc_admin_key') || '';
+  if (suffix.startsWith('ANGEL2026')) return suffix;
+  return suffix ? 'ANGEL2026' + suffix : '';
 }
   function toast(msg) {
     if (typeof window._hscToast === 'function') window._hscToast(msg);
