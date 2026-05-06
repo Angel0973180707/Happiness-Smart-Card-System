@@ -218,6 +218,7 @@
   // ── 事件綁定 ─────────────────────────────────────────────────
 
   function bindEvents() {
+   console.log("[debug] renewalBtn el =", el.renewalBtn); 
     el.openCardBtn?.addEventListener("click", onOpenCard);
     el.shareCardBtn?.addEventListener("click", onShareCard);
     el.downloadBtn?.addEventListener("click", onDownloadPoster);
