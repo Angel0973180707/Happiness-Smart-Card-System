@@ -2645,13 +2645,14 @@ function renderRenewControls() {
     panel.innerHTML = html;
 
     // 綁定點數折抵
-    const pointsCheck = document.getElementById("renew-use-points");
-    if (pointsCheck) {
-      pointsCheck.addEventListener("change", e => {
-        state.renewFlow.usePointsRedeem = e.target.checked;
-        refreshAll();
-      });
-    }
+const pointsCheck = document.getElementById("renew-use-points");
+if (pointsCheck) {
+  pointsCheck.addEventListener("change", e => {
+    state.renewFlow.usePointsRedeem = e.target.checked;
+    console.log("[debug] usePointsRedeem =", state.renewFlow.usePointsRedeem);
+    refreshAll();
+  });
+}
 
     // 綁定無限更新
     const unlimitedCheck = document.getElementById("renew-unlimited-update");
