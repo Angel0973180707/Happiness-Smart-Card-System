@@ -1914,7 +1914,7 @@ async function requestRenewQuote() {
     const keepCtaExtraQty = renewLimits.extraCtas || 0;
     
     // R0e:計算要送的點數(全有或全無)
-    const pointsBalance = Number(state.runtime.pointsBalance || 0);
+    const pointsBalance = Number(state.runtime.renewPaymentSummary?.points_balance || 0);
     const useChecked = !!document.getElementById("use_points_checkbox")?.checked;
     let estimatedTotal = state.quote?.originalAmount || 0;
     if (!estimatedTotal) {
@@ -2153,7 +2153,7 @@ const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan
       const directPartnerUpgrade = isAddonChecked("addon_agent_upgrade");
       
       // R0e:點數 payload
-      const pointsBalance = Number(state.runtime.pointsBalance || 0);
+     const pointsBalance = Number(state.runtime.renewPaymentSummary?.points_balance || 0);
       const useChecked = !!document.getElementById("use_points_checkbox")?.checked;
       const originalAmount = state.quote?.originalAmount || 0;
       const pointsToApply = (useChecked && pointsBalance >= originalAmount && originalAmount > 0)
