@@ -304,7 +304,7 @@ function calcQuantityAddon(qty, config) {
       requiresPayment: false, canSubmitDirectly: false,
       deductFreeCount: false, updateFeeAmount: 0, expiresAt: "", reasonText: "", updateMode: "quota"
     },
-    renewFlow: { targetPlan: "", renewUnlimitedUpdate: false, renewTerm: 1 },
+   renewFlow: { targetPlan: "", renewUnlimitedUpdate: false, renewTerm: 1, usePointsRedeem: false },
     photoMeta: { avatar: { ...DEFAULT_PHOTO_META }, logo: { ...DEFAULT_PHOTO_META } },
     photoPreviewUrls: {}, photoRealUrls: {}, photoFiles: {}, photoUploadTokens: {}, photoUploadState: {},
     wallPhotoCount: 0, ctaCount: 0, tempCardId: "",
