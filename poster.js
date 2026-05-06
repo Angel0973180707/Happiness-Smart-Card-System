@@ -324,16 +324,15 @@
    * buildUpdateFormUrl：自動組帶 mode=update 參數的表單 URL
    * 後端若有 update_token 就帶入，否則以 card_id 代替
    */
-  function buildUpdateFormUrl(item) {
+function buildUpdateFormUrl(item) {
     const cardId = txt(item?.id) || id;
     const token  = txt(item?.update_token) || cardId;
-    return buildUrl("form.html", {
-      mode:         "update",
-      card_id:      cardId,
-      update_token: token
-    });
+    const url = new URL("form.html", DEFAULT_BASE);
+    url.searchParams.set("mode", "update");
+    url.searchParams.set("card_id", cardId);
+    url.searchParams.set("update_token", token);
+    return url.toString();
   }
-
   /**
    * buildRenewalFormUrl：自動組帶 mode=renew 參數的表單 URL
    */
