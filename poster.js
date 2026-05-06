@@ -973,7 +973,8 @@
     window.open(currentUpdateUrl, "_blank", "noopener");
   }
 
-  function onOpenRenewal() {
+ function onOpenRenewal() {
+    console.log("[debug] currentRenewalUrl =", currentRenewalUrl);
     if (!currentRenewalUrl) { openUrl(lineOA, "請聯繫客服辦理續用"); return; }
     window.open(currentRenewalUrl, "_blank", "noopener");
   }
