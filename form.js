@@ -1314,9 +1314,10 @@ function syncRenewQuote() {
     const targetPlan = state.renewFlow.targetPlan || state.runtime.renewCard?.plan || "free";
     
     // R0e:點數折抵邏輯(全有或全無)
-    const pointsBalance = Number(state.runtime.pointsBalance || 0);
+    
+    const pointsBalance = Number(state.runtime.renewPaymentSummary?.points_balance || 0);
     const pointsCanCover = pointsBalance >= total && total > 0;
-    const useChecked = !!document.getElementById("use_points_checkbox")?.checked;
+    const useChecked = state.renewFlow.usePointsRedeem;
     const pointsApplied = pointsCanCover && useChecked;
     const pointsUsed = pointsApplied ? total : 0;
     const finalAmount = pointsApplied ? 0 : total;
