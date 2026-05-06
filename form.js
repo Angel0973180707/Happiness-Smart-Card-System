@@ -2605,35 +2605,13 @@ function renderRenewControls() {
     if (!panel) return;
     
     const card = state.runtime.renewCard;
-    const summary = state.runtime.renewPaymentSummary;
     const hasUnlimited = card?.update_unlimited === "true" 
                       || card?.update_unlimited === true 
                       || card?.update_unlimited_current === "true"
                       || card?.update_unlimited_current === true;
 
-    const pointsBalance = Number(summary?.points_balance || 0);
-    const totalAmount   = Number(summary?.amount_before || summary?.total_amount || 0);
-    const canRedeem     = pointsBalance > 0 && totalAmount > 0;
-    const redeemPoints  = canRedeem ? Math.min(pointsBalance, totalAmount) : 0;
-    const amountAfter   = canRedeem ? Math.max(0, totalAmount - redeemPoints) : totalAmount;
-
     let html = "";
 
-    // 點數折抵區塊
-    if (pointsBalance > 0) {
-      html += `
-        <div class="renew-control-group" style="margin-bottom:12px;padding:12px;background:rgba(191,135,87,.07);border-radius:12px;border:1px solid rgba(191,135,87,.18);">
-          <div style="font-size:13px;font-weight:900;color:var(--gold-deep);margin-bottom:6px;">🎁 點數折抵</div>
-          <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px;">目前點數：<strong>${pointsBalance}</strong> 點（1點＝NT$1）</div>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" id="renew-use-points" ${state.renewFlow.usePointsRedeem ? "checked" : ""} />
-            使用 ${redeemPoints} 點折抵，付款金額 NT$${totalAmount} → NT$${amountAfter}
-          </label>
-        </div>
-      `;
-    }
-
-    // 無限更新區塊
     if (hasUnlimited) {
       html += `
         <div class="renew-control-group">
@@ -2644,17 +2622,6 @@ function renderRenewControls() {
 
     panel.innerHTML = html;
 
-    // 綁定點數折抵
-const pointsCheck = document.getElementById("renew-use-points");
-if (pointsCheck) {
-  pointsCheck.addEventListener("change", e => {
-    state.renewFlow.usePointsRedeem = e.target.checked;
-    console.log("[debug] usePointsRedeem =", state.renewFlow.usePointsRedeem);
-    refreshAll();
-  });
-}
-
-    // 綁定無限更新
     const unlimitedCheck = document.getElementById("renew-unlimited-update");
     if (unlimitedCheck) {
       unlimitedCheck.checked = state.renewFlow.renewUnlimitedUpdate;
