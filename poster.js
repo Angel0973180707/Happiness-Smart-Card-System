@@ -337,14 +337,14 @@
   /**
    * buildRenewalFormUrl：自動組帶 mode=renew 參數的表單 URL
    */
-  function buildRenewalFormUrl(item) {
+function buildRenewalFormUrl(item) {
     const cardId = txt(item?.id) || id;
     const token  = txt(item?.renew_token) || cardId;
-    return buildUrl("form.html", {
-      mode:        "renew",
-      card_id:     cardId,
-      renew_token: token
-    });
+    const url = new URL("form.html", DEFAULT_BASE);
+    url.searchParams.set("mode", "renew");
+    url.searchParams.set("card_id", cardId);
+    url.searchParams.set("renew_token", token);
+    return url.toString();
   }
 
   function resolveUpdateUrl(payload, item) {
