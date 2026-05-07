@@ -2155,7 +2155,7 @@ const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan
       // R0e:點數 payload
      const pointsBalance = Number(state.runtime.renewPaymentSummary?.points_balance || 0);
       const useChecked = !!document.getElementById("use_points_checkbox")?.checked;
-      const originalAmount = state.quote?.originalAmount || 0;
+     const originalAmount = state.quote?.originalAmount || (CONFIG.RENEWAL_FEE + (state.renewFlow.renewUnlimitedUpdate ? CONFIG.UNLIMITED_UPDATE_FEE : 0));
       const pointsToApply = (useChecked && pointsBalance >= originalAmount && originalAmount > 0)
         ? originalAmount
         : 0;
