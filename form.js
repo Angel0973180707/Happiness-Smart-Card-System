@@ -1317,7 +1317,7 @@ function syncRenewQuote() {
     
     const pointsBalance = Number(state.runtime.renewPaymentSummary?.points_balance || 0);
     const pointsCanCover = pointsBalance >= total && total > 0;
-    const useChecked = state.renewFlow.usePointsRedeem;
+    const useChecked = !!document.getElementById("use_points_checkbox")?.checked;
     const pointsApplied = pointsCanCover && useChecked;
     const pointsUsed = pointsApplied ? total : 0;
     const finalAmount = pointsApplied ? 0 : total;
