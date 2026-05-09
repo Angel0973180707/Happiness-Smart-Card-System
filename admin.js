@@ -927,6 +927,24 @@ function syncDeliveryControlPanel(card) {
     });
     container.querySelectorAll('.btn-renewal-paid').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); markRenewalPaid(btn.dataset.id); }));
+    container.querySelectorAll('.btn-renewal-refund').forEach(btn =>
+  btn.addEventListener('click', async e => {
+    e.stopPropagation();
+    const renewalId = btn.dataset.id;
+    const paymentId = btn.dataset.pid;
+    if (!confirm(`確定退款？\n續約單：${renewalId}\n付款單：${paymentId}\n\n退款後點數將自動退回。`)) return;
+    showLoading(true);
+    try {
+      const res = await callApi('markPaymentRefunded', { payment_id: paymentId, note: '後台退款' });
+      if (!res.ok) throw new Error(res.error || '退款失敗');
+      toast('✅ 退款成功，點數已退回');
+      loadRenewalList();
+    } catch (err) {
+      toast('退款失敗：' + err.message);
+    } finally {
+      showLoading(false);
+    }
+  }));
     container.querySelectorAll('.btn-renewal-reminder').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); triggerRenewalReminderForCard(btn.dataset.cid); }));
   }
