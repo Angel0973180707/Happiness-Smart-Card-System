@@ -483,9 +483,8 @@ function buildInviteReplyText(request) {
         ${renderDetailItem("推薦人", card.referrer)}
         ${renderDetailItem("續約狀態", getRenewalStateText(card))}
       </div>
-     <div class="action-strip">
+   <div class="action-strip">
   ${status !== 'paid' ? `<button class="btn btn-primary btn-sm btn-renewal-paid" data-id="${rid}">標記已付款</button>` : ''}
-  ${status === 'paid' ? `<button class="btn btn-danger btn-sm btn-renewal-refund" data-id="${rid}" data-pid="${escapeHtml(textOf(item.payment_id))}">退款</button>` : ''}
   <button class="btn btn-soft btn-sm btn-renewal-reminder" data-cid="${escapeHtml(textOf(item.card_id))}">觸發提醒</button>
 </div>
     wrap.querySelector('#btnGoDeliveryFromDetail')?.addEventListener('click', e => {
