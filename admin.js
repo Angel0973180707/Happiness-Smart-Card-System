@@ -5,8 +5,8 @@
     VERSION: "v6.7.0-perf-optimized",
     KEY_PREFIX: "ANGEL2026",
     GAS_BASE_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-    HUB_URL: "https://angel-namecard.letssyncus.com/",
-    FORM_URL: "https://angel-namecard.letssyncus.com/form.html",
+    HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
+    FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
     DEFAULT_RENEW_DAYS: 365,
     API_TIMEOUT_MS: 25000,
     API_RETRY: 1,
@@ -483,7 +483,10 @@ function buildInviteReplyText(request) {
         ${renderDetailItem("推薦人", card.referrer)}
         ${renderDetailItem("續約狀態", getRenewalStateText(card))}
       </div>
-  `;
+      <div class="action-strip">
+        <button class="btn btn-primary btn-sm" id="btnGoDeliveryFromDetail" data-cid="${escapeHtml(id)}">📦 前往交付</button>
+        <button class="btn btn-soft btn-sm" id="btnOpenPreview" data-cid="${escapeHtml(id)}">預覽</button>
+      </div>`;
     wrap.querySelector('#btnGoDeliveryFromDetail')?.addEventListener('click', e => {
       const cid = e.currentTarget.dataset.cid;
       const inp = $('#deliveryCardIdInput');
@@ -908,42 +911,21 @@ function syncDeliveryControlPanel(card) {
               ${renderDetailItem("天數", item.renew_days)}
               ${renderDetailItem("金額", item.amount)}
               ${renderDetailItem("狀態", item.status)}
-           ${renderDetailItem("到期日", item.expires_at)}
+              ${renderDetailItem("到期日", item.expires_at)}
             </div>
             <div class="action-strip">
-              ${status !== 'paid' ? '<button class="btn btn-primary btn-sm btn-renewal-paid" data-id="' + rid + '">標記已付款</button>' : ''}
-              ${status === 'paid' ? '<button class="btn btn-danger btn-sm btn-renewal-refund" data-id="' + rid + '" data-pid="' + escapeHtml(textOf(item.payment_id)) + '">退款</button>' : ''}
+              ${status !== 'paid' ? `<button class="btn btn-primary btn-sm btn-renewal-paid" data-id="${rid}">標記已付款</button>` : ''}
               <button class="btn btn-soft btn-sm btn-renewal-reminder" data-cid="${escapeHtml(textOf(item.card_id))}">觸發提醒</button>
             </div>
           </div>
         </div>`;
+    }).join('');
 
     container.querySelectorAll('.list-row-head[data-type="renewal"]').forEach(head => {
       head.addEventListener('click', () => document.getElementById(`rrow-${head.dataset.row}`)?.classList.toggle('open'));
     });
     container.querySelectorAll('.btn-renewal-paid').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); markRenewalPaid(btn.dataset.id); }));
-  container.querySelectorAll('.btn-renewal-refund').forEach(btn =>
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    const renewalId = btn.dataset.id;
-    const paymentId = btn.dataset.pid;
-    if (!confirm('確定退款？\n續約單：' + renewalId + '\n付款單：' + paymentId + '\n\n退款後點數將自動退回。')) return;
-    showLoading(true);
-    callApi('markPaymentRefunded', { payment_id: paymentId, note: '後台退款' })
-      .then(function(res) {
-        if (!res.ok) throw new Error(res.error || '退款失敗');
-        toast('✅ 退款成功，點數已退回');
-        loadRenewalList();
-      })
-      .catch(function(err) {
-        toast('退款失敗：' + err.message);
-      })
-      .finally(function() {
-        showLoading(false);
-      });
-  }));
-   
     container.querySelectorAll('.btn-renewal-reminder').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); triggerRenewalReminderForCard(btn.dataset.cid); }));
   }
