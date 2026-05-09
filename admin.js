@@ -483,7 +483,7 @@ function buildInviteReplyText(request) {
         ${renderDetailItem("推薦人", card.referrer)}
         ${renderDetailItem("續約狀態", getRenewalStateText(card))}
       </div>
-  
+  `;
     wrap.querySelector('#btnGoDeliveryFromDetail')?.addEventListener('click', e => {
       const cid = e.currentTarget.dataset.cid;
       const inp = $('#deliveryCardIdInput');
