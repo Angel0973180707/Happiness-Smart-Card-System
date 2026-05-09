@@ -2155,10 +2155,11 @@ const originalPlan = state.runtime.renewCard?.plan || state.renewFlow.targetPlan
       // R0e:點數 payload
      const pointsBalance = Number(state.runtime.renewPaymentSummary?.points_balance || 0);
       const useChecked = !!document.getElementById("use_points_checkbox")?.checked;
-     const originalAmount = state.quote?.originalAmount || (CONFIG.RENEWAL_FEE + (state.renewFlow.renewUnlimitedUpdate ? CONFIG.UNLIMITED_UPDATE_FEE : 0));
-      const pointsToApply = (useChecked && pointsBalance >= originalAmount && originalAmount > 0)
-        ? originalAmount
-        : 0;
+    // 修復：originalAmount 直接從 state.quote 取，確保跟報價框一致
+const originalAmount = state.quote?.originalAmount || 0;
+const pointsToApply = (useChecked && pointsBalance >= originalAmount && originalAmount > 0)
+  ? originalAmount
+  : 0;
       
       const keepPhotoExtraQty = renewLimits.extraWallPhotos || 0;
       const keepCtaExtraQty = renewLimits.extraCtas || 0;
