@@ -927,10 +927,29 @@ ${status === 'paid' ? '<button class="btn btn-danger btn-sm btn-renewal-refund" 
     });
     container.querySelectorAll('.btn-renewal-paid').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); markRenewalPaid(btn.dataset.id); }));
+   container.querySelectorAll('.btn-renewal-refund').forEach(btn =>
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const renewalId = btn.dataset.id;
+        const paymentId = btn.dataset.pid;
+        if (!confirm('確定退款？\n續約單：' + renewalId + '\n付款單：' + paymentId + '\n\n退款後點數將自動退回。')) return;
+        setLoading(true);
+        apiPost('markPaymentRefunded', { payment_id: paymentId, note: '後台退款' })
+          .then(function() {
+            toast('✅ 退款成功，點數已退回');
+            loadRenewalList();
+          })
+          .catch(function(err) {
+            toast('退款失敗：' + err.message);
+          })
+          .finally(function() {
+            setLoading(false);
+          });
+      }));
     container.querySelectorAll('.btn-renewal-reminder').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); triggerRenewalReminderForCard(btn.dataset.cid); }));
   }
-
+ 
   function updateRenewalStats() {
     const soon = state.renewalItems.filter(r => textOf(r.status).toLowerCase() === "pending" && isExpiringSoon({ expires_at: r.expires_at }, 30)).length;
     const expired = state.renewalItems.filter(r => textOf(r.status).toLowerCase() === "pending" && isExpired({ expires_at: r.expires_at })).length;
