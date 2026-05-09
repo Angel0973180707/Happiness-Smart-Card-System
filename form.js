@@ -2190,7 +2190,7 @@ const pointsToApply = (useChecked && pointsBalance >= originalAmount && original
         renewalId, paymentId,
         paymentDueAt: dueAtObj.toISOString(),
         dueDateStr: formatDateTime(dueAtObj),
-     totalAmount: paymentRes.summary?.total_amount || paymentRes.payment?.total_amount || state.quote.totalAmount || 0,
+     totalAmount: state.quote.totalAmount,
         targetPlan: state.renewFlow.targetPlan,
         customerName: valueOf("display_name") || "您",
         quoteItems: quote.quote_items || []
