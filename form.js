@@ -2399,7 +2399,9 @@ const pointsToApply = (useChecked && pointsBalance >= originalAmount && original
         if (result.quoteItems && result.quoteItems.length)
           summaryHtml = result.quoteItems.map(i => `<div class="quote-breakdown-row"><span>${escapeHtml(i.name)}</span><strong>${money(i.amount)}</strong></div>`).join("");
         summaryHtml += `<div class="quote-breakdown-row"><span>總計</span><strong>${money(result.totalAmount)}</strong></div>`;
-        summaryHtml += renderPaymentInfoBlock(result.cardId, result.totalAmount);
+        summaryHtml += result.totalAmount <= 0 
+  ? '<div style="margin-top:16px;padding:16px;border-radius:14px;background:var(--ok-bg);border:1.5px solid var(--ok);text-align:center;font-weight:900;font-size:15px;color:var(--ok);">✅ 點數折抵完成，無需付款！系統已自動開通。</div>'
+  : renderPaymentInfoBlock(result.cardId, result.totalAmount);
         els["success-summary-content"].innerHTML = summaryHtml;
       }
     }
