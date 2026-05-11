@@ -1587,8 +1587,9 @@ ${status === 'paid' ? '<button class="btn btn-danger btn-sm btn-renewal-refund" 
       state.currentCard = card;
       const detailInput = $("#detailCardId");
       if (detailInput) detailInput.value = cardId;
-      renderCardDetail(card);
-      syncDeliveryControlPanel(card);
+     renderCardDetail(card);
+loadCardOpsLogs(textOf(card.id || card.card_id));
+syncDeliveryControlPanel(card);
       $('#cardDetailCollapsible')?.classList.add('open');
       toast(`已載入卡片 ${cardId}`);
     } catch (err) { toast(`載入卡片失敗：${err.message}`); }
