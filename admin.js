@@ -499,8 +499,7 @@ function buildInviteReplyText(request) {
     wrap.querySelector('#btnOpenPreview')?.addEventListener('click', e => {
       window.open(buildPreviewLink(e.currentTarget.dataset.cid), '_blank');
     });
-   // 載入推播記錄
-    loadCardOpsLogs(cardId); 
+    
   }
 
   // ── 分頁輔助：產生「載入更多」按鈕 HTML ──
