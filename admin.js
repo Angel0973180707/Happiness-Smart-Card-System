@@ -531,11 +531,36 @@ function buildInviteReplyText(request) {
     const html = visible.map(c => buildCardRowHtml(c)).join('');
     container.innerHTML = html + (remaining > 0 ? renderLoadMoreBtn('cardsListContainer', remaining) : '');
 
-    // 展開折疊
+   // 展開折疊
     container.querySelectorAll('.list-row-head[data-type="card"]').forEach(head => {
       head.addEventListener('click', () => {
         const row = document.getElementById(`crow-${head.dataset.row}`);
         if (row) row.classList.toggle('open');
+      });
+    });
+
+    // ops_log 折疊（lazy load）
+    container.querySelectorAll('.ops-log-head[data-ops-cid]').forEach(head => {
+      head.addEventListener('click', e => {
+        e.stopPropagation();
+        const cid = head.dataset.opsCid;
+        const body = document.getElementById(`ops-body-${cid}`);
+        const chevron = head.querySelector('.ops-chevron');
+        const listEl = document.getElementById(`ops-list-${cid}`);
+        if (!body) return;
+        const isOpen = body.style.display !== 'none';
+        if (isOpen) {
+          body.style.display = 'none';
+          if (chevron) chevron.style.transform = '';
+        } else {
+          body.style.display = 'block';
+          if (chevron) chevron.style.transform = 'rotate(90deg)';
+          // 只在第一次展開時 lazy load
+          if (listEl && listEl.dataset.loaded !== 'true') {
+            listEl.dataset.loaded = 'true';
+            loadOpsLogInline(cid, listEl);
+          }
+        }
       });
     });
 
