@@ -1406,7 +1406,9 @@ input:focus, textarea:focus, select:focus { outline: none; }
               <div class="detail-item"><div class="detail-key">來源 ref</div><div class="detail-val">${escHtml(r.ref||'-')}</div></div>
               <div class="detail-item"><div class="detail-key">邀請碼</div><div class="detail-val">${escHtml(r.assigned_invite_code||'尚未派碼')}</div></div>
               <div class="detail-item"><div class="detail-key">備註</div><div class="detail-val">${escHtml(r.note||'-')}</div></div>
-              <div class="detail-item"><div class="detail-key">建立時間</div><div class="detail-val">${escHtml(r.created_at||'-')}</div></div>
+             <div class="detail-item"><div class="detail-key">建立時間</div><div class="detail-val">${escHtml(r.created_at||'-')}</div></div>
+<div class="detail-item"><div class="detail-key">派碼時間</div><div class="detail-val">${escHtml(r.assigned_at||'-')}</div></div>
+<div class="detail-item"><div class="detail-key">填表時間</div><div class="detail-val">${escHtml(r.submitted_at||'-')}</div></div>
             </div>
             <div class="action-strip" style="margin-top:12px;">
               ${!hasCode
