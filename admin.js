@@ -2039,6 +2039,137 @@ syncDeliveryControlPanel(card);
       copyText(`您好，您的名片服務即將到期，請點擊以下連結完成續約：\n${buildRenewalLink(cid)}`, "⚠️ 已複製備用文案");
     }
   }
+async function loadCardOpsLogs(cardId) {
+  let wrap = document.getElementById('cardOpsLogsWrap');
+  if (!wrap) {
+    const detailWrap = document.getElementById('cardDetailWrap');
+    if (!detailWrap) return;
+    wrap = document.createElement('div');
+    wrap.id = 'cardOpsLogsWrap';
+    detailWrap.appendChild(wrap);
+  }
+  wrap.innerHTML = `
+    <div class="section-label" style="margin-top:16px;">📋 推播記錄</div>
+    <div id="cardOpsLogsList"><div class="empty-state" style="padding:16px;">載入中…</div></div>`;
+  try {
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+    const k = localStorage.getItem('hsc_admin_key') || '';
+    const adminKey = k.startsWith('ANGEL2026') ? k : 'ANGEL2026' + k;
+    const url = `${GAS_URL}?action=getCardOpsLogs&admin_key=${encodeURIComponent(adminKey)}&card_id=${encodeURIComponent(cardId)}`;
+    const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+    const data = await res.json();
+    const items = (data && (data.items || data.list || data.rows)) || [];
+    renderCardOpsLogs(items, cardId);
+  } catch (err) {
+    const listEl = document.getElementById('cardOpsLogsList');
+    if (listEl) listEl.innerHTML = `<div class="empty-state" style="padding:16px;color:var(--danger);">載入失敗：${err.message}</div>`;
+  }
+}
+
+function renderCardOpsLogs(items, cardId) {
+  const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const txt = v => v == null ? '' : String(v).trim();
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+  const getKey = () => { const k = localStorage.getItem('hsc_admin_key')||''; return k.startsWith('ANGEL2026')?k:'ANGEL2026'+k; };
+
+  const listEl = document.getElementById('cardOpsLogsList');
+  if (!listEl) return;
+
+  if (!items || !items.length) {
+    listEl.innerHTML = '<div class="empty-state" style="padding:16px;">尚無記錄</div>';
+    return;
+  }
+
+  const moduleIcon = {
+    delivery: '📦', renewal: '🔄', invite: '🎫',
+    line_bind: '🔗', update_fee: '✏️'
+  };
+  const statusIcon = s => {
+    const v = String(s || '').toLowerCase();
+    if (v.includes('fail') || v.includes('error')) return '❌';
+    if (v.includes('delivered') || v.includes('notified') || v.includes('assigned')) return '✅';
+    return '📝';
+  };
+
+  listEl.innerHTML = items.map(r => {
+    const lid = esc(txt(r.log_id));
+    const icon = moduleIcon[r.module] || '📝';
+    const si = statusIcon(r.after_status);
+    const dt = txt(r.created_at).slice(0, 16).replace('T', ' ');
+    return `
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);" id="opslog-${lid}">
+        <div style="font-size:18px;flex-shrink:0;line-height:1.4;">${si}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:800;color:var(--ink);">${icon} ${esc(txt(r.module))} · ${esc(txt(r.action))}</div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:2px;">${esc(dt)} · ${esc(txt(r.after_status))}</div>
+          <div id="opslog-note-${lid}" style="font-size:12px;color:var(--ink2);margin-top:4px;white-space:pre-wrap;word-break:break-word;">${esc(txt(r.note))}</div>
+          <div id="opslog-edit-${lid}" style="display:none;margin-top:6px;">
+            <textarea id="opslog-textarea-${lid}" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;min-height:60px;">${esc(txt(r.note))}</textarea>
+            <div style="display:flex;gap:6px;margin-top:4px;">
+              <button class="btn btn-primary btn-sm" data-save-log="${lid}">儲存</button>
+              <button class="btn btn-soft btn-sm" data-cancel-log="${lid}">取消</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          <button class="btn btn-soft btn-sm" data-edit-log="${lid}" style="padding:0 8px;height:28px;font-size:11px;">✏️</button>
+          <button class="btn btn-danger btn-sm" data-del-log="${lid}" style="padding:0 8px;height:28px;font-size:11px;">🗑️</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('[data-edit-log]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lid = btn.dataset.editLog;
+      document.getElementById(`opslog-note-${lid}`).style.display = 'none';
+      document.getElementById(`opslog-edit-${lid}`).style.display = 'block';
+    });
+  });
+
+  listEl.querySelectorAll('[data-cancel-log]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lid = btn.dataset.cancelLog;
+      document.getElementById(`opslog-note-${lid}`).style.display = '';
+      document.getElementById(`opslog-edit-${lid}`).style.display = 'none';
+    });
+  });
+
+  listEl.querySelectorAll('[data-save-log]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const lid = btn.dataset.saveLog;
+      const note = document.getElementById(`opslog-textarea-${lid}`)?.value || '';
+      try {
+        const res = await fetch(GAS_URL, {
+          method: 'POST', redirect: 'follow',
+          body: JSON.stringify({ action: 'adminUpdateOpsLog', admin_key: getKey(), log_id: lid, note })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || '失敗');
+        document.getElementById(`opslog-note-${lid}`).textContent = note;
+        document.getElementById(`opslog-note-${lid}`).style.display = '';
+        document.getElementById(`opslog-edit-${lid}`).style.display = 'none';
+        window._hscToast?.('✅ 已更新');
+      } catch (err) { window._hscToast?.(`更新失敗：${err.message}`); }
+    });
+  });
+
+  listEl.querySelectorAll('[data-del-log]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const lid = btn.dataset.delLog;
+      if (!confirm('確定刪除這筆記錄？')) return;
+      try {
+        const res = await fetch(GAS_URL, {
+          method: 'POST', redirect: 'follow',
+          body: JSON.stringify({ action: 'adminDeleteOpsLog', admin_key: getKey(), log_id: lid })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || '失敗');
+        document.getElementById(`opslog-${lid}`)?.remove();
+        window._hscToast?.('✅ 已刪除');
+      } catch (err) { window._hscToast?.(`刪除失敗：${err.message}`); }
+    });
+  });
+}
 
 })();
 /* ============================================================
@@ -2493,118 +2624,3 @@ syncDeliveryControlPanel(card);
   window.purgeSelectedTestCards = purgeSelectedTestCards;
 })();
 // ── 推播記錄 ──
-async function loadCardOpsLogs(cardId) {
-  let wrap = document.getElementById('cardOpsLogsWrap');
-  if (!wrap) {
-    const detailWrap = document.getElementById('cardDetailWrap');
-    if (!detailWrap) return;
-    wrap = document.createElement('div');
-    wrap.id = 'cardOpsLogsWrap';
-    detailWrap.appendChild(wrap);
-  }
-  wrap.innerHTML = `
-    <div class="section-label" style="margin-top:16px;">📋 推播記錄</div>
-    <div id="cardOpsLogsList"><div class="empty-state" style="padding:16px;">載入中…</div></div>`;
-  try {
-    const data = await apiGet('getCardOpsLogs', { card_id: cardId });
-    const items = normalizeList(data, ['items']);
-    renderCardOpsLogs(items, cardId);
-  } catch (err) {
-    const listEl = document.getElementById('cardOpsLogsList');
-    if (listEl) listEl.innerHTML = `<div class="empty-state" style="padding:16px;color:var(--danger);">載入失敗：${escapeHtml(err.message)}</div>`;
-  }
-}
-
-function renderCardOpsLogs(items, cardId) {
-  const listEl = document.getElementById('cardOpsLogsList');
-  if (!listEl) return;
-
-  if (!items || !items.length) {
-    listEl.innerHTML = '<div class="empty-state" style="padding:16px;">尚無記錄</div>';
-    return;
-  }
-
-  const moduleIcon = {
-    delivery: '📦', renewal: '🔄', invite: '🎫',
-    line_bind: '🔗', update_fee: '✏️'
-  };
-  const statusIcon = s => {
-    const v = String(s || '').toLowerCase();
-    if (v.includes('fail') || v.includes('error')) return '❌';
-    if (v.includes('delivered') || v.includes('notified') || v.includes('assigned')) return '✅';
-    return '📝';
-  };
-
-  listEl.innerHTML = items.map(r => {
-    const lid = escapeHtml(textOf(r.log_id));
-    const icon = moduleIcon[r.module] || '📝';
-    const si = statusIcon(r.after_status);
-    const dt = textOf(r.created_at).slice(0, 16).replace('T', ' ');
-    return `
-      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);" id="opslog-${lid}">
-        <div style="font-size:18px;flex-shrink:0;line-height:1.4;">${si}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:800;color:var(--ink);">${icon} ${escapeHtml(textOf(r.module))} · ${escapeHtml(textOf(r.action))}</div>
-          <div style="font-size:11px;color:var(--ink3);margin-top:2px;">${escapeHtml(dt)} · ${escapeHtml(textOf(r.after_status))}</div>
-          <div id="opslog-note-${lid}" style="font-size:12px;color:var(--ink2);margin-top:4px;white-space:pre-wrap;word-break:break-word;">${escapeHtml(textOf(r.note))}</div>
-          <div id="opslog-edit-${lid}" style="display:none;margin-top:6px;">
-            <textarea id="opslog-textarea-${lid}" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;min-height:60px;">${escapeHtml(textOf(r.note))}</textarea>
-            <div style="display:flex;gap:6px;margin-top:4px;">
-              <button class="btn btn-primary btn-sm" data-save-log="${lid}">儲存</button>
-              <button class="btn btn-soft btn-sm" data-cancel-log="${lid}">取消</button>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
-          <button class="btn btn-soft btn-sm" data-edit-log="${lid}" style="padding:0 8px;height:28px;font-size:11px;">✏️</button>
-          <button class="btn btn-danger btn-sm" data-del-log="${lid}" style="padding:0 8px;height:28px;font-size:11px;">🗑️</button>
-        </div>
-      </div>`;
-  }).join('');
-
-  // 編輯
-  listEl.querySelectorAll('[data-edit-log]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const lid = btn.dataset.editLog;
-      document.getElementById(`opslog-note-${lid}`).style.display = 'none';
-      document.getElementById(`opslog-edit-${lid}`).style.display = 'block';
-    });
-  });
-
-  // 取消
-  listEl.querySelectorAll('[data-cancel-log]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const lid = btn.dataset.cancelLog;
-      document.getElementById(`opslog-note-${lid}`).style.display = '';
-      document.getElementById(`opslog-edit-${lid}`).style.display = 'none';
-    });
-  });
-
-  // 儲存
-  listEl.querySelectorAll('[data-save-log]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const lid = btn.dataset.saveLog;
-      const note = document.getElementById(`opslog-textarea-${lid}`)?.value || '';
-      try {
-        await apiPost('adminUpdateOpsLog', { log_id: lid, note });
-        document.getElementById(`opslog-note-${lid}`).textContent = note;
-        document.getElementById(`opslog-note-${lid}`).style.display = '';
-        document.getElementById(`opslog-edit-${lid}`).style.display = 'none';
-        toast('✅ 已更新');
-      } catch (err) { toast(`更新失敗：${err.message}`); }
-    });
-  });
-
-  // 刪除
-  listEl.querySelectorAll('[data-del-log]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const lid = btn.dataset.delLog;
-      if (!confirm(`確定刪除這筆記錄？`)) return;
-      try {
-        await apiPost('adminDeleteOpsLog', { log_id: lid });
-        document.getElementById(`opslog-${lid}`)?.remove();
-        toast('✅ 已刪除');
-      } catch (err) { toast(`刪除失敗：${err.message}`); }
-    });
-  });
-}
