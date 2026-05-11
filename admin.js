@@ -578,13 +578,24 @@ function buildInviteReplyText(request) {
             ${renderDetailItem("方案", planText(c.plan))}
             ${renderDetailItem("到期日", c.expires_at || '-')}
           </div>
-          <div class="action-strip" style="flex-wrap:wrap;">
+        <div class="action-strip" style="flex-wrap:wrap;">
             <button class="btn btn-primary btn-sm" data-action="cardDetail" data-cid="${id}">完整詳情</button>
             <button class="btn btn-soft btn-sm" data-action="goDelivery" data-cid="${id}">前往交付</button>
             ${unpaid ? `
             <button class="btn btn-ok btn-sm" data-action="copyCardCreated" data-cid="${id}">🎉 建卡通知</button>
             <button class="btn btn-warn btn-sm" data-action="copyPayNotice" data-cid="${id}">📋 催繳文案</button>
             ` : ''}
+          </div>
+          <div class="ops-log-collapsible" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+            <div class="ops-log-head" data-ops-cid="${id}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:6px 0;user-select:none;">
+              <span style="font-size:12px;font-weight:800;color:var(--ink2);">📋 操作記錄</span>
+              <span class="ops-chevron" style="font-size:14px;color:var(--ink3);transition:transform 0.2s;">›</span>
+            </div>
+            <div class="ops-log-body" id="ops-body-${id}" style="display:none;">
+              <div class="ops-log-list" id="ops-list-${id}">
+                <div class="empty-state" style="padding:10px;font-size:12px;">點擊載入記錄</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>`;
