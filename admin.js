@@ -2523,3 +2523,120 @@ function renderCardOpsLogs(items, cardId) {
     });
   });
 }
+async function loadOpsLogInline(cardId, listEl) {
+  listEl.innerHTML = '<div class="empty-state" style="padding:10px;font-size:12px;">載入中…</div>';
+  try {
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+    const k = localStorage.getItem('hsc_admin_key') || '';
+    const adminKey = k.startsWith('ANGEL2026') ? k : 'ANGEL2026' + k;
+    const url = `${GAS_URL}?action=getCardOpsLogs&admin_key=${encodeURIComponent(adminKey)}&card_id=${encodeURIComponent(cardId)}`;
+    const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+    const data = await res.json();
+    const items = (data && (data.items || data.list || data.rows)) || [];
+    renderOpsLogInline(items, cardId, listEl);
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty-state" style="padding:10px;font-size:12px;color:var(--danger);">載入失敗：${err.message}</div>`;
+  }
+}
+
+function renderOpsLogInline(items, cardId, listEl) {
+  const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const txt = v => v == null ? '' : String(v).trim();
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+  const getKey = () => { const k = localStorage.getItem('hsc_admin_key') || ''; return k.startsWith('ANGEL2026') ? k : 'ANGEL2026' + k; };
+  const moduleIcon = { delivery: '📦', renewal: '🔄', invite: '🎫', line_bind: '🔗', update_fee: '✏️' };
+  const statusIcon = s => {
+    const v = String(s || '').toLowerCase();
+    if (v.includes('fail') || v.includes('error')) return '❌';
+    if (v.includes('delivered') || v.includes('notified') || v.includes('assigned')) return '✅';
+    return '📝';
+  };
+
+  if (!items || !items.length) {
+    listEl.innerHTML = '<div class="empty-state" style="padding:10px;font-size:12px;">尚無操作記錄</div>';
+    return;
+  }
+
+  listEl.innerHTML = items.map(r => {
+    const lid = esc(txt(r.log_id));
+    const icon = moduleIcon[r.module] || '📝';
+    const si = statusIcon(r.after_status);
+    const dt = txt(r.created_at).slice(0, 16).replace('T', ' ');
+    return `
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);" id="ilog-${lid}">
+        <div style="font-size:15px;flex-shrink:0;line-height:1.4;">${si}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:800;color:var(--ink);">${icon} ${esc(txt(r.module))} · ${esc(txt(r.action))}</div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:1px;">${esc(dt)} · ${esc(txt(r.after_status))}</div>
+          <div id="ilog-note-${lid}" style="font-size:12px;color:var(--ink2);margin-top:3px;white-space:pre-wrap;word-break:break-word;">${esc(txt(r.note))}</div>
+          <div id="ilog-edit-${lid}" style="display:none;margin-top:6px;">
+            <textarea id="ilog-ta-${lid}" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;min-height:56px;box-sizing:border-box;">${esc(txt(r.note))}</textarea>
+            <div style="display:flex;gap:6px;margin-top:4px;">
+              <button class="btn btn-primary btn-sm" data-ilog-save="${lid}">儲存</button>
+              <button class="btn btn-soft btn-sm" data-ilog-cancel="${lid}">取消</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          <button class="btn btn-soft btn-sm" data-ilog-edit="${lid}" style="padding:0 8px;height:26px;font-size:11px;">✏️</button>
+          <button class="btn btn-danger btn-sm" data-ilog-del="${lid}" style="padding:0 8px;height:26px;font-size:11px;">🗑️</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  // 編輯
+  listEl.querySelectorAll('[data-ilog-edit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lid = btn.dataset.ilogEdit;
+      document.getElementById(`ilog-note-${lid}`).style.display = 'none';
+      document.getElementById(`ilog-edit-${lid}`).style.display = 'block';
+    });
+  });
+  listEl.querySelectorAll('[data-ilog-cancel]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lid = btn.dataset.ilogCancel;
+      document.getElementById(`ilog-note-${lid}`).style.display = '';
+      document.getElementById(`ilog-edit-${lid}`).style.display = 'none';
+    });
+  });
+  // 儲存
+  listEl.querySelectorAll('[data-ilog-save]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const lid = btn.dataset.ilogSave;
+      const note = document.getElementById(`ilog-ta-${lid}`)?.value || '';
+      try {
+        const res = await fetch(GAS_URL, {
+          method: 'POST', redirect: 'follow',
+          body: JSON.stringify({ action: 'adminUpdateOpsLog', admin_key: getKey(), log_id: lid, note })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || '失敗');
+        document.getElementById(`ilog-note-${lid}`).textContent = note;
+        document.getElementById(`ilog-note-${lid}`).style.display = '';
+        document.getElementById(`ilog-edit-${lid}`).style.display = 'none';
+        window._hscToast?.('✅ 已更新備註');
+      } catch (err) { window._hscToast?.(`更新失敗：${err.message}`); }
+    });
+  });
+  // 刪除
+  listEl.querySelectorAll('[data-ilog-del]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const lid = btn.dataset.ilogDel;
+      if (!confirm('確定刪除這筆記錄？')) return;
+      try {
+        const res = await fetch(GAS_URL, {
+          method: 'POST', redirect: 'follow',
+          body: JSON.stringify({ action: 'adminDeleteOpsLog', admin_key: getKey(), log_id: lid })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || '失敗');
+        document.getElementById(`ilog-${lid}`)?.remove();
+        // 若已全部刪除，顯示空狀態
+        if (!listEl.querySelector('[id^="ilog-"]')) {
+          listEl.innerHTML = '<div class="empty-state" style="padding:10px;font-size:12px;">尚無操作記錄</div>';
+        }
+        window._hscToast?.('✅ 已刪除');
+      } catch (err) { window._hscToast?.(`刪除失敗：${err.message}`); }
+    });
+  });
+}
