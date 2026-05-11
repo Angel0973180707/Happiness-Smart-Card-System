@@ -2494,17 +2494,17 @@ syncDeliveryControlPanel(card);
 })();
 // ── 推播記錄 ──
 async function loadCardOpsLogs(cardId) {
-  const wrap = $('#cardDetailWrap');
-  if (!wrap) return;
-
-  // 先加一個載入中的區塊
-  const logsDiv = document.createElement('div');
-  logsDiv.id = 'cardOpsLogsWrap';
-  logsDiv.innerHTML = `
+  let wrap = document.getElementById('cardOpsLogsWrap');
+  if (!wrap) {
+    const detailWrap = document.getElementById('cardDetailWrap');
+    if (!detailWrap) return;
+    wrap = document.createElement('div');
+    wrap.id = 'cardOpsLogsWrap';
+    detailWrap.appendChild(wrap);
+  }
+  wrap.innerHTML = `
     <div class="section-label" style="margin-top:16px;">📋 推播記錄</div>
     <div id="cardOpsLogsList"><div class="empty-state" style="padding:16px;">載入中…</div></div>`;
-  wrap.appendChild(logsDiv);
-
   try {
     const data = await apiGet('getCardOpsLogs', { card_id: cardId });
     const items = normalizeList(data, ['items']);
