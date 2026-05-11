@@ -2038,144 +2038,9 @@ syncDeliveryControlPanel(card);
       copyText(`您好，您的名片服務即將到期，請點擊以下連結完成續約：\n${buildRenewalLink(cid)}`, "⚠️ 已複製備用文案");
     }
   }
-async function loadCardOpsLogs(cardId) {
-  let wrap = document.getElementById('cardOpsLogsWrap');
-  if (!wrap) {
-    const detailWrap = document.getElementById('cardDetailWrap');
-    if (!detailWrap) return;
-    wrap = document.createElement('div');
-    wrap.id = 'cardOpsLogsWrap';
-    detailWrap.appendChild(wrap);
-  }
-  wrap.innerHTML = `
-    <div class="section-label" style="margin-top:16px;">📋 推播記錄</div>
-    <div id="cardOpsLogsList"><div class="empty-state" style="padding:16px;">載入中…</div></div>`;
-  try {
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
-    const k = localStorage.getItem('hsc_admin_key') || '';
-    const adminKey = k.startsWith('ANGEL2026') ? k : 'ANGEL2026' + k;
-    const url = `${GAS_URL}?action=getCardOpsLogs&admin_key=${encodeURIComponent(adminKey)}&card_id=${encodeURIComponent(cardId)}`;
-    const res = await fetch(url, { method: 'GET', redirect: 'follow' });
-    const data = await res.json();
-    const items = (data && (data.items || data.list || data.rows)) || [];
-    renderCardOpsLogs(items, cardId);
-  } catch (err) {
-    const listEl = document.getElementById('cardOpsLogsList');
-    if (listEl) listEl.innerHTML = `<div class="empty-state" style="padding:16px;color:var(--danger);">載入失敗：${err.message}</div>`;
-  }
-}
-
-function renderCardOpsLogs(items, cardId) {
-  const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const txt = v => v == null ? '' : String(v).trim();
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
-  const getKey = () => { const k = localStorage.getItem('hsc_admin_key')||''; return k.startsWith('ANGEL2026')?k:'ANGEL2026'+k; };
-
-  const listEl = document.getElementById('cardOpsLogsList');
-  if (!listEl) return;
-
-  if (!items || !items.length) {
-    listEl.innerHTML = '<div class="empty-state" style="padding:16px;">尚無記錄</div>';
-    return;
-  }
-
-  const moduleIcon = {
-    delivery: '📦', renewal: '🔄', invite: '🎫',
-    line_bind: '🔗', update_fee: '✏️'
-  };
-  const statusIcon = s => {
-    const v = String(s || '').toLowerCase();
-    if (v.includes('fail') || v.includes('error')) return '❌';
-    if (v.includes('delivered') || v.includes('notified') || v.includes('assigned')) return '✅';
-    return '📝';
-  };
-
-  listEl.innerHTML = items.map(r => {
-    const lid = esc(txt(r.log_id));
-    const icon = moduleIcon[r.module] || '📝';
-    const si = statusIcon(r.after_status);
-    const dt = txt(r.created_at).slice(0, 16).replace('T', ' ');
-    return `
-      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);" id="opslog-${lid}">
-        <div style="font-size:18px;flex-shrink:0;line-height:1.4;">${si}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:800;color:var(--ink);">${icon} ${esc(txt(r.module))} · ${esc(txt(r.action))}</div>
-          <div style="font-size:11px;color:var(--ink3);margin-top:2px;">${esc(dt)} · ${esc(txt(r.after_status))}</div>
-          <div id="opslog-note-${lid}" style="font-size:12px;color:var(--ink2);margin-top:4px;white-space:pre-wrap;word-break:break-word;">${esc(txt(r.note))}</div>
-          <div id="opslog-edit-${lid}" style="display:none;margin-top:6px;">
-            <textarea id="opslog-textarea-${lid}" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;min-height:60px;">${esc(txt(r.note))}</textarea>
-            <div style="display:flex;gap:6px;margin-top:4px;">
-              <button class="btn btn-primary btn-sm" data-save-log="${lid}">儲存</button>
-              <button class="btn btn-soft btn-sm" data-cancel-log="${lid}">取消</button>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
-          <button class="btn btn-soft btn-sm" data-edit-log="${lid}" style="padding:0 8px;height:28px;font-size:11px;">✏️</button>
-          <button class="btn btn-danger btn-sm" data-del-log="${lid}" style="padding:0 8px;height:28px;font-size:11px;">🗑️</button>
-        </div>
-      </div>`;
-  }).join('');
-
-  listEl.querySelectorAll('[data-edit-log]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const lid = btn.dataset.editLog;
-      document.getElementById(`opslog-note-${lid}`).style.display = 'none';
-      document.getElementById(`opslog-edit-${lid}`).style.display = 'block';
-    });
-  });
-
-  listEl.querySelectorAll('[data-cancel-log]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const lid = btn.dataset.cancelLog;
-      document.getElementById(`opslog-note-${lid}`).style.display = '';
-      document.getElementById(`opslog-edit-${lid}`).style.display = 'none';
-    });
-  });
-
-  listEl.querySelectorAll('[data-save-log]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const lid = btn.dataset.saveLog;
-      const note = document.getElementById(`opslog-textarea-${lid}`)?.value || '';
-      try {
-        const res = await fetch(GAS_URL, {
-          method: 'POST', redirect: 'follow',
-          body: JSON.stringify({ action: 'adminUpdateOpsLog', admin_key: getKey(), log_id: lid, note })
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error || '失敗');
-        document.getElementById(`opslog-note-${lid}`).textContent = note;
-        document.getElementById(`opslog-note-${lid}`).style.display = '';
-        document.getElementById(`opslog-edit-${lid}`).style.display = 'none';
-        window._hscToast?.('✅ 已更新');
-      } catch (err) { window._hscToast?.(`更新失敗：${err.message}`); }
-    });
-  });
-
-  listEl.querySelectorAll('[data-del-log]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const lid = btn.dataset.delLog;
-      if (!confirm('確定刪除這筆記錄？')) return;
-      try {
-        const res = await fetch(GAS_URL, {
-          method: 'POST', redirect: 'follow',
-          body: JSON.stringify({ action: 'adminDeleteOpsLog', admin_key: getKey(), log_id: lid })
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error || '失敗');
-        document.getElementById(`opslog-${lid}`)?.remove();
-        window._hscToast?.('✅ 已刪除');
-      } catch (err) { window._hscToast?.(`刪除失敗：${err.message}`); }
-    });
-  });
-}
-
 })();
 /* ============================================================
    HSC ADMIN · 維護模式功能 PATCH for admin.js
-   ============================================================
-   貼法:把這整段貼到 admin.js 的最底下(在最後 `)();` 之後)
-   不需改動 admin.js 其他部分。
 ============================================================ */
 
 (function initAdminMaintenance() {
@@ -2186,7 +2051,6 @@ function renderCardOpsLogs(items, cardId) {
   function $m(s) { return document.querySelector(s); }
 
   function getMaintAdminKey() {
-    // 直接讀取 localStorage 的方式跟 admin.js 一致
     const suffix = localStorage.getItem("hsc_admin_key") || "";
     if (suffix.startsWith("ANGEL2026")) return suffix;
     return suffix ? "ANGEL2026" + suffix : "";
@@ -2220,7 +2084,6 @@ function renderCardOpsLogs(items, cardId) {
     }
   }
 
-  // ── API 呼叫 ──
   async function loadMaintStatus() {
     try {
       const res = await fetch(`${MAINT_GAS_URL}?action=getMaintenanceStatus&_t=${Date.now()}`, { method: "GET", cache: "no-store" });
@@ -2272,12 +2135,10 @@ function renderCardOpsLogs(items, cardId) {
     }
   }
 
-  // ── 渲染狀態 ──
   function renderMaintStatus(info) {
     const badge = $m("#maintStatusBadge");
     const wrap = $m("#maintStatusWrap");
     if (!badge || !wrap) return;
-
     if (!info) {
       badge.textContent = "查詢失敗";
       badge.style.background = "var(--danger-bg)";
@@ -2285,7 +2146,6 @@ function renderCardOpsLogs(items, cardId) {
       wrap.innerHTML = '<div style="color:var(--danger);">❌ 無法查詢維護狀態</div>';
       return;
     }
-
     if (info.enabled) {
       badge.textContent = "🔴 維護中";
       badge.style.background = "var(--danger-bg)";
@@ -2310,95 +2170,59 @@ function renderCardOpsLogs(items, cardId) {
     return info;
   }
 
-  // ── 綁定事件 ──
   function bindMaintEvents() {
-    // 收合式表單
     const head = $m("#maintActivateHead");
     const collapsible = $m("#maintActivateCollapsible");
     if (head && collapsible) {
       head.addEventListener("click", () => collapsible.classList.toggle("open"));
     }
-
-    // 啟動維護
     $m("#btnMaintActivate")?.addEventListener("click", async () => {
       const message = ($m("#maintInputMessage")?.value || "").trim();
       const endAtRaw = ($m("#maintInputEndAt")?.value || "").trim();
       const title = ($m("#maintInputTitle")?.value || "").trim();
-
-      if (!message) {
-        maintToast("請填寫維護訊息");
-        return;
-      }
-
-      // datetime-local 格式轉成 ISO(補秒數)
+      if (!message) { maintToast("請填寫維護訊息"); return; }
       let endAt = "";
-      if (endAtRaw) {
-        endAt = endAtRaw.length === 16 ? endAtRaw + ":00" : endAtRaw;
-      }
-
+      if (endAtRaw) { endAt = endAtRaw.length === 16 ? endAtRaw + ":00" : endAtRaw; }
       if (!confirm(`確認啟動維護模式?\n\n訊息:${message}\n${endAt ? `結束時間:${maintFormatDate(endAt)}` : "無結束時間(需手動關閉)"}\n\n啟動後所有客戶端 API 會被攔下,只有帶 admin_key 才能操作。`)) return;
-
       const result = await activateMaintenance(message, endAt, title);
       if (result) {
         maintToast("🔴 維護模式已啟動");
-        // 清空表單
         if ($m("#maintInputMessage")) $m("#maintInputMessage").value = "";
         if ($m("#maintInputEndAt")) $m("#maintInputEndAt").value = "";
         if ($m("#maintInputTitle")) $m("#maintInputTitle").value = "";
-        // 收合表單
         collapsible?.classList.remove("open");
-        // 刷新狀態
         await refreshMaintStatus();
       }
     });
-
-    // 關閉維護
     $m("#btnMaintDeactivate")?.addEventListener("click", async () => {
       if (!confirm("確認關閉維護模式?\n\n關閉後客戶端將立即恢復正常使用。")) return;
       const result = await deactivateMaintenance();
-      if (result) {
-        maintToast("🟢 維護模式已關閉");
-        await refreshMaintStatus();
-      }
+      if (result) { maintToast("🟢 維護模式已關閉"); await refreshMaintStatus(); }
     });
-
-    // 刷新狀態
     $m("#btnMaintRefresh")?.addEventListener("click", async () => {
       await refreshMaintStatus();
       maintToast("狀態已更新");
     });
-
-    // 切換到系統工具 tab 時自動載入狀態
     document.querySelectorAll('[data-section="systemSection"]').forEach(btn => {
-      btn.addEventListener("click", () => {
-        setTimeout(refreshMaintStatus, 200);
-      });
+      btn.addEventListener("click", () => { setTimeout(refreshMaintStatus, 200); });
     });
-
-    // 頁面載入後,若已在系統工具 tab 就先查一次
     setTimeout(() => {
       const sysSection = $m("#systemSection");
-      if (sysSection && sysSection.classList.contains("active")) {
-        refreshMaintStatus();
-      }
+      if (sysSection && sysSection.classList.contains("active")) { refreshMaintStatus(); }
     }, 800);
   }
 
-  // 啟動
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", bindMaintEvents);
   } else {
     bindMaintEvents();
   }
 
-  // 暴露給外部使用
   window.refreshMaintStatus = refreshMaintStatus;
 })();
+
 /* ============================================================
    HSC ADMIN · R0g:測試卡清理 PATCH for admin.js
-   ============================================================
-   邏輯:列卡 → 勾選 → 逐一呼叫 adminDeleteTestCard_
-   每張卡都帶 confirm + operated_by + reason 通過嚴格驗證
 ============================================================ */
 
 (function initAdminTestCardsPurge() {
@@ -2429,84 +2253,50 @@ function renderCardOpsLogs(items, cardId) {
 
   let _testCardsCache = [];
 
-  // ── 載入測試卡 ──
   async function loadTestCards() {
     const key = getPurgeAdminKey();
-    if (!key) {
-      purgeToast("⚠️ 請先設定 Admin Key");
-      return;
-    }
-
+    if (!key) { purgeToast("⚠️ 請先設定 Admin Key"); return; }
     const wrap = $p("#testCardsListWrap");
     const badge = $p("#testCardsCountBadge");
     const purgeBtn = $p("#btnPurgeSelectedTestCards");
     if (wrap) wrap.innerHTML = '<div class="empty-state" style="padding:20px;font-size:13px;">載入中…</div>';
-    if (badge) {
-      badge.textContent = "查詢中…";
-      badge.style.background = "var(--info-bg)";
-      badge.style.color = "var(--info)";
-    }
-
+    if (badge) { badge.textContent = "查詢中…"; badge.style.background = "var(--info-bg)"; badge.style.color = "var(--info)"; }
     try {
       const res = await fetch(PURGE_GAS_URL, {
-        method: "POST",
-        redirect: "follow",
-        body: JSON.stringify({
-          action: "adminListTestCards",
-          admin_key: key
-        })
+        method: "POST", redirect: "follow",
+        body: JSON.stringify({ action: "adminListTestCards", admin_key: key })
       });
       const data = await res.json();
-      if (!data || !data.ok) {
-        throw new Error(data?.error || "載入失敗");
-      }
-
+      if (!data || !data.ok) throw new Error(data?.error || "載入失敗");
       _testCardsCache = data.cards || [];
       renderTestCardsList(_testCardsCache);
-
       if (badge) {
         badge.textContent = `共 ${data.count || 0} 張`;
         badge.style.background = data.count > 0 ? "var(--warn-bg)" : "var(--ok-bg)";
         badge.style.color = data.count > 0 ? "var(--warn)" : "var(--ok)";
       }
       if (purgeBtn) purgeBtn.disabled = (data.count || 0) === 0;
-
     } catch (err) {
       if (wrap) wrap.innerHTML = `<div class="empty-state" style="padding:20px;font-size:13px;color:var(--danger);">❌ 載入失敗:${purgeEsc(err.message)}</div>`;
-      if (badge) {
-        badge.textContent = "載入失敗";
-        badge.style.background = "var(--danger-bg)";
-        badge.style.color = "var(--danger)";
-      }
+      if (badge) { badge.textContent = "載入失敗"; badge.style.background = "var(--danger-bg)"; badge.style.color = "var(--danger)"; }
     }
   }
 
-  // ── 渲染清單 ──
   function renderTestCardsList(cards) {
     const wrap = $p("#testCardsListWrap");
     if (!wrap) return;
-
     if (!cards || !cards.length) {
       wrap.innerHTML = '<div class="empty-state" style="padding:20px;font-size:13px;">🎉 沒有測試卡需要清理</div>';
       return;
     }
-
     wrap.innerHTML = cards.map(c => `
       <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;">
         <input type="checkbox" class="test-card-cb" value="${purgeEsc(c.id)}" style="width:16px;height:16px;flex-shrink:0;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:800;color:var(--ink);">
-            ${purgeEsc(c.id)}
-            <span style="font-weight:400;color:var(--ink3);">·</span>
-            ${purgeEsc(c.name || "(無名)")}
-          </div>
-          <div style="font-size:11px;color:var(--ink3);margin-top:2px;">
-            ${purgeEsc(c.plan || "-")} · ${purgeEsc(c.billing_status || "-")} · ${purgeEsc(c.match_reason || "")}
-          </div>
+          <div style="font-size:13px;font-weight:800;color:var(--ink);">${purgeEsc(c.id)} <span style="font-weight:400;color:var(--ink3);">·</span> ${purgeEsc(c.name || "(無名)")}</div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:2px;">${purgeEsc(c.plan || "-")} · ${purgeEsc(c.billing_status || "-")} · ${purgeEsc(c.match_reason || "")}</div>
         </div>
-      </label>
-    `).join("");
-
+      </label>`).join("");
     wrap.querySelectorAll(".test-card-cb").forEach(cb => {
       cb.addEventListener("change", updatePurgeBtnState);
     });
@@ -2517,97 +2307,50 @@ function renderCardOpsLogs(items, cardId) {
     const purgeBtn = $p("#btnPurgeSelectedTestCards");
     if (purgeBtn) {
       purgeBtn.disabled = checked.length === 0;
-      purgeBtn.textContent = checked.length > 0
-        ? `🗑️ 批次刪除選取(${checked.length} 張)`
-        : "🗑️ 批次刪除選取";
+      purgeBtn.textContent = checked.length > 0 ? `🗑️ 批次刪除選取(${checked.length} 張)` : "🗑️ 批次刪除選取";
     }
   }
 
-  // ── 批次刪除 ──
   async function purgeSelectedTestCards() {
     const checked = Array.from(document.querySelectorAll(".test-card-cb:checked"));
-    if (!checked.length) {
-      purgeToast("請先勾選要刪的卡");
-      return;
-    }
-
+    if (!checked.length) { purgeToast("請先勾選要刪的卡"); return; }
     const cardIds = checked.map(cb => cb.value);
-
-    if (!confirm(`⚠️ 確定刪除 ${cardIds.length} 張測試卡?\n\n卡號:${cardIds.join(", ")}\n\n此操作會連帶清除 payment / renewal / commission / agent 等所有資料。`)) {
-      return;
-    }
-
+    if (!confirm(`⚠️ 確定刪除 ${cardIds.length} 張測試卡?\n\n卡號:${cardIds.join(", ")}\n\n此操作會連帶清除 payment / renewal / commission / agent 等所有資料。`)) return;
     const reason = prompt(`請輸入刪除原因(必填,審計用):`);
-    if (!reason || !reason.trim()) {
-      purgeToast("❌ 必須輸入刪除原因");
-      return;
-    }
-
+    if (!reason || !reason.trim()) { purgeToast("❌ 必須輸入刪除原因"); return; }
     const operator = prompt(`請輸入操作者名稱(必填,審計用):`, "admin");
-    if (!operator || !operator.trim()) {
-      purgeToast("❌ 必須輸入操作者");
-      return;
-    }
-
+    if (!operator || !operator.trim()) { purgeToast("❌ 必須輸入操作者"); return; }
     const key = getPurgeAdminKey();
     const resultWrap = $p("#testCardsResultWrap");
     const purgeBtn = $p("#btnPurgeSelectedTestCards");
-
-    if (purgeBtn) {
-      purgeBtn.disabled = true;
-      purgeBtn.textContent = "處理中…";
-    }
+    if (purgeBtn) { purgeBtn.disabled = true; purgeBtn.textContent = "處理中…"; }
     if (resultWrap) resultWrap.innerHTML = "🔄 開始批次刪除…";
-
-    let succeeded = 0;
-    let failed = 0;
+    let succeeded = 0, failed = 0;
     const errors = [];
-
     for (let i = 0; i < cardIds.length; i++) {
       const cardId = cardIds[i];
-      if (resultWrap) {
-        resultWrap.innerHTML = `🔄 處理中 ${i + 1}/${cardIds.length}:${purgeEsc(cardId)}…`;
-      }
-
+      if (resultWrap) resultWrap.innerHTML = `🔄 處理中 ${i + 1}/${cardIds.length}:${purgeEsc(cardId)}…`;
       try {
         const res = await fetch(PURGE_GAS_URL, {
-          method: "POST",
-          redirect: "follow",
-          body: JSON.stringify({
-            action: "adminDeleteTestCard",
-            admin_key: key,
-            card_id: cardId,
-            confirm: "YES_DELETE_FOREVER",
-            operated_by: operator.trim(),
-            reason: reason.trim()
-          })
+          method: "POST", redirect: "follow",
+          body: JSON.stringify({ action: "adminDeleteTestCard", admin_key: key, card_id: cardId, confirm: "YES_DELETE_FOREVER", operated_by: operator.trim(), reason: reason.trim() })
         });
         const data = await res.json();
-        if (!data || !data.ok) {
-          throw new Error(data?.error || data?.message || "刪除失敗");
-        }
+        if (!data || !data.ok) throw new Error(data?.error || data?.message || "刪除失敗");
         succeeded++;
-      } catch (err) {
-        failed++;
-        errors.push(`${cardId}: ${err.message}`);
-      }
+      } catch (err) { failed++; errors.push(`${cardId}: ${err.message}`); }
     }
-
     if (resultWrap) {
       resultWrap.innerHTML = `
         <div style="background:${failed > 0 ? 'var(--warn-bg)' : 'var(--ok-bg)'};border-radius:var(--radius-sm);padding:10px 12px;font-weight:800;color:${failed > 0 ? 'var(--warn)' : 'var(--ok)'};">
           ${failed === 0 ? "✅" : "⚠️"} 完成:成功 ${succeeded} 張,失敗 ${failed} 張
         </div>
-        ${errors.length ? `<div style="margin-top:8px;color:var(--danger);font-size:11px;">${purgeEsc(errors.join("\n"))}</div>` : ""}
-      `;
+        ${errors.length ? `<div style="margin-top:8px;color:var(--danger);font-size:11px;">${purgeEsc(errors.join("\n"))}</div>` : ""}`;
     }
-
     purgeToast(`✅ 完成:成功 ${succeeded} / 失敗 ${failed}`);
-
     setTimeout(() => loadTestCards(), 800);
   }
 
-  // ── 綁定事件 ──
   function bindPurgeEvents() {
     $p("#btnLoadTestCards")?.addEventListener("click", loadTestCards);
     $p("#btnPurgeSelectedTestCards")?.addEventListener("click", purgeSelectedTestCards);
@@ -2622,4 +2365,125 @@ function renderCardOpsLogs(items, cardId) {
   window.loadTestCards = loadTestCards;
   window.purgeSelectedTestCards = purgeSelectedTestCards;
 })();
+
 // ── 推播記錄 ──
+async function loadCardOpsLogs(cardId) {
+  let wrap = document.getElementById('cardOpsLogsWrap');
+  if (!wrap) {
+    const detailWrap = document.getElementById('cardDetailWrap');
+    if (!detailWrap) return;
+    wrap = document.createElement('div');
+    wrap.id = 'cardOpsLogsWrap';
+    detailWrap.appendChild(wrap);
+  }
+  wrap.innerHTML = `
+    <div class="section-label" style="margin-top:16px;">📋 推播記錄</div>
+    <div id="cardOpsLogsList"><div class="empty-state" style="padding:16px;">載入中…</div></div>`;
+  try {
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+    const k = localStorage.getItem('hsc_admin_key') || '';
+    const adminKey = k.startsWith('ANGEL2026') ? k : 'ANGEL2026' + k;
+    const url = `${GAS_URL}?action=getCardOpsLogs&admin_key=${encodeURIComponent(adminKey)}&card_id=${encodeURIComponent(cardId)}`;
+    const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+    const data = await res.json();
+    const items = (data && (data.items || data.list || data.rows)) || [];
+    renderCardOpsLogs(items, cardId);
+  } catch (err) {
+    const listEl = document.getElementById('cardOpsLogsList');
+    if (listEl) listEl.innerHTML = `<div class="empty-state" style="padding:16px;color:var(--danger);">載入失敗：${err.message}</div>`;
+  }
+}
+
+function renderCardOpsLogs(items, cardId) {
+  const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const txt = v => v == null ? '' : String(v).trim();
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+  const getKey = () => { const k = localStorage.getItem('hsc_admin_key')||''; return k.startsWith('ANGEL2026')?k:'ANGEL2026'+k; };
+  const listEl = document.getElementById('cardOpsLogsList');
+  if (!listEl) return;
+  if (!items || !items.length) {
+    listEl.innerHTML = '<div class="empty-state" style="padding:16px;">尚無記錄</div>';
+    return;
+  }
+  const moduleIcon = { delivery: '📦', renewal: '🔄', invite: '🎫', line_bind: '🔗', update_fee: '✏️' };
+  const statusIcon = s => {
+    const v = String(s || '').toLowerCase();
+    if (v.includes('fail') || v.includes('error')) return '❌';
+    if (v.includes('delivered') || v.includes('notified') || v.includes('assigned')) return '✅';
+    return '📝';
+  };
+  listEl.innerHTML = items.map(r => {
+    const lid = esc(txt(r.log_id));
+    const icon = moduleIcon[r.module] || '📝';
+    const si = statusIcon(r.after_status);
+    const dt = txt(r.created_at).slice(0, 16).replace('T', ' ');
+    return `
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);" id="opslog-${lid}">
+        <div style="font-size:18px;flex-shrink:0;line-height:1.4;">${si}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:800;color:var(--ink);">${icon} ${esc(txt(r.module))} · ${esc(txt(r.action))}</div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:2px;">${esc(dt)} · ${esc(txt(r.after_status))}</div>
+          <div id="opslog-note-${lid}" style="font-size:12px;color:var(--ink2);margin-top:4px;white-space:pre-wrap;word-break:break-word;">${esc(txt(r.note))}</div>
+          <div id="opslog-edit-${lid}" style="display:none;margin-top:6px;">
+            <textarea id="opslog-textarea-${lid}" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;min-height:60px;">${esc(txt(r.note))}</textarea>
+            <div style="display:flex;gap:6px;margin-top:4px;">
+              <button class="btn btn-primary btn-sm" data-save-log="${lid}">儲存</button>
+              <button class="btn btn-soft btn-sm" data-cancel-log="${lid}">取消</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          <button class="btn btn-soft btn-sm" data-edit-log="${lid}" style="padding:0 8px;height:28px;font-size:11px;">✏️</button>
+          <button class="btn btn-danger btn-sm" data-del-log="${lid}" style="padding:0 8px;height:28px;font-size:11px;">🗑️</button>
+        </div>
+      </div>`;
+  }).join('');
+  listEl.querySelectorAll('[data-edit-log]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lid = btn.dataset.editLog;
+      document.getElementById(`opslog-note-${lid}`).style.display = 'none';
+      document.getElementById(`opslog-edit-${lid}`).style.display = 'block';
+    });
+  });
+  listEl.querySelectorAll('[data-cancel-log]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lid = btn.dataset.cancelLog;
+      document.getElementById(`opslog-note-${lid}`).style.display = '';
+      document.getElementById(`opslog-edit-${lid}`).style.display = 'none';
+    });
+  });
+  listEl.querySelectorAll('[data-save-log]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const lid = btn.dataset.saveLog;
+      const note = document.getElementById(`opslog-textarea-${lid}`)?.value || '';
+      try {
+        const res = await fetch(GAS_URL, {
+          method: 'POST', redirect: 'follow',
+          body: JSON.stringify({ action: 'adminUpdateOpsLog', admin_key: getKey(), log_id: lid, note })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || '失敗');
+        document.getElementById(`opslog-note-${lid}`).textContent = note;
+        document.getElementById(`opslog-note-${lid}`).style.display = '';
+        document.getElementById(`opslog-edit-${lid}`).style.display = 'none';
+        window._hscToast?.('✅ 已更新');
+      } catch (err) { window._hscToast?.(`更新失敗：${err.message}`); }
+    });
+  });
+  listEl.querySelectorAll('[data-del-log]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const lid = btn.dataset.delLog;
+      if (!confirm('確定刪除這筆記錄？')) return;
+      try {
+        const res = await fetch(GAS_URL, {
+          method: 'POST', redirect: 'follow',
+          body: JSON.stringify({ action: 'adminDeleteOpsLog', admin_key: getKey(), log_id: lid })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || '失敗');
+        document.getElementById(`opslog-${lid}`)?.remove();
+        window._hscToast?.('✅ 已刪除');
+      } catch (err) { window._hscToast?.(`刪除失敗：${err.message}`); }
+    });
+  });
+}
