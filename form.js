@@ -735,7 +735,7 @@ function calcQuantityAddon(qty, config) {
       if (!cardRes.ok) throw new Error(cardRes.error || "取得資料失敗");
       state.runtime.updateCard = cardRes.card || cardRes.data || cardRes;
       state.runtime.updateEligibilityRaw = eligRes;
-      resolveUpdateEligibilityState(eligRes);
+     resolveUpdateEligibilityState(eligRes.eligibility || eligRes);
       state.runtime.updateEligibility = { ...state.updateFlow };
       hydrateFormFromCard(state.runtime.updateCard);
       setStatus(`已載入更新資料。${state.updateFlow.reasonText || ""}`, "info");
