@@ -2536,7 +2536,10 @@ const pointsToApply = (useChecked && pointsBalance >= originalAmount && original
     const expiresAt = card?.expires_at || card?.expiry_date;
     const expired = expiresAt ? new Date(expiresAt) < new Date() : false;
     const freeRemaining = Number(eligData?.free_update_remaining ?? 0);
-    const isUnlimited = !!eligData?.has_unlimited_update || !!card?.has_unlimited_update;
+   const isUnlimited = !!eligData?.update_unlimited_enabled 
+                 || eligData?.update_mode === "unlimited"
+                 || !!eligData?.has_unlimited_update 
+                 || !!card?.has_unlimited_update;
     let requiresPayment = false, canSubmitDirectly = false, deductFreeCount = false;
     let reasonText = "", updateFeeAmount = Number(eligData?.update_fee_amount || 300);
     let updateMode = "quota";
