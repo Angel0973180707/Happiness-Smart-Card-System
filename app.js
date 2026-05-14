@@ -849,7 +849,12 @@ async function loadFacadeBaseCard(){
 
   // 無快取：顯示骨架屏，再等 GAS
   renderSkeletonUI_();
-  const shellPayload = await fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" });
+ let shellPayload;
+try {
+  shellPayload = await fetchJsonRobust_(buildStaticCardUrl_(cardId) + '-shell', { cacheMode: "default" });
+} catch(_e) {
+  shellPayload = await fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" });
+}
   const shell = extractCardRow_(shellPayload);
   if(!shell || typeof shell !== "object" || !Object.keys(shell).length){
     throw new Error("門面樣品卡 shell 資料為空");
