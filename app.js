@@ -1026,7 +1026,8 @@ async function renderPersonalCard_(cardId){
   const cachedLite = readCardCache_("lite", cardId, CONFIG.CACHE_LITE_MS);
   const liteFetchPromise = cachedLite
     ? Promise.resolve(cachedLite)
-    : fetchJsonRobust_(buildCardPublicLiteUrl_(cardId), { cacheMode: "default" })
+    :fetchJsonRobust_(buildStaticCardUrl_(cardId), { cacheMode: "default" })
+  .catch(() => fetchJsonRobust_(buildCardPublicLiteUrl_(cardId), { cacheMode: "default" }))
         .then(p => {
           const r = extractCardRow_(p);
           if(r && Object.keys(r).length) writeCardCache_("lite", cardId, r);
