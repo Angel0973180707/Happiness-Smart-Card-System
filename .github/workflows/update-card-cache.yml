@@ -2,8 +2,8 @@ name: Update Card Cache
 
 on:
   schedule:
-    - cron: '* * * * *'  # 每分鐘執行一次
-  workflow_dispatch:      # 允許手動觸發
+    - cron: '* * * * *'
+  workflow_dispatch:
 
 jobs:
   update-cache:
@@ -18,16 +18,18 @@ jobs:
         run: |
           mkdir -p api/cards
           curl -L --max-time 30 \
+            "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec?action=getCardPublicShell&id=TW0001&tenant=angel" \
+            -o api/cards/TW0001-shell.json
+          curl -L --max-time 30 \
             "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec?action=getCardPublicLite&id=TW0001&tenant=angel" \
             -o api/cards/TW0001.json
           echo "Done: $(date)"
-          cat api/cards/TW0001.json | head -c 200
 
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add api/cards/TW0001.json
+          git add api/cards/
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
