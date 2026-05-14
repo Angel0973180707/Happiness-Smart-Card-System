@@ -1165,8 +1165,8 @@ ${status === 'paid' ? '<button class="btn btn-danger btn-sm btn-renewal-refund" 
           <div class="list-row-head" data-row="${cid}" data-type="commission">
             <div class="list-row-icon ${status === 'paid' ? 'icon-done' : 'icon-pending'}">💵</div>
             <div class="list-row-info">
-              <div class="list-row-title">${escapeHtml(textOf(item.agent_id))}</div>
-              <div class="list-row-sub">${cid} · $${escapeHtml(formatValue(item.amount))}</div>
+              <div class="list-row-title">${escapeHtml(textOf(item.beneficiary_agent_id))}</div>
+<div class="list-row-sub">${cid} · $${escapeHtml(formatValue(item.reward_amount))}</div>
             </div>
             <div class="list-row-right"><span class="badge ${status === 'paid' ? 'badge-ok' : 'badge-warn'}">${escapeHtml(status || 'pending')}</span></div>
             <span class="chevron" style="margin-left:6px;">›</span>
