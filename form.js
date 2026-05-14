@@ -1438,7 +1438,9 @@ function syncRenewQuote() {
       const fb = await getFirebase();
       await fb.ensureAuth();
       const fileName = `${key}.jpg`;
-      const cardId = state.tempCardId;
+      const cardId = (state.mode === 'update' && state.modeContext.cardId) 
+  ? state.modeContext.cardId 
+  : state.tempCardId;
       const url = await fb.uploadImage(cardId, file, fileName);
       if (state.photoUploadTokens[key] !== token) return;
       state.photoRealUrls[key] = url;
