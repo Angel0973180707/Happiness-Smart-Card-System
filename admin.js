@@ -1203,8 +1203,8 @@ ${status === 'paid' ? '<button class="btn btn-danger btn-sm btn-renewal-refund" 
       if (item) {
         addLedgerRecord({
           type: 'commission_paid', payment_id: item.payment_id || '', card_id: item.card_id || '', card_name: '',
-          amount: item.amount || 0, paid_at: new Date().toISOString(), note: `分潤付款 代理：${item.agent_id || ''}`,
-          commission: item.amount || 0, withdrawn: item.amount || 0,
+          amount: item.reward_amount || 0, paid_at: new Date().toISOString(), note: `分潤付款 代理：${item.beneficiary_agent_id || ''}`,
+        commission: item.reward_amount || 0, withdrawn: item.reward_amount || 0,
         });
       }
       renderCommissionList();
