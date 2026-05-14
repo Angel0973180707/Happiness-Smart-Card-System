@@ -263,7 +263,10 @@ function buildCardPublicShellUrl_(id){
   u.searchParams.set("v", CONFIG.VERSION);
   return u.toString();
 }
-
+function buildStaticCardUrl_(id){
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  return `https://angel0973180707.github.io/Happiness-Smart-Card-System/api/cards/${cid}.json`;
+}
 function buildCardPublicLiteUrl_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
   const u = new URL(CONFIG.GAS);
