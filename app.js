@@ -895,7 +895,12 @@ async function _refreshShellInBackground_(cardId){
 // 背景載入 lite，完成後 merge 並補渲染
 async function _loadLiteInBackground_(cardId){
   try{
-    const litePayload = await fetchJsonRobust_(buildCardPublicLiteUrl_(cardId), { cacheMode: "default" });
+   let litePayload;
+try {
+  litePayload = await fetchJsonRobust_(buildStaticCardUrl_(cardId), { cacheMode: "default" });
+} catch(_e) {
+  litePayload = await fetchJsonRobust_(buildCardPublicLiteUrl_(cardId), { cacheMode: "default" });
+}
     const lite = extractCardRow_(litePayload);
     if(!lite || typeof lite !== "object" || !Object.keys(lite).length) return;
     writeCardCache_("lite", cardId, lite);
