@@ -1174,8 +1174,8 @@ ${status === 'paid' ? '<button class="btn btn-danger btn-sm btn-renewal-refund" 
           <div class="list-row-body">
             <div class="detail-grid" style="margin-top:0;">
               ${renderDetailItem("分潤ID", item.commission_id || item.id)}
-              ${renderDetailItem("代理ID", item.agent_id)}
-              ${renderDetailItem("金額", item.amount)}
+             ${renderDetailItem("代理ID", item.beneficiary_agent_id)}
+              ${renderDetailItem("金額", item.reward_amount)}
               ${renderDetailItem("付款單", item.payment_id)}
             </div>
             <div class="action-strip">
