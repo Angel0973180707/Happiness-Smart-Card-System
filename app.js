@@ -974,7 +974,8 @@ async function renderPersonalCard_(cardId){
   // shell fetch 與 announcements 並行發起（不互相等待）
   const shellFetchPromise = cachedShell
     ? Promise.resolve(cachedShell)
-    : fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" })
+   fetchJsonRobust_(buildStaticCardUrl_(cardId) + '-shell', { cacheMode: "default" })
+  .catch(() => fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" }))
         .then(p => {
           const r = extractCardRow_(p);
           if(r && Object.keys(r).length) writeCardCache_("shell", cardId, r);
