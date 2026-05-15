@@ -2665,10 +2665,13 @@ function renderOpsLogInline(items, cardId, listEl) {
     el.innerHTML += "<div>" + migrateEsc(msg) + "</div>";
     el.scrollTop = el.scrollHeight;
   }
-  async function fetchCardPhotoUrls(cardId) {
+async function fetchCardPhotoUrls(cardId) {
     const key = getMigrateAdminKey();
-    const url = MIGRATE_GAS_URL + "?action=getCard&admin_key=" + encodeURIComponent(key) + "&card_id=" + encodeURIComponent(cardId);
-    const res = await fetch(url, { method: "GET", redirect: "follow" });
+    const res = await fetch(MIGRATE_GAS_URL, {
+      method: "POST",
+      redirect: "follow",
+      body: JSON.stringify({ action: "adminGetCardDirect", admin_key: key, card_id: cardId })
+    });
     const data = await res.json();
     if (!data || !data.ok) throw new Error(data.error || "查詢卡片失敗");
     return data.card;
