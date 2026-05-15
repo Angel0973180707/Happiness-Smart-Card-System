@@ -2674,7 +2674,7 @@ function renderOpsLogInline(items, cardId, listEl) {
   }
 
   // ── 分析哪些欄位是 TEMP 路徑 ──
-  function detectTempFields(card) {
+function detectTempFields(card) {
     const tempFields = [];
     const photoFields = ["avatar_url", "logo_url"];
     for (let i = 1; i <= 10; i++) photoFields.push(`photo${i}_url`);
