@@ -2685,13 +2685,18 @@ async function fetchCardPhotoUrls(cardId) {
     });
     return tempFields;
   }
-  function extractFileName(field) {
-    if (field === "avatar_url") return "avatar.jpg";
-    if (field === "logo_url") return "logo.jpg";
-    const m = field.match(/^photo(\d+)_url$/);
-    if (m) return "photo" + m[1] + ".jpg";
-    return null;
-  }
+  async function fetchCardPhotoUrls(cardId) {
+    if (typeof window._hscAdminApiGet === "function") {
+      const data = await window._hscAdminApiGet("adminGetCardDirect", { card_id: cardId });
+      return data.card || data;
+    }
+    const key = getMigrateAdminKey();
+    const url = MIGRATE_GAS_URL + "?action=adminGetCardDirect&admin_key=" + encodeURIComponent(key) + "&card_id=" + encodeURIComponent(cardId);
+    const res = await fetch(url, { method: "GET", redirect: "follow" });
+    const data = await res.json();
+    if (!data || !data.ok) throw new Error(data.error || "查詢卡片失敗");
+    return data.card;
+  }s
   async function reuploadPhoto(cardId, field, oldUrl, fb, logEl) {
     const fileName = extractFileName(field);
     if (!fileName) throw new Error("無法判斷檔名：" + field);
