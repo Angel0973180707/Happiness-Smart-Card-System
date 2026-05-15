@@ -4,7 +4,7 @@
   const CONFIG = {
     VERSION: "v6.7.0-perf-optimized",
     KEY_PREFIX: "ANGEL2026",
-    GAS_BASE_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+   GAS_BASE_URL: "https://angel-namecard.letssyncus.com/gas-proxy/exec",
     HUB_URL: "https://angel-namecard.letssyncus.com/",
    FORM_URL: "https://angel-namecard.letssyncus.com/form.html",
     DEFAULT_RENEW_DAYS: 365,
