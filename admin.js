@@ -2670,8 +2670,7 @@ function renderOpsLogInline(items, cardId, listEl) {
     const res = await fetch(url, { method: "GET", redirect: "follow" });
     const data = await res.json();
     if (!data || !data.ok) throw new Error(data?.error || "查詢卡片失敗");
-    return data.card || data.data || data;
-  }
+    return data.card;
 
   // ── 分析哪些欄位是 TEMP 路徑 ──
 function detectTempFields(card) {
