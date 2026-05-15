@@ -2697,7 +2697,7 @@ async function fetchCardPhotoUrls(cardId) {
     const data = await res.json();
     if (!data || !data.ok) throw new Error(data.error || "查詢卡片失敗");
     return data.card;
-  }s
+  }
   async function reuploadPhoto(cardId, field, oldUrl, fb, logEl) {
     const fileName = extractFileName(field);
     if (!fileName) throw new Error("無法判斷檔名：" + field);
