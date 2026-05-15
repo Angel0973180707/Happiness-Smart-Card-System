@@ -2802,8 +2802,34 @@ function renderOpsLogInline(items, cardId, listEl) {
       if (btn) { btn.disabled = false; btn.textContent = "🚀 開始搬移"; }
     }
   }
+// ── 分析哪些欄位是 TEMP 路徑 ──
+  function detectTempFields(card) {
+    const tempFields = [];
+    const photoFields = ["avatar_url", "logo_url"];
+    for (let i = 1; i <= 10; i++) photoFields.push(`photo${i}_url`);
 
-  // ── 注入 UI 到系統工具區 ──
+    photoFields.forEach(field => {
+      let url = String(card[field] || "");
+
+      if (!url && field.startsWith("photo") && field.endsWith("_url")) {
+        const m = field.match(/^photo(\d+)_url$/);
+        if (m) {
+          const idx = parseInt(m[1]) - 1;
+          url = String((card.photos || [])[idx] || "");
+        }
+      }
+      if (!url && field === "avatar_url") {
+        url = String(card.avatar_url || card["u-img"] || "");
+      }
+
+      if (url && url.includes("/cards/TEMP_")) {
+        tempFields.push({ field, url });
+      }
+    });
+    return tempFields;
+  }
+
+    // ── 注入 UI 到系統工具區 ──
   function injectMigrateUI() {
     const systemSection = document.getElementById("systemSection");
     if (!systemSection) return;
