@@ -207,7 +207,7 @@ function calcQuantityAddon(qty, config) {
   window.__TEST_calcQuote = calcQuote_R0b;
   window.__TEST_CONFIG = null; // 等 CONFIG 定義後填,見下方 R0b-2
   const CONFIG = {
-    GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+   GAS_URL: "https://angel-namecard.letssyncus.com/gas-proxy/exec",
     SERVICE_URL: "https://lin.ee/G3VJoRm",
    SHOWCASE_URL: "https://angel-namecard.letssyncus.com/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
