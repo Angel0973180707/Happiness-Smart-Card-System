@@ -296,7 +296,6 @@ function buildInviteReplyText(request) {
     });
     return _apiCall("GET", url.toString(), null, action);
   }
-  window._hscAdminApiGet = apiGet;
   async function apiPost(action, params = {}) {
     const key = getAdminKey();
     if (!key) { toast("⚠️ 請先設定 Admin Key"); throw new Error("Admin Key 未設定"); }
