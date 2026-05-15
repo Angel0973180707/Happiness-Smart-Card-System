@@ -2646,10 +2646,8 @@ function renderOpsLogInline(items, cardId, listEl) {
 
 (function initPhotoMigrateTool() {
   "use strict";
-
   const MIGRATE_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const FIREBASE_MODULE = "./firebase.js";
-
   function $m(s) { return document.querySelector(s); }
   function getMigrateAdminKey() {
     const suffix = localStorage.getItem("hsc_admin_key") || "";
@@ -2662,219 +2660,139 @@ function renderOpsLogInline(items, cardId, listEl) {
   function migrateEsc(s) {
     return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
-
-  // ── 取得卡片目前的圖片 URL ──
+  function appendLog(el, msg) {
+    if (!el) return;
+    el.innerHTML += "<div>" + migrateEsc(msg) + "</div>";
+    el.scrollTop = el.scrollHeight;
+  }
   async function fetchCardPhotoUrls(cardId) {
     const key = getMigrateAdminKey();
-    const url = `${MIGRATE_GAS_URL}?action=getCard&admin_key=${encodeURIComponent(key)}&card_id=${encodeURIComponent(cardId)}`;
+    const url = MIGRATE_GAS_URL + "?action=getCard&admin_key=" + encodeURIComponent(key) + "&card_id=" + encodeURIComponent(cardId);
     const res = await fetch(url, { method: "GET", redirect: "follow" });
     const data = await res.json();
-    if (!data || !data.ok) throw new Error(data?.error || "查詢卡片失敗");
+    if (!data || !data.ok) throw new Error(data.error || "查詢卡片失敗");
     return data.card;
-
-  // ── 分析哪些欄位是 TEMP 路徑 ──
-function detectTempFields(card) {
-    console.log("[migrate] card.avatar_url=", card.avatar_url, "card.photo3_url=", card.photo3_url);
+  }
+  function detectTempFields(card) {
     const tempFields = [];
     const photoFields = ["avatar_url", "logo_url"];
-    for (let i = 1; i <= 10; i++) photoFields.push(`photo${i}_url`);
-
-    photoFields.forEach(field => {
+    for (let i = 1; i <= 10; i++) photoFields.push("photo" + i + "_url");
+    photoFields.forEach(function(field) {
       const url = String(card[field] || "");
-      if (url && url.includes("/cards/TEMP_")) {
-        tempFields.push({ field, url });
+      if (url && url.indexOf("/cards/TEMP_") >= 0) {
+        tempFields.push({ field: field, url: url });
       }
     });
     return tempFields;
   }
-
-  // ── 從 URL 萃取檔名（avatar.jpg / photo3.jpg 等）──
   function extractFileName(field) {
-    const map = { avatar_url: "avatar.jpg", logo_url: "logo.jpg" };
-    if (map[field]) return map[field];
+    if (field === "avatar_url") return "avatar.jpg";
+    if (field === "logo_url") return "logo.jpg";
     const m = field.match(/^photo(\d+)_url$/);
-    if (m) return `photo${m[1]}.jpg`;
+    if (m) return "photo" + m[1] + ".jpg";
     return null;
   }
-
-  // ── 核心：fetch 圖片 blob → 重新上傳到正式路徑 → 回傳新 URL ──
   async function reuploadPhoto(cardId, field, oldUrl, fb, logEl) {
     const fileName = extractFileName(field);
     if (!fileName) throw new Error("無法判斷檔名：" + field);
-
-    appendLog(logEl, `⬇️ 下載 ${field}...`);
+    appendLog(logEl, "⬇️ 下載 " + field + "...");
     const res = await fetch(oldUrl);
-    if (!res.ok) throw new Error(`下載失敗 ${field}: HTTP ${res.status}`);
+    if (!res.ok) throw new Error("下載失敗 " + field + ": HTTP " + res.status);
     const blob = await res.blob();
-
-    appendLog(logEl, `⬆️ 上傳 ${field} → cards/${cardId}/${fileName}`);
+    appendLog(logEl, "⬆️ 上傳 " + field + " → cards/" + cardId + "/" + fileName);
     await fb.ensureAuth();
     const newUrl = await fb.uploadImage(cardId, blob, fileName);
-    appendLog(logEl, `✅ ${field} 完成`);
+    appendLog(logEl, "✅ " + field + " 完成");
     return newUrl;
   }
-
-  // ── 寫入新 URL 到 GAS card_db ──
   async function saveUrlsToGas(cardId, updates) {
     const key = getMigrateAdminKey();
     const res = await fetch(MIGRATE_GAS_URL, {
-      method: "POST",
-      redirect: "follow",
-      body: JSON.stringify({
-        action: "adminUpdateCardPhotoUrls",
-        admin_key: key,
-        card_id: cardId,
-        updates
-      })
+      method: "POST", redirect: "follow",
+      body: JSON.stringify({ action: "adminUpdateCardPhotoUrls", admin_key: key, card_id: cardId, updates: updates })
     });
     const data = await res.json();
-    if (!data || !data.ok) throw new Error(data?.error || "寫入 GAS 失敗");
+    if (!data || !data.ok) throw new Error(data.error || "寫入 GAS 失敗");
     return data;
   }
-
-  function appendLog(el, msg) {
-    if (!el) return;
-    el.innerHTML += `<div>${migrateEsc(msg)}</div>`;
-    el.scrollTop = el.scrollHeight;
-  }
-
-  // ── 主流程 ──
   async function runMigration() {
     const cardIdInput = $m("#migratePhotoCardId");
     const logEl = $m("#migratePhotoLog");
     const btn = $m("#btnMigratePhotos");
-    const cardId = (cardIdInput?.value || "").trim().toUpperCase();
-
+    const cardId = (cardIdInput ? cardIdInput.value : "").trim().toUpperCase();
     if (!cardId) { migrateToast("請輸入卡片 ID"); return; }
     if (!getMigrateAdminKey()) { migrateToast("請先設定 Admin Key"); return; }
-    if (!confirm(`確定要搬移 ${cardId} 的圖片路徑？\n\n舊 TEMP 路徑圖片會重新上傳到正式路徑，card_db 同步更新。`)) return;
-
+    if (!confirm("確定要搬移 " + cardId + " 的圖片路徑？")) return;
     if (btn) { btn.disabled = true; btn.textContent = "搬移中…"; }
     if (logEl) logEl.innerHTML = "";
-
     try {
-      appendLog(logEl, `🔍 查詢 ${cardId} 卡片資料…`);
+      appendLog(logEl, "🔍 查詢 " + cardId + " 卡片資料…");
       const card = await fetchCardPhotoUrls(cardId);
-
       const tempFields = detectTempFields(card);
       if (!tempFields.length) {
         appendLog(logEl, "✅ 沒有 TEMP 路徑圖片，無需搬移！");
         migrateToast("✅ 沒有需要搬移的圖片");
         return;
       }
-
-      appendLog(logEl, `📋 發現 ${tempFields.length} 個 TEMP 路徑欄位：${tempFields.map(f => f.field).join(", ")}`);
+      appendLog(logEl, "📋 發現 " + tempFields.length + " 個 TEMP 路徑欄位");
       appendLog(logEl, "🔥 載入 Firebase 模組…");
-
       const fb = await import(FIREBASE_MODULE);
       await fb.ensureAuth();
       appendLog(logEl, "✅ Firebase 已連線");
-
       const updates = {};
       let successCount = 0;
       let failCount = 0;
-
-      for (const { field, url } of tempFields) {
+      for (let i = 0; i < tempFields.length; i++) {
+        const field = tempFields[i].field;
+        const url = tempFields[i].url;
         try {
           const newUrl = await reuploadPhoto(cardId, field, url, fb, logEl);
           updates[field] = newUrl;
           successCount++;
         } catch (err) {
-          appendLog(logEl, `❌ ${field} 失敗：${err.message}`);
+          appendLog(logEl, "❌ " + field + " 失敗：" + err.message);
           failCount++;
         }
       }
-
       if (Object.keys(updates).length > 0) {
-        appendLog(logEl, `💾 寫入 ${Object.keys(updates).length} 個新 URL 到 card_db…`);
+        appendLog(logEl, "💾 寫入新 URL 到 card_db…");
         const saveRes = await saveUrlsToGas(cardId, updates);
-        appendLog(logEl, `✅ card_db 已更新（${saveRes.updated_count} 個欄位）`);
+        appendLog(logEl, "✅ card_db 已更新（" + saveRes.updated_count + " 個欄位）");
       }
-
-      const summary = `完成！成功 ${successCount} 個，失敗 ${failCount} 個`;
-      appendLog(logEl, `🎉 ${summary}`);
-      migrateToast(`✅ ${summary}`);
-
+      const summary = "完成！成功 " + successCount + " 個，失敗 " + failCount + " 個";
+      appendLog(logEl, "🎉 " + summary);
+      migrateToast("✅ " + summary);
     } catch (err) {
-      appendLog(logEl, `❌ 發生錯誤：${err.message}`);
+      appendLog(logEl, "❌ 發生錯誤：" + err.message);
       migrateToast("搬移失敗：" + err.message);
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = "🚀 開始搬移"; }
     }
   }
-// ── 分析哪些欄位是 TEMP 路徑 ──
-  function detectTempFields(card) {
-    const tempFields = [];
-    const photoFields = ["avatar_url", "logo_url"];
-    for (let i = 1; i <= 10; i++) photoFields.push(`photo${i}_url`);
-
-    photoFields.forEach(field => {
-      let url = String(card[field] || "");
-
-      if (!url && field.startsWith("photo") && field.endsWith("_url")) {
-        const m = field.match(/^photo(\d+)_url$/);
-        if (m) {
-          const idx = parseInt(m[1]) - 1;
-          url = String((card.photos || [])[idx] || "");
-        }
-      }
-      if (!url && field === "avatar_url") {
-        url = String(card.avatar_url || card["u-img"] || "");
-      }
-
-      if (url && url.includes("/cards/TEMP_")) {
-        tempFields.push({ field, url });
-      }
-    });
-    return tempFields;
-  }
-
-    // ── 注入 UI 到系統工具區 ──
   function injectMigrateUI() {
     const systemSection = document.getElementById("systemSection");
     if (!systemSection) return;
-
     const card = document.createElement("div");
     card.className = "card";
     card.style.marginTop = "16px";
-    card.innerHTML = `
-      <div class="card-body">
-        <div style="font-weight:900;font-size:14px;margin-bottom:4px;">🖼️ 圖片路徑搬移工具</div>
-        <div style="font-size:12px;color:var(--ink3);margin-bottom:12px;">
-          將卡片圖片從 TEMP 暫存路徑重新上傳到正式路徑，並更新 card_db。
-        </div>
-        <div class="field">
-          <label>卡片 ID</label>
-          <input type="text" id="migratePhotoCardId" placeholder="例：TW0001" style="text-transform:uppercase;">
-        </div>
-        <div class="action-strip">
-          <button class="btn btn-primary btn-sm" id="btnMigratePhotos">🚀 開始搬移</button>
-        </div>
-        <div id="migratePhotoLog" style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--ink2);min-height:60px;max-height:240px;overflow-y:auto;line-height:1.8;display:none;"></div>
-      </div>`;
-
-    systemSection.querySelector(".card-body, .section-header")
-      ? systemSection.appendChild(card)
-      : systemSection.appendChild(card);
-
-    $m("#btnMigratePhotos")?.addEventListener("click", () => {
-      const logEl = $m("#migratePhotoLog");
+    card.innerHTML = '<div class="card-body"><div style="font-weight:900;font-size:14px;margin-bottom:4px;">🖼️ 圖片路徑搬移工具</div><div style="font-size:12px;color:var(--ink3);margin-bottom:12px;">將卡片圖片從 TEMP 暫存路徑重新上傳到正式路徑，並更新 card_db。</div><div class="field"><label>卡片 ID</label><input type="text" id="migratePhotoCardId" placeholder="例：TW0001"></div><div class="action-strip"><button class="btn btn-primary btn-sm" id="btnMigratePhotos">🚀 開始搬移</button></div><div id="migratePhotoLog" style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--ink2);min-height:60px;max-height:240px;overflow-y:auto;line-height:1.8;display:none;"></div></div>';
+    systemSection.appendChild(card);
+    var btn = $m("#btnMigratePhotos");
+    if (btn) btn.addEventListener("click", function() {
+      var logEl = $m("#migratePhotoLog");
       if (logEl) logEl.style.display = "block";
       runMigration();
     });
-
-    // 輸入框自動大寫
-    $m("#migratePhotoCardId")?.addEventListener("input", function() {
-      const pos = this.selectionStart;
+    var input = $m("#migratePhotoCardId");
+    if (input) input.addEventListener("input", function() {
+      var pos = this.selectionStart;
       this.value = this.value.toUpperCase();
       this.setSelectionRange(pos, pos);
     });
   }
-
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", injectMigrateUI);
   } else {
     injectMigrateUI();
   }
-
 })();
