@@ -265,7 +265,7 @@ function buildCardPublicShellUrl_(id){
 }
 function buildStaticCardUrl_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-  return `https://angel-namecard.letssyncus.com/api/cards/${cid}.json`;
+  return `https://angel0973180707.github.io/Happiness-Smart-Card-System/api/cards/${cid}.json`;
 }
 function buildCardPublicLiteUrl_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
