@@ -1733,12 +1733,6 @@ syncDeliveryControlPanel(card);
 
   // ══════════════════════════════════════════
   // ── refreshAll（分層載入核心優化）──
-  //
-  //  第一層：首屏必要資料（requests/cards/payments/ops_logs）
-  //    → bootstrap 只帶這些，完成後立即 setLoading(false) 並渲染首屏
-  //
-  //  第二層：背景靜默載入（renewals/addons/agents/announcements/commissions）
-  //    → 不阻塞首屏，各自 Promise，完成後個別更新 dashboard
   // ══════════════════════════════════════════
   async function refreshAll() {
     try {
@@ -1752,10 +1746,10 @@ syncDeliveryControlPanel(card);
           cards_limit: 100,
           payments_limit: 100,
           ops_limit: 20,
-          include_renewals: false,   // ← 不含，交給第二層
-          include_addons: false,      // ← 同上
-          include_agents: false,      // ← 同上
-          include_announcements: false // ← 同上
+          include_renewals: false,
+          include_addons: false,
+          include_agents: false,
+          include_announcements: false
         });
       } catch (bootErr) {
         console.warn("[refreshAll] bootstrap failed, fallback:", bootErr);
@@ -1764,7 +1758,6 @@ syncDeliveryControlPanel(card);
         return;
       }
 
-      // 填入首屏資料
       if (boot.requests) state.requests     = normalizeList(boot.requests,  ["requests", "items"]);
       if (boot.cards)    state.cards        = normalizeList(boot.cards,     ["cards", "items"]);
       if (boot.payments) {
@@ -1773,7 +1766,6 @@ syncDeliveryControlPanel(card);
       }
       if (boot.ops_logs) state.opsLogs      = normalizeList(boot.ops_logs,  ["ops_logs", "items"]);
 
-      // 立即渲染首屏 + 解除 loading
       renderRequests();
       renderCards();
       renderPayments();
@@ -1781,10 +1773,10 @@ syncDeliveryControlPanel(card);
       renderDashboardOpsLogs();
 
     } finally {
-      setLoading(false); // ← 首屏完成，立即解鎖
+      setLoading(false);
     }
 
-    // ── 第二層：背景靜默載入（不阻塞、不顯示全屏 loading）──
+    // ── 第二層：背景靜默載入 ──
     const bgJobs = [
       loadRenewalList(),
       loadAddons(),
@@ -1794,7 +1786,6 @@ syncDeliveryControlPanel(card);
     ];
 
     Promise.allSettled(bgJobs).then(() => {
-      // 全部背景資料到齊後，更新 dashboard 數字（addons/renewals 影響統計）
       renderDashboard();
     });
   }
@@ -1851,7 +1842,7 @@ syncDeliveryControlPanel(card);
       const e = $('#deliveryEmpty'); if (e) e.style.display = 'none';
     });
 
-    // ── Debounce 搜尋（防止每字觸發 re-render）──
+    // ── Debounce 搜尋 ──
     const cardSearchEl = $("#cardSearch");
     if (cardSearchEl) {
       cardSearchEl.addEventListener("input", debounce(() => {
@@ -2082,7 +2073,7 @@ syncDeliveryControlPanel(card);
 (function initAdminMaintenance() {
   "use strict";
 
-  const MAINT_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+  const MAINT_GAS_URL = "https://angel-namecard.letssyncus.com/gas-proxy/exec";
 
   function $m(s) { return document.querySelector(s); }
 
@@ -2264,7 +2255,7 @@ syncDeliveryControlPanel(card);
 (function initAdminTestCardsPurge() {
   "use strict";
 
-  const PURGE_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+  const PURGE_GAS_URL = "https://angel-namecard.letssyncus.com/gas-proxy/exec";
 
   function $p(s) { return document.querySelector(s); }
 
@@ -2416,7 +2407,7 @@ async function loadCardOpsLogs(cardId) {
     <div class="section-label" style="margin-top:16px;">📋 推播記錄</div>
     <div id="cardOpsLogsList"><div class="empty-state" style="padding:16px;">載入中…</div></div>`;
   try {
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+    const GAS_URL = 'https://angel-namecard.letssyncus.com/gas-proxy/exec';
     const k = localStorage.getItem('hsc_admin_key') || '';
     const adminKey = k.startsWith('ANGEL2026') ? k : 'ANGEL2026' + k;
     const url = `${GAS_URL}?action=getCardOpsLogs&admin_key=${encodeURIComponent(adminKey)}&card_id=${encodeURIComponent(cardId)}`;
@@ -2433,7 +2424,7 @@ async function loadCardOpsLogs(cardId) {
 function renderCardOpsLogs(items, cardId) {
   const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const txt = v => v == null ? '' : String(v).trim();
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+  const GAS_URL = 'https://angel-namecard.letssyncus.com/gas-proxy/exec';
   const getKey = () => { const k = localStorage.getItem('hsc_admin_key')||''; return k.startsWith('ANGEL2026')?k:'ANGEL2026'+k; };
   const listEl = document.getElementById('cardOpsLogsList');
   if (!listEl) return;
@@ -2526,7 +2517,7 @@ function renderCardOpsLogs(items, cardId) {
 async function loadOpsLogInline(cardId, listEl) {
   listEl.innerHTML = '<div class="empty-state" style="padding:10px;font-size:12px;">載入中…</div>';
   try {
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+    const GAS_URL = 'https://angel-namecard.letssyncus.com/gas-proxy/exec';
     const k = localStorage.getItem('hsc_admin_key') || '';
     const adminKey = k.startsWith('ANGEL2026') ? k : 'ANGEL2026' + k;
     const url = `${GAS_URL}?action=getCardOpsLogs&admin_key=${encodeURIComponent(adminKey)}&card_id=${encodeURIComponent(cardId)}`;
@@ -2542,7 +2533,7 @@ async function loadOpsLogInline(cardId, listEl) {
 function renderOpsLogInline(items, cardId, listEl) {
   const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const txt = v => v == null ? '' : String(v).trim();
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec';
+  const GAS_URL = 'https://angel-namecard.letssyncus.com/gas-proxy/exec';
   const getKey = () => { const k = localStorage.getItem('hsc_admin_key') || ''; return k.startsWith('ANGEL2026') ? k : 'ANGEL2026' + k; };
   const moduleIcon = { delivery: '📦', renewal: '🔄', invite: '🎫', line_bind: '🔗', update_fee: '✏️' };
   const statusIcon = s => {
@@ -2631,7 +2622,6 @@ function renderOpsLogInline(items, cardId, listEl) {
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || '失敗');
         document.getElementById(`ilog-${lid}`)?.remove();
-        // 若已全部刪除，顯示空狀態
         if (!listEl.querySelector('[id^="ilog-"]')) {
           listEl.innerHTML = '<div class="empty-state" style="padding:10px;font-size:12px;">尚無操作記錄</div>';
         }
