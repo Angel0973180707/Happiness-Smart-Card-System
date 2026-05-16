@@ -2640,3 +2640,54 @@ function renderOpsLogInline(items, cardId, listEl) {
     });
   });
 }
+(function initAgentPaymentInbox() {
+  "use strict";
+  const GAS_URL = "https://angel-namecard.letssyncus.com/gas-proxy/exec";
+  function getKey() {
+    const k = localStorage.getItem("hsc_admin_key") || "";
+    return k.startsWith("ANGEL2026") ? k : "ANGEL2026" + k;
+  }
+  function bindEvents() {
+    const btn = document.querySelector("#btnSubmitAgentPaymentInbox");
+    if (!btn) return;
+    btn.addEventListener("click", async () => {
+      const cardId = (document.querySelector("#agentPaymentCardId")?.value || "").trim();
+      const amount = (document.querySelector("#agentPaymentAmount")?.value || "").trim();
+      const last5 = (document.querySelector("#agentPaymentLast5")?.value || "").trim();
+      const note = (document.querySelector("#agentPaymentNote")?.value || "").trim();
+      if (!cardId || !amount || !last5) {
+        window._hscToast?.("請填寫卡號、金額、末五碼");
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = "處理中…";
+      try {
+        const res = await fetch(GAS_URL, {
+          method: "POST",
+          redirect: "follow",
+          body: JSON.stringify({
+            action: "submitAgentPaymentInbox",
+            admin_key: getKey(),
+            card_id: cardId,
+            amount: Number(amount),
+            last5: last5,
+            note: note
+          })
+        });
+        const data = await res.json();
+        if (!data || !data.ok) throw new Error(data?.error || "送出失敗");
+        window._hscToast?.("✅ 入帳資料已送出");
+      } catch (err) {
+        window._hscToast?.("送出失敗：" + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "送出入帳資料";
+      }
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindEvents);
+  } else {
+    bindEvents();
+  }
+})();
