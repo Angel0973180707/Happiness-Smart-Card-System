@@ -1014,6 +1014,33 @@ input:focus, textarea:focus, select:focus { outline: none; }
         <button class="btn btn-soft btn-sm" id="btnRefreshPayments">↻ 重整</button>
       </div>
       <div id="paymentsListContainer"><div class="empty-state">載入中…</div></div>
+      <div id="directConfirmPaymentBlock" style="margin-top:24px;border-top:1px solid var(--border);padding-top:16px;">
+          <div style="font-size:14px;font-weight:900;color:var(--ink);margin-bottom:12px;">💵 直接確認付款</div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+            <div>
+              <div style="font-size:11px;color:var(--ink3);margin-bottom:4px;">卡號</div>
+              <input id="dcCardId" type="text" placeholder="TW0001" style="width:110px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;">
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--ink3);margin-bottom:4px;">金額（0=贈送）</div>
+              <input id="dcAmount" type="number" value="0" min="0" style="width:90px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;">
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--ink3);margin-bottom:4px;">付款類型</div>
+              <select id="dcType" style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;">
+                <option value="">自動判斷</option>
+                <option value="first">首次</option>
+                <option value="renew">續約</option>
+              </select>
+            </div>
+            <div style="flex:1;min-width:160px;">
+              <div style="font-size:11px;color:var(--ink3);margin-bottom:4px;">備註</div>
+              <input id="dcNote" type="text" placeholder="收現金 / 贈送原因…" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;">
+            </div>
+            <button id="btnDirectConfirm" class="btn btn-ok btn-sm" style="height:38px;padding:0 18px;font-weight:900;">✅ 直接確認</button>
+          </div>
+          <div id="dcResult" style="margin-top:12px;font-size:13px;"></div>
+        </div>
     </section>
 
     <!-- ── 續約管理 ── -->
