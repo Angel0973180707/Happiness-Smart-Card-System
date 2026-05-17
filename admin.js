@@ -2800,14 +2800,15 @@ function renderOpsLogInline(items, cardId, listEl) {
     }
   }
 
-  function bindInit() {
-    // 等 DOM ready 後注入，並在切換到付款頁時也注入
-    injectUI();
-    document.querySelectorAll('[data-section="paymentSection"], [data-section*="payment"]').forEach(btn => {
-      btn.addEventListener("click", () => setTimeout(injectUI, 300));
-    });
-  }
-
+ function bindInit() {
+      document.querySelectorAll('[data-section="paymentSection"]').forEach(btn => {
+        btn.addEventListener("click", () => setTimeout(injectUI, 400));
+      });
+      const paySection = document.getElementById("paymentSection");
+      if (paySection && paySection.classList.contains("active")) {
+        injectUI();
+      }
+    }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", bindInit);
   } else {
