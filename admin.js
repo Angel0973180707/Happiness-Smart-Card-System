@@ -654,6 +654,15 @@ function buildInviteReplyText(request) {
       copyText(buildPaymentReminderNotice(card), '✅ 已複製催繳文案');
       return;
     }
+    const payInfoBtn = e.target.closest('[data-action="copyPaymentInfo"]');
+    if (payInfoBtn) {
+      e.stopPropagation();
+      const cid = payInfoBtn.dataset.cid;
+      const paymentUrl = `https://angel-namecard.letssyncus.com/payment.html?id=${encodeURIComponent(cid)}`;
+      const text = `您好，以下是您的付款資訊：\n\n━━━━━━━━━━━━━━━━━\n💳【匯款資訊】\n銀行：玉山銀行（808）\n帳號：0738968051590\n戶名：李秀芳\n━━━━━━━━━━━━━━━━━\n\n完成匯款後，請點擊以下連結填寫末5碼：\n${paymentUrl}\n\n確認後 1 個工作天內啟用。`;
+      copyText(text, '📤 已複製付款資訊文案');
+      return;
+    }
   }
 
   // ── DELIVERY PANEL ──
