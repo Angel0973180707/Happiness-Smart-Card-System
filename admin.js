@@ -2681,3 +2681,136 @@ function renderOpsLogInline(items, cardId, listEl) {
     bindEvents();
   }
 })();
+/* ============================================================
+   HSC ADMIN · v420 直接確認付款 PATCH for admin.js
+============================================================ */
+(function initDirectConfirmPayment() {
+  "use strict";
+
+  const DC_GAS_URL = "https://angel-namecard.letssyncus.com/gas-proxy/exec";
+
+  function getKey() {
+    const k = localStorage.getItem("hsc_admin_key") || "";
+    return k.startsWith("ANGEL2026") ? k : "ANGEL2026" + k;
+  }
+
+  function dcToast(msg) {
+    if (typeof window._hscToast === "function") window._hscToast(msg);
+    else alert(msg);
+  }
+
+  function injectUI() {
+    // 找付款中心 section，插入 UI
+    const paySection = document.getElementById("paymentSection") ||
+                       document.querySelector('[id*="payment"]') ||
+                       document.querySelector('.section');
+    if (!paySection) return;
+
+    if (document.getElementById("directConfirmPaymentBlock")) return;
+
+    const block = document.createElement("div");
+    block.id = "directConfirmPaymentBlock";
+    block.style.cssText = "margin-top:24px;border-top:1px solid var(--border);padding-top:16px;";
+    block.innerHTML = `
+      <div style="font-size:14px;font-weight:900;color:var(--ink);margin-bottom:12px;">💵 直接確認付款</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+        <div>
+          <div style="font-size:11px;color:var(--ink3);margin-bottom:4px;">卡號</div>
+          <input id="dcCardId" type="text" placeholder="TW0001"
+            style="width:110px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--ink3);margin-bottom:4px;">金額（0=贈送）</div>
+          <input id="dcAmount" type="number" value="0" min="0"
+            style="width:90px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--ink3);margin-bottom:4px;">付款類型</div>
+          <select id="dcType" style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;">
+            <option value="">自動判斷</option>
+            <option value="first">首次</option>
+            <option value="renew">續約</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:160px;">
+          <div style="font-size:11px;color:var(--ink3);margin-bottom:4px;">備註</div>
+          <input id="dcNote" type="text" placeholder="收現金 / 贈送原因…"
+            style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <button id="btnDirectConfirm" class="btn btn-ok btn-sm"
+          style="height:38px;padding:0 18px;font-weight:900;">✅ 直接確認</button>
+      </div>
+      <div id="dcResult" style="margin-top:12px;font-size:13px;"></div>
+    `;
+    paySection.appendChild(block);
+
+    document.getElementById("btnDirectConfirm")?.addEventListener("click", doDirectConfirm);
+  }
+
+  async function doDirectConfirm() {
+    const cardId = (document.getElementById("dcCardId")?.value || "").trim().toUpperCase();
+    const amount = Number(document.getElementById("dcAmount")?.value) || 0;
+    const type   = document.getElementById("dcType")?.value || "";
+    const note   = (document.getElementById("dcNote")?.value || "").trim();
+    const result = document.getElementById("dcResult");
+
+    if (!cardId) { dcToast("⚠️ 請填卡號"); return; }
+
+    if (result) result.innerHTML = "⏳ 處理中…";
+    const btn = document.getElementById("btnDirectConfirm");
+    if (btn) { btn.disabled = true; btn.textContent = "處理中…"; }
+
+    try {
+      const res = await fetch(DC_GAS_URL, {
+        method: "POST",
+        redirect: "follow",
+        body: JSON.stringify({
+          action:      "adminDirectConfirmPayment",
+          admin_key:   getKey(),
+          cardId:      cardId,
+          amount:      amount,
+          paymentType: type,
+          note:        note
+        })
+      });
+      const data = await res.json();
+      if (!data || !data.ok) throw new Error(data?.error || "操作失敗");
+
+      const lineMsg = data.linePushed ? "✅ 已推 LINE" : "（金額=0，未推 LINE）";
+      if (result) result.innerHTML = `
+        <div style="background:var(--ok-bg);border-radius:8px;padding:10px 14px;color:var(--ok);font-weight:800;">
+          ✅ 確認成功<br>
+          <span style="font-weight:400;color:var(--ink);">
+            卡號：${data.cardId}　類型：${data.paymentType}　金額：NT$${data.amount}<br>
+            新到期：${data.newExpires}　${lineMsg}
+          </span>
+        </div>`;
+      dcToast(`✅ ${data.cardId} 確認完成`);
+
+      // 清空欄位
+      const ci = document.getElementById("dcCardId"); if (ci) ci.value = "";
+      const ai = document.getElementById("dcAmount"); if (ai) ai.value = "0";
+      const ni = document.getElementById("dcNote");   if (ni) ni.value = "";
+
+    } catch (err) {
+      if (result) result.innerHTML = `<div style="color:var(--danger);">❌ 失敗：${err.message}</div>`;
+      dcToast("失敗：" + err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = "✅ 直接確認"; }
+    }
+  }
+
+  function bindInit() {
+    // 等 DOM ready 後注入，並在切換到付款頁時也注入
+    injectUI();
+    document.querySelectorAll('[data-section="paymentSection"], [data-section*="payment"]').forEach(btn => {
+      btn.addEventListener("click", () => setTimeout(injectUI, 300));
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindInit);
+  } else {
+    bindInit();
+  }
+})();
