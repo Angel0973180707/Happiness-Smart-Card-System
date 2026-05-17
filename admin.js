@@ -2800,18 +2800,16 @@ function renderOpsLogInline(items, cardId, listEl) {
     }
   }
 
- function bindInit() {
-      document.querySelectorAll('[data-section="paymentSection"]').forEach(btn => {
-        btn.addEventListener("click", () => setTimeout(injectUI, 400));
+function bindInit() {
+    // 直接綁 HTML 裡的按鈕
+    const btn = document.getElementById("btnDirectConfirm");
+    if (btn) {
+      btn.addEventListener("click", doDirectConfirm);
+    } else {
+      // 若還沒渲染，等 DOM ready
+      document.addEventListener("DOMContentLoaded", function() {
+        const b = document.getElementById("btnDirectConfirm");
+        if (b) b.addEventListener("click", doDirectConfirm);
       });
-      const paySection = document.getElementById("paymentSection");
-      if (paySection && paySection.classList.contains("active")) {
-        injectUI();
-      }
     }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bindInit);
-  } else {
-    bindInit();
   }
-})();
