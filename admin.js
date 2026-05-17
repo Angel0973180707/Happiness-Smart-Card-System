@@ -603,14 +603,11 @@ function buildInviteReplyText(request) {
             ${renderDetailItem("方案", planText(c.plan))}
             ${renderDetailItem("到期日", c.expires_at || '-')}
           </div>
-        <div class="action-strip" style="flex-wrap:wrap;">
-            <button class="btn btn-primary btn-sm" data-action="cardDetail" data-cid="${id}">完整詳情</button>
-            <button class="btn btn-soft btn-sm" data-action="goDelivery" data-cid="${id}">前往交付</button>
-            ${unpaid ? `
+      ${unpaid ? `
             <button class="btn btn-ok btn-sm" data-action="copyCardCreated" data-cid="${id}">🎉 建卡通知</button>
             <button class="btn btn-warn btn-sm" data-action="copyPayNotice" data-cid="${id}">📋 催繳文案</button>
+            <button class="btn btn-info btn-sm" data-action="copyPaymentInfo" data-cid="${id}">📤 補發付款資訊</button>
             ` : ''}
-          </div>
           <div class="ops-log-collapsible" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
             <div class="ops-log-head" data-ops-cid="${id}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:6px 0;user-select:none;">
               <span style="font-size:12px;font-weight:800;color:var(--ink2);">📋 操作記錄</span>
