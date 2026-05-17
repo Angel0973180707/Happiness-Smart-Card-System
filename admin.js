@@ -2799,7 +2799,7 @@ function renderOpsLogInline(items, cardId, listEl) {
       if (btn) { btn.disabled = false; btn.textContent = "✅ 直接確認"; }
     }
   }
-
+window._doDirectConfirm = doDirectConfirm;
 function bindInit() {
     // 直接綁 HTML 裡的按鈕
     const btn = document.getElementById("btnDirectConfirm");
