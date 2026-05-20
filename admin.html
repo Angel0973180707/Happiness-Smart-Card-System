@@ -1638,7 +1638,9 @@ function fetchBindUrl(cardId) {
     if (!adminKey && typeof window.getAdminKey === 'function') {
       try { adminKey = window.getAdminKey() || ''; } catch (e) {}
     }
-    
+    if (adminKey && !adminKey.startsWith('ANGEL2026')) {
+      adminKey = 'ANGEL2026' + adminKey;
+    }
     if (!adminKey) {
       slotEl.textContent = '❌ 請先輸入 Admin Key 再重新載入';
       slotEl.style.color = 'var(--danger)';
