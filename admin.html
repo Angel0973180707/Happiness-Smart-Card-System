@@ -1647,14 +1647,9 @@ function fetchBindUrl(cardId) {
     
   const GAS_URL = 'https://angel-namecard.letssyncus.com/gas-proxy/exec';
     
-    fetch(GAS_URL, {
-      method: 'POST',
-      redirect: 'follow',
-      body: JSON.stringify({
-        action: 'adminBuildBindUrl',
-        admin_key: adminKey,
-        card_id: cardId
-      })
+   fetch(GAS_URL + '?action=adminBuildBindUrl&admin_key=' + encodeURIComponent(adminKey) + '&card_id=' + encodeURIComponent(cardId), {
+      method: 'GET',
+      redirect: 'follow'
     })
     .then(r => r.json())
     .then(data => {
