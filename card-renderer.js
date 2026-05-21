@@ -138,9 +138,18 @@
     return isDataUrl(url) || isBlobUrl(url);
   }
 
+  /* EMPRYON_FB_PROXY 2026-05-18 firebase->/img/ 代理（中國 GFW 解）*/
+  function __fbProxy(s){
+    if(!s||typeof s!=="string")return s;
+    var m=s.match(/^https?:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[^\/]+\/o\/([^?]+)/i);
+    if(!m)return s;
+    try{return "/img/"+decodeURIComponent(m[1]);}catch(e){return s;}
+  }
+
   function normalizeImageUrl(raw) {
     var url = normalizeUrl(raw);
     if (!url) return "";
+    url = __fbProxy(url);
     if (isLocalUrl(url)) return url;
 
     if (url.includes("dropbox.com")) {

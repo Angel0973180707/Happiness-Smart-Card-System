@@ -123,9 +123,18 @@
     return "";
   }
 
+  /* EMPRYON_FB_PROXY 2026-05-18 firebase->/img/ 代理（中國 GFW 解）*/
+  function __fbProxy(s){
+    if(!s||typeof s!=="string")return s;
+    var m=s.match(/^https?:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[^\/]+\/o\/([^?]+)/i);
+    if(!m)return s;
+    try{return "/img/"+decodeURIComponent(m[1]);}catch(e){return s;}
+  }
+
   function normalizeImgUrl_(u) {
     let s = toHttps_(u);
     if (!s) return "";
+    s = __fbProxy(s);
 
     // If it looks like a pure Google Drive file id
     if (/^[a-zA-Z0-9_-]{15,}$/.test(s)) {
@@ -213,7 +222,7 @@
     const arr = [];
     for (const ks of keys){
       const v = pick(card, ks, "");
-      if (v) arr.push(v);
+      if (v) arr.push(__fbProxy(v));
       if (arr.length >= max) break;
     }
     return { photos: arr, isPremium };
