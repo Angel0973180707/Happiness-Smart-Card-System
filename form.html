@@ -1141,8 +1141,6 @@
     }
     body[data-form-mode="update"] .plan-grid,
     body[data-form-mode="update"] .addon-layout,
-    body[data-form-mode="update"] #free-theme-group,
-    body[data-form-mode="update"] #premium-theme-group,
     body[data-form-mode="update"] .quote-box,
     body[data-form-mode="update"] .form-card[data-hide-on-update] {
       display: none !important;
@@ -1151,8 +1149,6 @@
       display: block !important;
     }
     body[data-form-mode="renew"] .plan-grid,
-    body[data-form-mode="renew"] #free-theme-group,
-    body[data-form-mode="renew"] #premium-theme-group,
     body[data-form-mode="renew"] .form-card[data-hide-on-renew] {
       display: none !important;
     }
@@ -1235,7 +1231,8 @@
           <div style="font-size:13px;color:#78350f;line-height:1.9;font-weight:700;">
             本次只能修改名片 <strong>內容</strong>:<br>
             ✅ 基本資料、連結、照片、CTA、跑馬燈文字、品牌金句<br>
-            ❌ 無法修改方案、顏色版型、加購項目<br><br>
+            ✅ 可修改顏色與版型<br>
+            ❌ 無法修改方案與加購項目<br><br>
             <strong style="color:#b45309;">如需變更方案或加購功能,請重新建立新名片。</strong>
           </div>
         </div>
@@ -1252,6 +1249,7 @@
             ✅ 更新名片內容、照片、CTA、連結<br>
             ✅ 加購<strong>尚未擁有</strong>的功能(跑馬燈、照片牆、CTA 等)<br>
             ✅ 選擇是否延用<strong>無限更新</strong>(與卡片效期同步,需重新加購)<br><br>
+            ✅ 可修改顏色與版型（方案不可改）<br>
             ❌ <strong style="color:#b91c1c;">不能變更方案</strong>(如需換方案請重建新卡)<br>
             ℹ️ 未加購無限更新 → 下一年度享 <strong style="color:#15803d;">3 次免費更新</strong>
           </div>
@@ -1272,7 +1270,7 @@
           </div>
         </div>
 
-        <div class="plan-grid">
+        <div class="plan-grid" id="plan-select-wrap">
           <label class="plan-option" data-plan-card="free">
             <input type="radio" name="plan" value="free" />
             <span class="plan-card">
@@ -1423,7 +1421,7 @@
         </div>
       </section>
 
-    <section class="form-card" data-hide-on-update data-hide-on-renew>
+    <section class="form-card" id="step2-theme">
         <div class="section-head">
           <div>
             <p class="section-kicker">STEP 2</p>

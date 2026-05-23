@@ -632,10 +632,14 @@ function calcQuantityAddon(qty, config) {
       if (h1) h1.textContent = "智慧名片更新表單";
       if (heroDesc) heroDesc.textContent = "系統會依卡片效期與更新資格,自動判斷可直接更新或需先聯繫客服。";
       if (submitBtn) submitBtn.textContent = "送出更新申請";
+      const planWrap = document.getElementById("plan-select-wrap");
+      if (planWrap) planWrap.style.display = "none";
     } else if (state.mode === "renew") {
       if (h1) h1.textContent = "智慧名片續約表單";
       if (heroDesc) heroDesc.textContent = "可續約、調整方案與加購內容。";
       if (submitBtn) submitBtn.textContent = "送出續約申請";
+      const planWrap = document.getElementById("plan-select-wrap");
+      if (planWrap) planWrap.style.display = "none";
     } else {
       if (h1) h1.textContent = "智慧名片申請表";
       if (heroDesc) heroDesc.textContent = "即時預覽｜照片編輯｜完整報價";
@@ -1872,7 +1876,10 @@ function syncRenewQuote() {
     const limits = getLimitsUpdate();
     const payload = {
       ...shared,
-      plan: card.plan || "", color: card.color || "", style: card.style || "", paper: card.paper || "",
+      plan:  card.plan  || "",   // 鎖死讀原卡，不可改
+      color: getThemeSelection().color || card.color || "",
+      style: getThemeSelection().style || card.style || "",
+      paper: getThemeSelection().paper || card.paper || "",
       marquee_text: card.marquee_enabled ? valueOf("marquee_text") : (card.marquee_text || ""),
       marquee_enabled: card.marquee_enabled || "",
       photo_limit: limits.wallPhotos,
@@ -2166,11 +2173,15 @@ const pointsToApply = (useChecked && pointsBalance >= originalAmount && original
       const keepPhotoExtraQty = renewLimits.extraWallPhotos || 0;
       const keepCtaExtraQty = renewLimits.extraCtas || 0;
       
+      const renewTheme = getThemeSelection();
       const paymentPayload = {
         action: CONFIG.RENEW_CREATE_PAYMENT_ACTION,
         card_id: state.modeContext.cardId,
         renew_token: state.modeContext.renewToken,
         target_plan: originalPlan,
+        color: renewTheme.color || "",
+        style: renewTheme.style || "",
+        paper: renewTheme.paper || "",
         selected_addons: collectRenewSelectedAddons(),
         renew_unlimited_update: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
         update_unlimited_renew: !!document.getElementById("addon_update_unlimited_enabled")?.checked,
@@ -2823,6 +2834,8 @@ function renderRenewControls() {
   function getThemeSelection() {
     const plan = state.mode === "renew"
       ? (state.renewFlow.targetPlan || getSelectedPlan() || "free")
+      : state.mode === "update"
+      ? (state.runtime.updateCard?.plan || getSelectedPlan() || "premium")
       : (getSelectedPlan() || "premium");
     if (plan === "free") {
       return {
