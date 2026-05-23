@@ -236,18 +236,7 @@
   function openUrl(url) {
     var u = normalizeUrl(url);
     if (!u) return;
-    try {
-      var a = document.createElement("a");
-      a.href = u;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (e) {
-      window.open(u, "_blank", "noopener");
-    }
+    location.href = u;
   }
 
   function openMapByAddress(addr) {
