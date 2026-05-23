@@ -3666,3 +3666,230 @@ function bindInit() {
     init();
   }
 })();
+
+// ═══════════════════════════════════════════════════════════
+// 🔗 批次 CTA 管理模組 v1.0
+// ═══════════════════════════════════════════════════════════
+(function() {
+  "use strict";
+
+  var GAS_URL = "https://angel-namecard.letssyncus.com/gas-proxy/exec";
+
+  function getKey() {
+    return localStorage.getItem("hsc_admin_key") || "";
+  }
+
+  async function gasPost(action, params) {
+    var body = Object.assign({ action: action, admin_key: getKey() }, params);
+    var res = await fetch(GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    var json = await res.json();
+    if (!json.ok) throw new Error(json.error || "GAS 回傳失敗");
+    return json;
+  }
+
+  // ── 新增一行 CTA ────────────────────────────────────────
+  function addCtaRow(seq, text, link) {
+    var tbody = document.getElementById("ctaEditorBody");
+    if (!tbody) return;
+    // 清除提示列
+    if (tbody.querySelector("td[colspan]")) tbody.innerHTML = "";
+
+    var rowCount = tbody.querySelectorAll("tr[data-cta-row]").length + 1;
+    var seqNum = seq || rowCount;
+    var tr = document.createElement("tr");
+    tr.setAttribute("data-cta-row", "1");
+
+    var td0 = document.createElement("td");
+    td0.style.cssText = "padding:4px 6px;border:1px solid var(--border);text-align:center;font-size:12px;color:var(--ink3);";
+    td0.className = "cta-seq-cell";
+    td0.textContent = seqNum;
+
+    var td1 = document.createElement("td");
+    td1.style.cssText = "padding:4px 6px;border:1px solid var(--border);";
+    var inp1 = document.createElement("input");
+    inp1.type = "text"; inp1.className = "cta-text-input";
+    inp1.value = text || "";
+    inp1.placeholder = "按鈕名稱（如：王小明）";
+    inp1.style.cssText = "width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);box-sizing:border-box;";
+    td1.appendChild(inp1);
+
+    var td2 = document.createElement("td");
+    td2.style.cssText = "padding:4px 6px;border:1px solid var(--border);";
+    var inp2 = document.createElement("input");
+    inp2.type = "text"; inp2.className = "cta-link-input";
+    inp2.value = link || "";
+    inp2.placeholder = "https://... 或 tel:09xxxxxxxx";
+    inp2.style.cssText = "width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);box-sizing:border-box;";
+    td2.appendChild(inp2);
+
+    var td3 = document.createElement("td");
+    td3.style.cssText = "padding:4px 6px;border:1px solid var(--border);text-align:center;";
+    var btnDel = document.createElement("button");
+    btnDel.textContent = "✕";
+    btnDel.style.cssText = "font-size:13px;background:none;border:none;color:#e55;cursor:pointer;padding:2px 6px;line-height:1;";
+    btnDel.addEventListener("click", function() {
+      tr.parentNode.removeChild(tr);
+      reorderSeq();
+    });
+    td3.appendChild(btnDel);
+
+    tr.appendChild(td0); tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
+    tbody.appendChild(tr);
+  }
+
+  function reorderSeq() {
+    var rows = document.querySelectorAll("#ctaEditorBody tr[data-cta-row]");
+    rows.forEach(function(tr, i) {
+      var cell = tr.querySelector(".cta-seq-cell");
+      if (cell) cell.textContent = i + 1;
+    });
+  }
+
+  function getCtaRows() {
+    var rows = document.querySelectorAll("#ctaEditorBody tr[data-cta-row]");
+    var result = [];
+    rows.forEach(function(tr, i) {
+      var text = (tr.querySelector(".cta-text-input") || {}).value || "";
+      var link = (tr.querySelector(".cta-link-input") || {}).value || "";
+      if (text.trim() || link.trim()) {
+        result.push({ seq: i + 1, cta_text: text.trim(), cta_link: link.trim() });
+      }
+    });
+    return result;
+  }
+
+  function setStatus(msg, ok) {
+    var el = document.getElementById("ctaSaveStatus");
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = ok === false ? "#e55" : (ok === true ? "var(--primary)" : "var(--ink2)");
+  }
+
+  // ── 查詢現有 CTA ────────────────────────────────────────
+  async function fetchCtas() {
+    var cardId = (document.getElementById("ctaCardId").value || "").trim().toUpperCase();
+    if (!cardId) { setStatus("請輸入卡號", false); return; }
+
+    var btn = document.getElementById("btnFetchCtas");
+    btn.disabled = true; btn.textContent = "查詢中…";
+    setStatus("查詢中…");
+
+    try {
+      var res = await gasPost("adminGetCardCtas", { card_id: cardId });
+      var ctas = res.ctas || [];
+      var tbody = document.getElementById("ctaEditorBody");
+      tbody.innerHTML = "";
+
+      if (!ctas.length) {
+        tbody.innerHTML = "<tr><td colspan='4' style='padding:12px;text-align:center;color:var(--ink3);font-size:12px;border:1px solid var(--border);'>此卡目前無 CTA，可直接新增</td></tr>";
+      } else {
+        ctas.forEach(function(c) { addCtaRow(c.seq, c.cta_text, c.cta_link); });
+      }
+      document.getElementById("ctaEditorTitle").textContent = "CTA 列表（" + cardId + "，共 " + ctas.length + " 筆）";
+      setStatus("查詢完成，共 " + ctas.length + " 筆", true);
+    } catch(err) {
+      setStatus("❌ " + err.message, false);
+    } finally {
+      btn.disabled = false; btn.textContent = "🔍 查詢現有";
+    }
+  }
+
+  // ── 自動產生員工連結 ─────────────────────────────────────
+  async function autoGenCtas() {
+    var referrerId = (document.getElementById("ctaReferrerId").value || "").trim().toUpperCase();
+    if (!referrerId) { setStatus("請輸入負責人卡號", false); return; }
+
+    var btn = document.getElementById("btnAutoGenCtas");
+    btn.disabled = true; btn.textContent = "讀取中…";
+    setStatus("讀取員工清單中…");
+
+    try {
+      var res = await gasPost("adminGetCardsByReferrer", { referrer_id: referrerId });
+      var cards = res.cards || [];
+      if (!cards.length) { setStatus("找不到此負責人轄下的員工卡", false); return; }
+
+      var tbody = document.getElementById("ctaEditorBody");
+      tbody.innerHTML = "";
+      cards.forEach(function(card, i) {
+        var link = "https://angel-namecard.letssyncus.com/index.html?id=" + card.id;
+        addCtaRow(i + 1, card.name, link);
+      });
+      document.getElementById("ctaEditorTitle").textContent =
+        "CTA 列表（從 " + referrerId + " 自動產生，共 " + cards.length + " 筆）";
+      setStatus("已自動填入 " + cards.length + " 筆，確認後按儲存", true);
+    } catch(err) {
+      setStatus("❌ " + err.message, false);
+    } finally {
+      btn.disabled = false; btn.textContent = "⚡ 自動產生";
+    }
+  }
+
+  // ── 儲存 ──────────────────────────────────────────────
+  async function saveCtas() {
+    var cardId = (document.getElementById("ctaCardId").value || "").trim().toUpperCase();
+    if (!cardId) { setStatus("請先輸入要設定 CTA 的卡號", false); return; }
+
+    var ctas = getCtaRows();
+    if (!ctas.length) {
+      if (!confirm("CTA 列表為空，確定要清除 " + cardId + " 的所有 CTA 嗎？")) return;
+    }
+
+    var btn = document.getElementById("btnSaveCtas");
+    btn.disabled = true; btn.textContent = "儲存中…";
+    setStatus("儲存中…");
+
+    try {
+      var res = await gasPost("adminSetCardCtas", { card_id: cardId, ctas: ctas });
+      setStatus("✅ 已儲存！" + cardId + " 共 " + (res.count !== undefined ? res.count : ctas.length) + " 個 CTA", true);
+      document.getElementById("ctaEditorTitle").textContent =
+        "CTA 列表（" + cardId + "，共 " + ctas.length + " 筆）";
+    } catch(err) {
+      setStatus("❌ 儲存失敗：" + err.message, false);
+    } finally {
+      btn.disabled = false; btn.textContent = "💾 儲存（取代該卡所有 CTA）";
+    }
+  }
+
+  // ── 初始化 ─────────────────────────────────────────────
+  function init() {
+    var head = document.getElementById("ctaManagerHead");
+    if (!head) return;
+
+    head.addEventListener("click", function() {
+      var body  = document.getElementById("ctaManagerBody");
+      var arrow = head.querySelector(".collapsible-arrow");
+      var open  = body.style.display !== "none";
+      body.style.display = open ? "none" : "block";
+      if (arrow) arrow.textContent = open ? "▶" : "▼";
+    });
+
+    var btnFetch = document.getElementById("btnFetchCtas");
+    if (btnFetch) btnFetch.addEventListener("click", fetchCtas);
+
+    var btnAuto = document.getElementById("btnAutoGenCtas");
+    if (btnAuto) btnAuto.addEventListener("click", autoGenCtas);
+
+    var btnAdd = document.getElementById("btnAddCtaRow");
+    if (btnAdd) btnAdd.addEventListener("click", function() { addCtaRow(); });
+
+    var btnSave = document.getElementById("btnSaveCtas");
+    if (btnSave) btnSave.addEventListener("click", saveCtas);
+
+    var cardIdInput = document.getElementById("ctaCardId");
+    if (cardIdInput) {
+      cardIdInput.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") fetchCtas();
+      });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
