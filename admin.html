@@ -950,6 +950,81 @@ input:focus, textarea:focus, select:focus { outline: none; }
     <button class="btn btn-primary btn-full" id="btnSubmitAgentInbox">✅ 送出入帳資料</button>
   </div>
 </div>
+
+<!-- 🏦 銀行對帳批次匯入 -->
+<div class="collapsible" id="bankImportCollapsible" style="margin-bottom:10px;">
+  <div class="collapsible-head" id="bankImportHead">
+    <span>🏦 銀行對帳批次匯入</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="collapsible-body" id="bankImportBody" style="padding:12px;">
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:10px;">
+      上傳銀行轉帳明細 → 自動比對客戶確認單 → 預覽結果 → 一鍵確認開卡
+    </div>
+    <!-- 下載範本 -->
+    <div style="margin-bottom:10px;">
+      <button class="btn btn-outline" id="btnDownloadBankTemplate" style="font-size:12px;">📥 下載銀行明細範本</button>
+      <span style="font-size:11px;color:var(--ink3);margin-left:8px;">欄位：入帳日期、入帳金額、末五碼、備註</span>
+    </div>
+    <!-- 上傳 -->
+    <div style="margin-bottom:10px;">
+      <label class="btn btn-outline" style="cursor:pointer;font-size:12px;display:inline-block;">
+        📂 上傳銀行明細 Excel
+        <input type="file" id="bankExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
+      </label>
+      <span id="bankFileCount" style="font-size:12px;color:var(--ink3);margin-left:8px;"></span>
+    </div>
+    <!-- 預覽 -->
+    <div id="bankPreviewWrap" style="display:none;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px;" id="bankPreviewTitle">預覽</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <thead>
+            <tr style="background:var(--surface2);">
+              <th style="padding:5px 8px;border:1px solid var(--border);">入帳日期</th>
+              <th style="padding:5px 8px;border:1px solid var(--border);">金額</th>
+              <th style="padding:5px 8px;border:1px solid var(--border);">末五碼</th>
+              <th style="padding:5px 8px;border:1px solid var(--border);">備註</th>
+            </tr>
+          </thead>
+          <tbody id="bankPreviewBody"></tbody>
+        </table>
+      </div>
+      <button class="btn btn-primary" id="btnStartBankMatch" style="margin-top:8px;font-size:13px;">🔍 開始比對</button>
+    </div>
+    <!-- 比對結果 -->
+    <div id="bankMatchResultWrap" style="display:none;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px;" id="bankMatchTitle">比對結果</div>
+      <!-- 摘要 -->
+      <div id="bankMatchSummary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;font-size:12px;"></div>
+      <div style="overflow-x:auto;margin-bottom:10px;">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <thead>
+            <tr style="background:var(--surface2);">
+              <th style="padding:5px 8px;border:1px solid var(--border);">狀態</th>
+              <th style="padding:5px 8px;border:1px solid var(--border);">日期</th>
+              <th style="padding:5px 8px;border:1px solid var(--border);">金額</th>
+              <th style="padding:5px 8px;border:1px solid var(--border);">末五碼</th>
+              <th style="padding:5px 8px;border:1px solid var(--border);">卡號</th>
+              <th style="padding:5px 8px;border:1px solid var(--border);">姓名</th>
+              <th style="padding:5px 8px;border:1px solid var(--border);">備註</th>
+            </tr>
+          </thead>
+          <tbody id="bankMatchBody"></tbody>
+        </table>
+      </div>
+      <button class="btn btn-primary btn-full" id="btnConfirmBankImport" style="font-size:13px;">✅ 確認匯入已比對項目並開卡</button>
+    </div>
+    <!-- 匯入結果 -->
+    <div id="bankImportResultWrap" style="display:none;margin-top:10px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px;">✅ 匯入結果</div>
+      <div id="bankImportResultText" style="font-size:13px;color:var(--ink2);line-height:1.8;"></div>
+    </div>
+    <!-- 狀態 -->
+    <div id="bankImportStatus" style="font-size:12px;min-height:16px;margin-top:6px;"></div>
+  </div>
+</div>
+
       <div class="stats-row">
         <div class="stat-tile urgent">
           <div class="stat-label">待處理</div>

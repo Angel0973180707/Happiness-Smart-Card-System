@@ -3893,3 +3893,280 @@ function bindInit() {
     init();
   }
 })();
+
+// ═══════════════════════════════════════════════════════════
+// 🏦 銀行對帳批次匯入模組 v1.0
+// ═══════════════════════════════════════════════════════════
+(function() {
+  "use strict";
+
+  var GAS_URL  = "https://angel-namecard.letssyncus.com/gas-proxy/exec";
+  var bankRows = [];
+  var matchResults = [];
+
+  function getKey() { return localStorage.getItem("hsc_admin_key") || ""; }
+
+  function setStatus(msg, ok) {
+    var el = document.getElementById("bankImportStatus");
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = ok === false ? "#e55" : (ok === true ? "var(--primary)" : "var(--ink2)");
+  }
+
+  async function gasPost(action, params) {
+    var body = Object.assign({ action: action, admin_key: getKey() }, params);
+    var res  = await fetch(GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    var json = await res.json();
+    if (!json.ok) throw new Error(json.error || "GAS 回傳失敗");
+    return json;
+  }
+
+  // ── 下載範本 ──────────────────────────────────────────
+  function downloadBankTemplate() {
+    if (!window.XLSX) { alert("XLSX 套件未載入"); return; }
+    var rows = [
+      ["入帳日期", "入帳金額", "末五碼", "備註"],
+      ["2026-05-24", 1500, "12345", "王小明轉入"],
+      ["2026-05-24", 3000, "67890", ""]
+    ];
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{wch:14},{wch:10},{wch:8},{wch:20}];
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "銀行明細");
+    XLSX.writeFile(wb, "HSC_銀行對帳範本.xlsx");
+  }
+
+  // ── 解析 Excel ────────────────────────────────────────
+  function parseBankExcel(file) {
+    return new Promise(function(resolve, reject) {
+      if (!window.XLSX) { reject(new Error("XLSX 套件未載入")); return; }
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var wb = XLSX.read(e.target.result, { type: "binary" });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+          if (raw.length < 2) { reject(new Error("Excel 無資料")); return; }
+
+          var hdrs = raw[0].map(function(h) { return String(h).trim(); });
+          function findCol(aliases) {
+            for (var i = 0; i < aliases.length; i++) {
+              var ix = hdrs.indexOf(aliases[i]);
+              if (ix >= 0) return ix;
+            }
+            return -1;
+          }
+          var dateCol  = findCol(["入帳日期","日期","交易日期","date"]);
+          var amtCol   = findCol(["入帳金額","金額","交易金額","amount"]);
+          var last5Col = findCol(["末五碼","末5碼","後5碼","last5"]);
+          var noteCol  = findCol(["備註","note","說明","摘要"]);
+
+          if (amtCol < 0 || last5Col < 0) {
+            reject(new Error("找不到「入帳金額」或「末五碼」欄，請用範本格式"));
+            return;
+          }
+          var rows = [];
+          for (var i = 1; i < raw.length; i++) {
+            var r = raw[i];
+            var amt   = Number(r[amtCol] || 0);
+            var last5 = String(r[last5Col] || "").trim().replace(/\D/g, "");
+            if (!amt && !last5) continue;
+            rows.push({
+              date:   dateCol >= 0 ? String(r[dateCol] || "").trim() : "",
+              amount: amt,
+              last5:  last5,
+              note:   noteCol >= 0 ? String(r[noteCol] || "").trim() : ""
+            });
+          }
+          resolve(rows);
+        } catch(err) { reject(err); }
+      };
+      reader.onerror = function() { reject(new Error("檔案讀取失敗")); };
+      reader.readAsBinaryString(file);
+    });
+  }
+
+  // ── 預覽 ──────────────────────────────────────────────
+  function renderBankPreview(rows) {
+    var tbody = document.getElementById("bankPreviewBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    rows.forEach(function(r) {
+      var tr = document.createElement("tr");
+      [r.date || "—", r.amount ? r.amount.toLocaleString() : "—", r.last5 || "—", r.note || ""].forEach(function(v) {
+        var td = document.createElement("td");
+        td.style.cssText = "padding:4px 8px;border:1px solid var(--border);font-size:11px;";
+        td.textContent = v;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── 比對結果渲染 ──────────────────────────────────────
+  function renderMatchResults(results, summary) {
+    var summaryEl = document.getElementById("bankMatchSummary");
+    if (summaryEl) {
+      summaryEl.innerHTML =
+        '<span style="background:#d4edda;color:#155724;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;">✅ 已比對 ' + (summary.matched || 0) + ' 筆</span> ' +
+        (summary.multiple ? '<span style="background:#fff3cd;color:#856404;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;">⚠️ 多筆符合 ' + summary.multiple + ' 筆</span> ' : '') +
+        '<span style="background:#f8d7da;color:#721c24;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;">❌ 未比對 ' + (summary.unmatched || 0) + ' 筆</span>';
+    }
+    var tbody = document.getElementById("bankMatchBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    results.forEach(function(r, idx) {
+      var tr = document.createElement("tr");
+
+      var statusTd = document.createElement("td");
+      statusTd.style.cssText = "padding:4px 8px;border:1px solid var(--border);text-align:center;font-size:12px;white-space:nowrap;font-weight:700;";
+      if (r.matched === true)            { statusTd.textContent = "✅ 比對成功"; statusTd.style.color = "#155724"; tr.style.background = "#f0fff4"; }
+      else if (r.matched === "multiple") { statusTd.textContent = "⚠️ 多筆符合"; statusTd.style.color = "#856404"; tr.style.background = "#fffef0"; }
+      else                               { statusTd.textContent = "❌ " + (r.reason || "未比對"); statusTd.style.color = "#721c24"; }
+
+      function mkTd(txt, extra) {
+        var td = document.createElement("td");
+        td.style.cssText = "padding:4px 8px;border:1px solid var(--border);font-size:11px;" + (extra || "");
+        td.textContent = txt;
+        return td;
+      }
+
+      // 卡號欄（multiple 時顯示下拉）
+      var cardTd = document.createElement("td");
+      cardTd.style.cssText = "padding:4px 8px;border:1px solid var(--border);font-size:11px;";
+      if (r.matched === true) {
+        cardTd.textContent = r.card_id || "—";
+      } else if (r.matched === "multiple" && r.candidates) {
+        var sel = document.createElement("select");
+        sel.style.cssText = "font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;";
+        sel.setAttribute("data-ridx", idx);
+        r.candidates.forEach(function(c) {
+          var opt = document.createElement("option");
+          opt.value = c.card_id;
+          opt.textContent = c.card_id + " " + c.name;
+          sel.appendChild(opt);
+        });
+        sel.addEventListener("change", function() {
+          matchResults[parseInt(this.getAttribute("data-ridx"), 10)].selected_card_id = this.value;
+        });
+        matchResults[idx].selected_card_id = r.candidates[0].card_id;
+        cardTd.appendChild(sel);
+      } else {
+        cardTd.textContent = "—";
+      }
+
+      tr.appendChild(statusTd);
+      tr.appendChild(mkTd(r.date || "—"));
+      tr.appendChild(mkTd(r.amount ? r.amount.toLocaleString() : "—", "text-align:right;"));
+      tr.appendChild(mkTd(r.last5 || "—", "font-family:monospace;"));
+      tr.appendChild(cardTd);
+      tr.appendChild(mkTd(r.matched === true ? (r.name || "—") : "—"));
+      tr.appendChild(mkTd(r.note || "", "color:var(--ink3);"));
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── 開始比對 ──────────────────────────────────────────
+  async function startBankMatch() {
+    if (!bankRows.length) { setStatus("請先上傳銀行明細", false); return; }
+    var btn = document.getElementById("btnStartBankMatch");
+    btn.disabled = true; btn.textContent = "比對中…";
+    setStatus("比對中，請稍候…");
+    try {
+      var res = await gasPost("adminBatchBankMatch", { entries: bankRows });
+      matchResults = res.results || [];
+      renderMatchResults(matchResults, res.summary || {});
+      document.getElementById("bankMatchResultWrap").style.display = "block";
+      document.getElementById("bankMatchTitle").textContent = "比對結果（共 " + matchResults.length + " 筆）";
+      setStatus("比對完成，請確認後按「確認匯入」", true);
+    } catch(err) {
+      setStatus("❌ " + err.message, false);
+    } finally {
+      btn.disabled = false; btn.textContent = "🔍 開始比對";
+    }
+  }
+
+  // ── 確認匯入 ──────────────────────────────────────────
+  async function confirmBankImport() {
+    var toImport = matchResults.filter(function(r) {
+      return r.matched === true || (r.matched === "multiple" && r.selected_card_id);
+    }).map(function(r) {
+      return { date: r.date, amount: r.amount, last5: r.last5, note: r.note,
+               card_id: r.matched === true ? r.card_id : r.selected_card_id };
+    });
+    if (!toImport.length) { setStatus("沒有可匯入的項目", false); return; }
+    if (!confirm("確定匯入 " + toImport.length + " 筆入帳記錄並觸發開卡嗎？")) return;
+
+    var btn = document.getElementById("btnConfirmBankImport");
+    btn.disabled = true; btn.textContent = "匯入中…";
+    setStatus("寫入資料並觸發自動比對…");
+    try {
+      var res = await gasPost("adminConfirmBankImport", { entries: toImport });
+      var txt = "✅ 成功寫入 " + res.written + " 筆入帳記錄\n";
+      if (res.auto_match && res.auto_match.ok) {
+        txt += "🔄 自動比對完成：開卡 " + (res.auto_match.matched_count || res.auto_match.count || 0) + " 張";
+      } else {
+        txt += "⚠️ " + (res.auto_match && res.auto_match.message ? res.auto_match.message : "請手動重整付款中心確認");
+      }
+      var resultEl = document.getElementById("bankImportResultText");
+      resultEl.style.whiteSpace = "pre-line";
+      resultEl.textContent = txt;
+      document.getElementById("bankImportResultWrap").style.display = "block";
+      setStatus("✅ 完成", true);
+    } catch(err) {
+      setStatus("❌ 匯入失敗：" + err.message, false);
+    } finally {
+      btn.disabled = false; btn.textContent = "✅ 確認匯入已比對項目並開卡";
+    }
+  }
+
+  // ── 初始化 ─────────────────────────────────────────────
+  function init() {
+    var head = document.getElementById("bankImportHead");
+    var collapsible = document.getElementById("bankImportCollapsible");
+    if (head && collapsible) {
+      head.addEventListener("click", function() { collapsible.classList.toggle("open"); });
+    }
+
+    var btnTpl = document.getElementById("btnDownloadBankTemplate");
+    if (btnTpl) btnTpl.addEventListener("click", downloadBankTemplate);
+
+    var fileInput = document.getElementById("bankExcelInput");
+    if (fileInput) {
+      fileInput.addEventListener("change", async function(e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        setStatus("解析中…");
+        try {
+          bankRows = await parseBankExcel(file);
+          document.getElementById("bankFileCount").textContent = bankRows.length + " 筆";
+          renderBankPreview(bankRows);
+          document.getElementById("bankPreviewWrap").style.display = "block";
+          document.getElementById("bankPreviewTitle").textContent = "預覽（共 " + bankRows.length + " 筆）";
+          document.getElementById("bankMatchResultWrap").style.display = "none";
+          document.getElementById("bankImportResultWrap").style.display = "none";
+          matchResults = [];
+          setStatus("已讀取 " + bankRows.length + " 筆，點「開始比對」", true);
+        } catch(err) {
+          setStatus("❌ " + err.message, false);
+        }
+      });
+    }
+
+    var btnMatch   = document.getElementById("btnStartBankMatch");
+    var btnConfirm = document.getElementById("btnConfirmBankImport");
+    if (btnMatch)   btnMatch.addEventListener("click", startBankMatch);
+    if (btnConfirm) btnConfirm.addEventListener("click", confirmBankImport);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
