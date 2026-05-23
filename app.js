@@ -26,10 +26,10 @@ const CONFIG = {
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel-namecard.letssyncus.com/",
-  // 快取 TTL 設定
-  CACHE_SHELL_MS:  5 * 60 * 1000,   // 5 分鐘
-  CACHE_LITE_MS:   3 * 60 * 1000,   // 3 分鐘（更動較頻繁）
-  CACHE_FULL_MS:   2 * 60 * 1000,   // 2 分鐘
+  // 快取 TTL 設定（延長減少 GAS 冷啟動頻率）
+  CACHE_SHELL_MS:  20 * 60 * 1000,  // 20 分鐘（原 5 分）
+  CACHE_LITE_MS:   15 * 60 * 1000,  // 15 分鐘（原 3 分）
+  CACHE_FULL_MS:    8 * 60 * 1000,  //  8 分鐘（原 2 分）
 };
 
 const FACADE_SAMPLE_ID = "TW0001";
@@ -261,6 +261,7 @@ function buildCardPublicShellUrl_(id){
   u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
   // ★ shell 不帶 ts（讓 GAS CDN 可快取相同 URL）
   u.searchParams.set("v", CONFIG.VERSION);
+  u.searchParams.set("with_tracked_cta", "false"); // ★ 避免 LINE 瀏覽器擋 Google 追蹤網址
   return u.toString();
 }
 function buildStaticCardUrl_(id){
@@ -274,6 +275,7 @@ function buildCardPublicLiteUrl_(id){
   u.searchParams.set("id", cid);
   u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
   u.searchParams.set("v", CONFIG.VERSION);
+  u.searchParams.set("with_tracked_cta", "false"); // ★ 避免 LINE 瀏覽器擋 Google 追蹤網址
   return u.toString();
 }
 

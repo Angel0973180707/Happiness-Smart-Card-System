@@ -10,7 +10,7 @@
  * - HTML / version.json 走網路優先
  * ========================================= */
 
-const SW_VERSION = "v1.5.8";
+const SW_VERSION = "v1.5.9";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
 const CORE_ASSETS = [
@@ -21,6 +21,7 @@ const CORE_ASSETS = [
   "./admin.html",
   "./style.css",
   "./app.js",
+  "./card-renderer.js",
   "./poster.js",
   "./form.js",
   "./admin.js",
