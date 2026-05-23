@@ -5,7 +5,7 @@
 
    v8.4.3 更新:
    - PLAN_LIMITS 保留「預設值」(free 2/1、premium 5/3)
-   - 新增 PHOTO_HARD_CAP = 10(2+8 或 5+5,總上限 10)
+   - 新增 PHOTO_HARD_CAP = 30(總上限 30)
    - 新增 CTA_HARD_CAP = 20(CTA 掃描與加購硬上限)
    - 新增 CTA_VISIBLE_COUNT = 4(預設顯示前 4 個,超過自動收合)
    - normalizePhotoMetaMap 迴圈擴大至 PHOTO_HARD_CAP
@@ -47,7 +47,7 @@
   };
 
   // v8.4.3 新增:加購 / 顯示 / 掃描上限
-  var PHOTO_HARD_CAP    = 10;  // free 2+8、premium 5+5 最多 10
+  var PHOTO_HARD_CAP    = 30;  // 照片牆總上限 30 張
   var CTA_HARD_CAP      = 20;  // CTA 掃描與加購硬上限
   var CTA_VISIBLE_COUNT = 4;   // 預設顯示前 4 個,超過收合
 

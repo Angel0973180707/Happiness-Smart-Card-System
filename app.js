@@ -445,7 +445,7 @@ function normalizeForRenderer_(row){
   if (Array.isArray(out.photos)) {
     out.photos.forEach((url, idx) => {
       const n = idx + 1;
-      if (n <= 10 && !out[`photo${n}_url`]) out[`photo${n}_url`] = url;
+      if (n <= 30 && !out[`photo${n}_url`]) out[`photo${n}_url`] = url;
     });
   }
   if (Array.isArray(out.ctas)) {

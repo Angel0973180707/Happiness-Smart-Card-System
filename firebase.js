@@ -174,7 +174,7 @@ export const uploadLogo = (cardId, blob) =>
   uploadImage(cardId, blob, "logo.jpg");
 
 export const uploadPhoto = (cardId, blob, index = 1) => {
-  const i = Math.max(1, Math.min(10, Number(index) || 1));
+  const i = Math.max(1, Math.min(30, Number(index) || 1));
   return uploadImage(cardId, blob, `photo${i}.jpg`);
 };
 

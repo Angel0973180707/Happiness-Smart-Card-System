@@ -253,7 +253,7 @@ function calcQuantityAddon(qty, config) {
     },
     RENEWAL_FEE: 500,
     UNLIMITED_UPDATE_FEE: 300,
-    MAX_WALL_PHOTOS: 999,
+    MAX_WALL_PHOTOS: 30,
     MAX_CTAS: 999,
     DEFAULT_PREVIEW_META: {
       layout: "grid",
