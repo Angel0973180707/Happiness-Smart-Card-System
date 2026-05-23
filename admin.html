@@ -1270,6 +1270,110 @@ input:focus, textarea:focus, select:focus { outline: none; }
       <div id="schemaStatus" class="result-box" style="min-height:40px;">尚未檢查</div>
     </section>
 
+    <!-- ── 批次建卡 ── -->
+    <section id="batchCreateSection" class="section">
+      <div class="section-header">
+        <div class="section-title">🏢 批次建卡</div>
+      </div>
+
+      <!-- 顏色代碼參考 -->
+      <div class="card" style="margin-bottom:12px;padding:12px;">
+        <div style="font-weight:700;margin-bottom:8px;font-size:13px;">顏色代碼參考</div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:4px;">Premium 方案：</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          <span style="background:#e8909a;color:#fff;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">p1 珊瑚粉</span>
+          <span style="background:#9b5566;color:#fff;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">p2 深玫瑰</span>
+          <span style="background:#3c5878;color:#fff;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">p3 深藍</span>
+          <span style="background:#8e7fc4;color:#fff;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">p4 紫羅蘭</span>
+          <span style="background:#2a5447;color:#fff;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">p5 深墨綠</span>
+        </div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:4px;">Free 方案：</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="background:#e57d84;color:#fff;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">c1 粉紅</span>
+          <span style="background:#7daed7;color:#fff;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">c2 天空藍</span>
+          <span style="background:#e7a860;color:#fff;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">c3 橙金</span>
+          <span style="background:#a48bd8;color:#fff;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">c4 淡紫</span>
+          <span style="background:#7fc89a;color:#fff;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">c5 翠綠</span>
+        </div>
+      </div>
+
+      <!-- Excel 格式說明 -->
+      <div class="collapsible" id="batchFormatCollapsible" style="margin-bottom:12px;">
+        <div class="collapsible-head" id="batchFormatHead">
+          <span>📋 Excel 欄位格式說明（點我展開）</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="collapsible-body" style="display:none;">
+          <div style="overflow-x:auto;">
+            <table style="width:100%;font-size:12px;border-collapse:collapse;">
+              <thead><tr style="background:var(--surface2);">
+                <th style="padding:5px 8px;text-align:left;border:1px solid var(--border);">欄位名稱</th>
+                <th style="padding:5px 8px;text-align:left;border:1px solid var(--border);">說明</th>
+                <th style="padding:5px 8px;text-align:left;border:1px solid var(--border);">範例</th>
+              </tr></thead>
+              <tbody>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">type</td><td style="padding:4px 8px;border:1px solid var(--border);">卡片類型 <strong>（必填）</strong></td><td style="padding:4px 8px;border:1px solid var(--border);font-family:monospace;">負責人 / 員工 / 北區 / 中區 / 南區</td></tr>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">name</td><td style="padding:4px 8px;border:1px solid var(--border);">姓名/卡名 <strong>（必填）</strong></td><td style="padding:4px 8px;border:1px solid var(--border);">王小明</td></tr>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">title</td><td style="padding:4px 8px;border:1px solid var(--border);">職稱</td><td style="padding:4px 8px;border:1px solid var(--border);">業務主任</td></tr>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">company</td><td style="padding:4px 8px;border:1px solid var(--border);">公司/單位</td><td style="padding:4px 8px;border:1px solid var(--border);">XX 科技</td></tr>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">phone</td><td style="padding:4px 8px;border:1px solid var(--border);">電話</td><td style="padding:4px 8px;border:1px solid var(--border);">0912345678</td></tr>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">email</td><td style="padding:4px 8px;border:1px solid var(--border);">Email</td><td style="padding:4px 8px;border:1px solid var(--border);">test@mail.com</td></tr>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">line_id</td><td style="padding:4px 8px;border:1px solid var(--border);">LINE ID</td><td style="padding:4px 8px;border:1px solid var(--border);">lineuser123</td></tr>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">avatar_url</td><td style="padding:4px 8px;border:1px solid var(--border);">頭像網址</td><td style="padding:4px 8px;border:1px solid var(--border);">https://...</td></tr>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">plan</td><td style="padding:4px 8px;border:1px solid var(--border);">方案（預設 premium）</td><td style="padding:4px 8px;border:1px solid var(--border);">premium / free</td></tr>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">color</td><td style="padding:4px 8px;border:1px solid var(--border);">顏色代碼（預設 p1）</td><td style="padding:4px 8px;border:1px solid var(--border);">p1~p5 / c1~c5</td></tr>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">region</td><td style="padding:4px 8px;border:1px solid var(--border);">員工必填所屬區域</td><td style="padding:4px 8px;border:1px solid var(--border);">北區 / 中區 / 南區</td></tr>
+                <tr><td style="padding:4px 8px;border:1px solid var(--border);font-weight:700;font-family:monospace;">price</td><td style="padding:4px 8px;border:1px solid var(--border);">建卡費用（選填）</td><td style="padding:4px 8px;border:1px solid var(--border);">1500</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top:8px;padding:8px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px;color:var(--ink2);line-height:1.6;">
+            💡 第一列必須是英文欄位名稱（如上表）<br>
+            📌 <strong>type=員工</strong> 時，region 為必填（北區/中區/南區）<br>
+            📌 <strong>負責人排第一列</strong>，系統會自動把員工 referrer 指向負責人卡<br>
+            📌 區域卡（北區/中區/南區）會自動加上該區員工卡的 CTA 連結
+          </div>
+        </div>
+      </div>
+
+      <!-- 上傳按鈕 -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="btn btn-soft btn-sm" id="btnDownloadBatchTemplate">📥 下載 Excel 範本</button>
+        <label class="btn btn-primary btn-sm" style="cursor:pointer;margin:0;">
+          📤 上傳 Excel
+          <input type="file" id="batchExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
+        </label>
+        <button class="btn btn-soft btn-sm" id="btnClearBatch">✕ 清除</button>
+      </div>
+
+      <!-- 預覽區 -->
+      <div id="batchPreviewWrap" style="display:none;margin-bottom:12px;">
+        <div id="batchSummary" style="padding:8px 12px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px;font-size:13px;font-weight:700;"></div>
+        <div style="overflow-x:auto;max-height:320px;overflow-y:auto;">
+          <table id="batchPreviewTable" style="width:100%;font-size:11px;border-collapse:collapse;min-width:640px;">
+            <thead id="batchPreviewHead" style="background:var(--surface2);position:sticky;top:0;"></thead>
+            <tbody id="batchPreviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 建立按鈕 -->
+      <div id="batchCreateActions" style="display:none;margin-bottom:12px;">
+        <button class="btn btn-primary btn-full" id="btnStartBatchCreate">🚀 開始批次建卡</button>
+      </div>
+
+      <!-- 進度 log -->
+      <div id="batchLogWrap" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="font-weight:700;font-size:13px;">建立進度</div>
+          <div id="batchProgressText" style="font-size:12px;color:var(--ink2);"></div>
+        </div>
+        <div id="batchLogList" style="max-height:280px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;font-family:monospace;line-height:1.9;"></div>
+        <button class="btn btn-soft btn-sm" id="btnExportBatchResult" style="margin-top:8px;display:none;">📥 下載建立結果 Excel</button>
+      </div>
+
+    </section>
+
   </main><!-- /content -->
 </div><!-- /app -->
 
@@ -1287,6 +1391,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
       <button class="more-menu-btn" data-section="announcementSection">📢 公告管理</button>
       <button class="more-menu-btn" data-section="trackingSection">📈 追蹤統計</button>
       <button class="more-menu-btn" data-section="systemSection">⚙️ 系統工具</button>
+      <button class="more-menu-btn" data-section="batchCreateSection">🏢 批次建卡</button>
     </div>
   </div>
 </div>
@@ -1295,6 +1400,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
 <div id="loadingMask" class="hidden"><div class="spinner"></div></div>
 <div id="toast" class="hidden"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="admin.js"></script>
 <script>
 // ── UI SHELL SCRIPT (layout / nav / collapsibles only) ──

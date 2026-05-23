@@ -2820,3 +2820,321 @@ function bindInit() {
     }
   }
 })();
+
+/* ============================================================
+   批次建卡模組 v1.0
+============================================================ */
+(function() {
+  "use strict";
+
+  const GAS_URL = "https://angel-namecard.letssyncus.com/gas-proxy/exec";
+  const KEY_PREFIX = "ANGEL2026";
+  const KEY_STORAGE = "hsc_admin_key";
+
+  const COLOR_MAP = {
+    p1:"#e8909a", p2:"#9b5566", p3:"#3c5878", p4:"#8e7fc4", p5:"#2a5447",
+    c1:"#e57d84", c2:"#7daed7", c3:"#e7a860", c4:"#a48bd8", c5:"#7fc89a"
+  };
+  const VALID_TYPES = ["負責人","員工","北區","中區","南區"];
+  const REGION_TYPES = ["北區","中區","南區"];
+  const BATCH_SIZE = 20;
+
+  let batchCards = [];
+  let batchResults = [];
+
+  function getKey() {
+    const s = localStorage.getItem(KEY_STORAGE) || "";
+    if (s.startsWith(KEY_PREFIX)) return s;
+    return s ? KEY_PREFIX + s : "";
+  }
+
+  function esc(s) {
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  // ── SheetJS 懶加載 ──
+  function withXLSX(cb) {
+    if (window.XLSX) { cb(window.XLSX); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload = function() { cb(window.XLSX); };
+    s.onerror = function() { showToast("❌ 無法載入 Excel 解析器，請確認網路"); };
+    document.head.appendChild(s);
+  }
+
+  function showToast(msg) {
+    const el = document.getElementById("toast");
+    if (!el) { alert(msg); return; }
+    el.textContent = msg;
+    el.classList.remove("hidden");
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.add("hidden"), 3500);
+  }
+
+  // ── 下載範本 ──
+  function downloadTemplate() {
+    withXLSX(function(XLSX) {
+      const rows = [
+        ["type","name","title","company","phone","email","line_id","avatar_url","plan","color","region","price"],
+        ["負責人","王總監","執行長","XX科技","0900111222","boss@mail.com","boss_line","https://example.com/boss.jpg","premium","p3","",""],
+        ["北區","北區服務站","北區中心","XX科技","","","","https://example.com/north.jpg","premium","p3","",""],
+        ["中區","中區服務站","中區中心","XX科技","","","","https://example.com/mid.jpg","premium","p3","",""],
+        ["南區","南區服務站","南區中心","XX科技","","","","https://example.com/south.jpg","premium","p3","",""],
+        ["員工","李小明","業務","XX科技","0911222333","lee@mail.com","lee_line","https://example.com/lee.jpg","premium","p1","北區","1500"],
+        ["員工","陳小花","主任","XX科技","0922333444","chen@mail.com","chen_line","https://example.com/chen.jpg","premium","p2","南區","1500"],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws["!cols"] = rows[0].map((_,i) => ({ wch: [8,12,10,10,12,18,12,30,8,6,6,6][i]||12 }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "批次建卡");
+      XLSX.writeFile(wb, "HSC批次建卡範本.xlsx");
+    });
+  }
+
+  // ── 解析 Excel ──
+  function parseExcel(file) {
+    return new Promise((resolve, reject) => {
+      withXLSX(function(XLSX) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), { type:"array" });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, { defval:"" });
+            resolve(rows);
+          } catch(err) { reject(err); }
+        };
+        reader.onerror = () => reject(new Error("讀取檔案失敗"));
+        reader.readAsArrayBuffer(file);
+      });
+    });
+  }
+
+  // ── 驗證資料 ──
+  function validateRows(rows) {
+    const errors = [], normalized = [];
+    rows.forEach((row, i) => {
+      const line = i + 2;
+      const type = String(row.type||"").trim();
+      const name = String(row.name||"").trim();
+      if (!type) { errors.push(`第${line}列：type 為必填`); return; }
+      if (!VALID_TYPES.includes(type)) { errors.push(`第${line}列：type「${type}」不合法，必須是 ${VALID_TYPES.join("/")}`); return; }
+      if (!name) { errors.push(`第${line}列：name 為必填`); return; }
+      if (type === "員工") {
+        const region = String(row.region||"").trim();
+        if (!REGION_TYPES.includes(region)) { errors.push(`第${line}列：員工 region 必須填 北區/中區/南區（目前：「${region}」）`); return; }
+      }
+      normalized.push({
+        type, name,
+        title: String(row.title||"").trim(),
+        company: String(row.company||"").trim(),
+        phone: String(row.phone||"").trim(),
+        email: String(row.email||"").trim(),
+        line_id: String(row.line_id||"").trim(),
+        avatar_url: String(row.avatar_url||"").trim(),
+        plan: String(row.plan||"premium").trim().toLowerCase() === "free" ? "free" : "premium",
+        color: String(row.color||"").trim() || "",
+        region: String(row.region||"").trim(),
+        price: Number(row.price)||0,
+      });
+    });
+    return { errors, normalized };
+  }
+
+  // ── 渲染預覽 ──
+  function renderPreview(cards) {
+    const wrap = document.getElementById("batchPreviewWrap");
+    const summary = document.getElementById("batchSummary");
+    const head = document.getElementById("batchPreviewHead");
+    const body = document.getElementById("batchPreviewBody");
+    if (!wrap) return;
+
+    const cnt = { 負責人:0, 員工:0, 北區:0, 中區:0, 南區:0 };
+    cards.forEach(c => { if (cnt[c.type]!==undefined) cnt[c.type]++; });
+    summary.innerHTML = `共 <strong>${cards.length}</strong> 張卡：負責人 ${cnt["負責人"]}、員工 ${cnt["員工"]}、北區 ${cnt["北區"]}、中區 ${cnt["中區"]}、南區 ${cnt["南區"]}`;
+
+    const cols = ["#","type","name","title","plan","color","region","頭像"];
+    head.innerHTML = "<tr>" + cols.map(c =>
+      `<th style="padding:5px 8px;text-align:left;border:1px solid var(--border);white-space:nowrap;font-size:11px;">${c}</th>`
+    ).join("") + "</tr>";
+
+    body.innerHTML = cards.map((c, i) => {
+      const dot = COLOR_MAP[c.color]
+        ? `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${COLOR_MAP[c.color]};margin-right:3px;vertical-align:middle;"></span>`
+        : "";
+      const bg = c.type==="負責人"?"background:#fff8e8;" : REGION_TYPES.includes(c.type)?"background:#e8f4ff;":"";
+      const cells = [
+        i+1,
+        `<strong>${esc(c.type)}</strong>`,
+        esc(c.name),
+        esc(c.title||"-"),
+        c.plan,
+        dot + esc(c.color||"(預設)"),
+        esc(c.region||"-"),
+        c.avatar_url ? `<a href="${esc(c.avatar_url)}" target="_blank" style="font-size:10px;">🖼</a>` : "-",
+      ];
+      return `<tr style="${bg}">${cells.map(v => `<td style="padding:4px 8px;border:1px solid var(--border);font-size:11px;">${v}</td>`).join("")}</tr>`;
+    }).join("");
+
+    wrap.style.display = "";
+    document.getElementById("batchCreateActions").style.display = "";
+  }
+
+  // ── GAS POST ──
+  async function gasPost(action, params) {
+    const key = getKey();
+    if (!key) throw new Error("請先設定 Admin Key");
+    const body = JSON.stringify({ action, admin_key: key, ...params });
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 60000);
+    try {
+      const res = await fetch(GAS_URL, {
+        method:"POST",
+        headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body, signal: ctrl.signal
+      });
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch(_) { throw new Error("GAS 回傳非 JSON: " + text.slice(0,100)); }
+      if (!res.ok || json.ok===false) throw new Error(json.error || `HTTP ${res.status}`);
+      return json.data != null ? json.data : json;
+    } finally { clearTimeout(timer); }
+  }
+
+  // ── 開始批次建卡 ──
+  async function startBatch(cards) {
+    const logWrap = document.getElementById("batchLogWrap");
+    const logList = document.getElementById("batchLogList");
+    const progressEl = document.getElementById("batchProgressText");
+    const btn = document.getElementById("btnStartBatchCreate");
+    if (!logWrap) return;
+
+    btn.disabled = true;
+    btn.textContent = "⏳ 建立中…";
+    logWrap.style.display = "";
+    logList.innerHTML = "";
+    batchResults = [];
+
+    let done = 0;
+    const total = cards.length;
+
+    function log(msg, ok) {
+      const d = document.createElement("div");
+      d.style.color = ok===false ? "var(--danger)" : ok===true ? "var(--ok,#2d8a4e)" : "var(--ink2)";
+      d.textContent = msg;
+      logList.appendChild(d);
+      logList.scrollTop = logList.scrollHeight;
+    }
+
+    for (let start = 0; start < total; start += BATCH_SIZE) {
+      const chunk = cards.slice(start, start + BATCH_SIZE);
+      const batchNum = Math.floor(start/BATCH_SIZE) + 1;
+      progressEl.textContent = `進度：${done} / ${total}`;
+      log(`──── 第 ${batchNum} 批（${chunk.length} 張）────`);
+
+      try {
+        const res = await gasPost("adminBatchCreateCards", { cards: chunk });
+        const results = Array.isArray(res) ? res : (res?.results || []);
+        results.forEach(r => {
+          done++;
+          batchResults.push(r);
+          if (r.ok) log(`✅ ${r.card_id||""} ${r.name}（${r.type}）`, true);
+          else log(`❌ ${r.name}（${r.type}）失敗：${r.error||"未知"}`, false);
+        });
+      } catch(err) {
+        log(`❌ 第 ${batchNum} 批失敗：${err.message}`, false);
+        break;
+      }
+
+      if (start + BATCH_SIZE < total) {
+        log("⏸ 等待 2 秒…");
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+
+    progressEl.textContent = `完成：${done} / ${total}`;
+    log("══ 全部完成 ══");
+    btn.disabled = false;
+    btn.textContent = "🚀 開始批次建卡";
+    document.getElementById("btnExportBatchResult").style.display = "";
+  }
+
+  // ── 匯出結果 ──
+  function exportResults() {
+    withXLSX(function(XLSX) {
+      const data = [["card_id","name","type","狀態","錯誤訊息"]].concat(
+        batchResults.map(r => [r.card_id||"",r.name||"",r.type||"",r.ok?"成功":"失敗",r.error||""])
+      );
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "建立結果");
+      XLSX.writeFile(wb, "HSC批次建卡結果.xlsx");
+    });
+  }
+
+  // ── 初始化 ──
+  function init() {
+    const dlBtn = document.getElementById("btnDownloadBatchTemplate");
+    const fileInput = document.getElementById("batchExcelInput");
+    const clearBtn = document.getElementById("btnClearBatch");
+    const startBtn = document.getElementById("btnStartBatchCreate");
+    const exportBtn = document.getElementById("btnExportBatchResult");
+    const formatHead = document.getElementById("batchFormatHead");
+    const formatBody = document.querySelector("#batchFormatCollapsible .collapsible-body");
+
+    if (dlBtn) dlBtn.addEventListener("click", downloadTemplate);
+    if (exportBtn) exportBtn.addEventListener("click", exportResults);
+
+    if (clearBtn) clearBtn.addEventListener("click", () => {
+      batchCards = []; batchResults = [];
+      ["batchPreviewWrap","batchCreateActions","batchLogWrap"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = "none";
+      });
+      if (fileInput) fileInput.value = "";
+      showToast("已清除");
+    });
+
+    if (fileInput) fileInput.addEventListener("change", async function(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const rows = await parseExcel(file);
+        if (!rows.length) { showToast("⚠️ 檔案是空的"); return; }
+        const { errors, normalized } = validateRows(rows);
+        if (errors.length) {
+          showToast("⚠️ 資料有誤，請修正");
+          alert("以下欄位有錯誤，請修正後重新上傳：\n\n" + errors.join("\n"));
+          return;
+        }
+        batchCards = normalized;
+        renderPreview(batchCards);
+        showToast(`✅ 已解析 ${batchCards.length} 筆資料`);
+      } catch(err) {
+        showToast("❌ 解析失敗：" + err.message);
+      }
+    });
+
+    if (startBtn) startBtn.addEventListener("click", () => {
+      if (!batchCards.length) { showToast("⚠️ 請先上傳 Excel"); return; }
+      if (!confirm(`確定要批次建立 ${batchCards.length} 張卡片嗎？\n\n此操作不可復原，請確認預覽無誤後再執行。`)) return;
+      startBatch(batchCards);
+    });
+
+    // collapsible
+    if (formatHead && formatBody) {
+      formatHead.addEventListener("click", () => {
+        const open = formatBody.style.display !== "none";
+        formatBody.style.display = open ? "none" : "";
+        const ch = formatHead.querySelector(".chevron");
+        if (ch) ch.style.transform = open ? "" : "rotate(90deg)";
+      });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
