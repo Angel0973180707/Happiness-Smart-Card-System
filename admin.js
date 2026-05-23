@@ -2832,7 +2832,7 @@ function bindInit() {
   const KEY_STORAGE = "hsc_admin_key";
 
   const COLOR_MAP = {
-    p1:"#e8909a", p2:"#9b5566", p3:"#3c5878", p4:"#8e7fc4", p5:"#2a5447",
+    p1:"#e8909a", p2:"#9b5566", p3:"#3c5878", p4:"#8e7fc4", p5:"#2a5447", p6:"#e8ba5a", p7:"#7a6558",
     c1:"#e57d84", c2:"#7daed7", c3:"#e7a860", c4:"#a48bd8", c5:"#7fc89a"
   };
   const VALID_TYPES = ["負責人","員工","北區","中區","南區"];
