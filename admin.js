@@ -3377,3 +3377,292 @@ function bindInit() {
     init();
   }
 })();
+
+// ═══════════════════════════════════════════════════════════
+// 📷 照片壓縮上傳模組 v1.0（Firebase Storage）
+// ═══════════════════════════════════════════════════════════
+(function() {
+  "use strict";
+
+  var photoFiles  = [];
+  var photoResults = [];
+  var fbInited    = false;
+  var fbStorage   = null;
+  var fbAuth      = null;
+
+  // Firebase 設定（同 firebase.js）
+  var FB_CONFIG = {
+    apiKey:            "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
+    authDomain:        "happiness-smart-card-pro-7389a.firebaseapp.com",
+    projectId:         "happiness-smart-card-pro-7389a",
+    storageBucket:     "happiness-smart-card-pro-7389a.firebasestorage.app",
+    messagingSenderId: "143313936007",
+    appId:             "1:143313936007:web:7c948563c51e8a47d3a222"
+  };
+
+  // ── Firebase 初始化 ─────────────────────────────────────
+  function initFb() {
+    if (fbInited) return;
+    if (!window.firebase) throw new Error("Firebase SDK 未載入");
+    if (firebase.apps && firebase.apps.length > 0) {
+      fbAuth    = firebase.auth(firebase.apps[0]);
+      fbStorage = firebase.storage(firebase.apps[0]);
+    } else {
+      firebase.initializeApp(FB_CONFIG);
+      fbAuth    = firebase.auth();
+      fbStorage = firebase.storage();
+    }
+    fbInited = true;
+  }
+
+  async function ensureAuth() {
+    initFb();
+    if (fbAuth.currentUser) return;
+    await fbAuth.signInAnonymously();
+  }
+
+  // ── 照片壓縮（Canvas） ──────────────────────────────────
+  function compressImage(file, maxWidth, quality) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        var img = new Image();
+        img.onload = function() {
+          var w = img.width, h = img.height;
+          if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+          var canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          canvas.toBlob(function(blob) {
+            if (blob) resolve({ blob: blob, size: blob.size });
+            else reject(new Error("Canvas toBlob 失敗"));
+          }, "image/jpeg", quality);
+        };
+        img.onerror = function() { reject(new Error("圖片讀取失敗")); };
+        img.src = ev.target.result;
+      };
+      reader.onerror = function() { reject(new Error("FileReader 失敗")); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ── 工具 ───────────────────────────────────────────────
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate());
+  }
+  function pad2(n) { return n < 10 ? "0"+n : ""+n; }
+
+  function safeName(name) {
+    return name.replace(/\s+/g, "_").replace(/[^\w.-]/g, "").replace(/\.[^.]+$/, "") + ".jpg";
+  }
+
+  function fmtKB(bytes) {
+    return bytes > 0 ? Math.round(bytes / 1024) + " KB" : "—";
+  }
+
+  // ── 預覽縮圖 ──────────────────────────────────────────
+  function renderPhotoPreview(files) {
+    var grid = document.getElementById("photoPreviewGrid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    grid.style.display = files.length ? "flex" : "none";
+    files.forEach(function(file) {
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        var div = document.createElement("div");
+        div.style.cssText = "width:56px;height:56px;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex-shrink:0;";
+        var img = document.createElement("img");
+        img.src = ev.target.result;
+        img.style.cssText = "width:100%;height:100%;object-fit:cover;";
+        div.appendChild(img);
+        grid.appendChild(div);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ── 結果列 ─────────────────────────────────────────────
+  function appendPhotoRow(name, origSize, compSize, url, error) {
+    var tbody = document.getElementById("photoResultBody");
+    if (!tbody) return;
+    var tr = document.createElement("tr");
+
+    // 縮圖
+    var td0 = document.createElement("td");
+    td0.style.cssText = "padding:4px 6px;border:1px solid var(--border);";
+    if (url) {
+      var img = document.createElement("img");
+      img.src = url;
+      img.style.cssText = "width:40px;height:40px;object-fit:cover;border-radius:4px;display:block;";
+      td0.appendChild(img);
+    } else {
+      td0.textContent = "❌";
+    }
+
+    // 檔名
+    var td1 = document.createElement("td");
+    td1.style.cssText = "padding:4px 8px;border:1px solid var(--border);font-size:11px;word-break:break-all;";
+    td1.textContent = name;
+
+    // 原始大小
+    var td2 = document.createElement("td");
+    td2.style.cssText = "padding:4px 8px;border:1px solid var(--border);font-size:11px;";
+    td2.textContent = fmtKB(origSize);
+
+    // 壓縮後
+    var td3 = document.createElement("td");
+    td3.style.cssText = "padding:4px 8px;border:1px solid var(--border);font-size:11px;";
+    td3.textContent = compSize ? fmtKB(compSize) : "—";
+
+    // 網址 / 錯誤
+    var td4 = document.createElement("td");
+    td4.style.cssText = "padding:4px 8px;border:1px solid var(--border);font-size:10px;font-family:monospace;word-break:break-all;max-width:200px;";
+    if (url) {
+      td4.textContent = url;
+    } else {
+      td4.style.color = "#e55";
+      td4.textContent = error || "失敗";
+    }
+
+    // 複製按鈕
+    var td5 = document.createElement("td");
+    td5.style.cssText = "padding:4px 6px;border:1px solid var(--border);text-align:center;";
+    if (url) {
+      var btn = document.createElement("button");
+      btn.textContent = "複製";
+      btn.style.cssText = "font-size:11px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);cursor:pointer;";
+      (function(u, b) {
+        b.addEventListener("click", function() {
+          navigator.clipboard.writeText(u).then(function() {
+            b.textContent = "✅";
+            setTimeout(function() { b.textContent = "複製"; }, 2000);
+          });
+        });
+      })(url, btn);
+      td5.appendChild(btn);
+    } else {
+      td5.textContent = "—";
+    }
+
+    tr.appendChild(td0); tr.appendChild(td1); tr.appendChild(td2);
+    tr.appendChild(td3); tr.appendChild(td4); tr.appendChild(td5);
+    tbody.appendChild(tr);
+  }
+
+  // ── 主流程 ─────────────────────────────────────────────
+  async function startPhotoUpload() {
+    if (!photoFiles.length) return;
+    var maxWidth = parseInt(document.getElementById("photoMaxWidth").value, 10);
+    var quality  = parseFloat(document.getElementById("photoQuality").value);
+    var btn      = document.getElementById("btnStartPhotoUpload");
+    var progress = document.getElementById("photoUploadProgress");
+
+    btn.disabled = true;
+    btn.textContent = "上傳中…";
+    progress.style.display = "block";
+    progress.textContent = "連線 Firebase…";
+    document.getElementById("photoResultBody").innerHTML = "";
+    photoResults = [];
+
+    try {
+      await ensureAuth();
+    } catch(err) {
+      progress.textContent = "❌ Firebase 認證失敗：" + err.message;
+      btn.disabled = false; btn.textContent = "☁️ 開始壓縮並上傳";
+      return;
+    }
+
+    var dateFolder = todayStr();
+
+    for (var i = 0; i < photoFiles.length; i++) {
+      var file = photoFiles[i];
+      progress.textContent = "處理中 " + (i + 1) + " / " + photoFiles.length + "：" + file.name;
+
+      try {
+        var compressed = await compressImage(file, maxWidth, quality);
+        var filename   = safeName(file.name);
+        var path       = "uploads/batch/" + dateFolder + "/" + Date.now() + "_" + filename;
+        var storageRef = fbStorage.ref(path);
+        await storageRef.put(compressed.blob, {
+          contentType: "image/jpeg",
+          cacheControl: "public,max-age=31536000,immutable"
+        });
+        var url = await storageRef.getDownloadURL();
+
+        photoResults.push({ name: file.name, origSize: file.size, compSize: compressed.size, url: url });
+        appendPhotoRow(file.name, file.size, compressed.size, url, null);
+      } catch(err) {
+        photoResults.push({ name: file.name, origSize: file.size, compSize: 0, url: "", error: err.message });
+        appendPhotoRow(file.name, file.size, 0, null, err.message);
+      }
+    }
+
+    progress.textContent = "✅ 完成！" + photoFiles.length + " 張";
+    btn.disabled = false; btn.textContent = "☁️ 開始壓縮並上傳";
+    document.getElementById("photoResultWrap").style.display = "block";
+  }
+
+  // ── 匯出 Excel ─────────────────────────────────────────
+  function exportPhotoResults() {
+    if (!window.XLSX || !photoResults.length) { alert("尚無結果可匯出"); return; }
+    var rows = [["檔名", "原始大小(KB)", "壓縮後(KB)", "圖片網址（貼入 avatar_url）"]];
+    photoResults.forEach(function(r) {
+      rows.push([
+        r.name,
+        Math.round((r.origSize || 0) / 1024),
+        r.compSize ? Math.round(r.compSize / 1024) : "",
+        r.url || r.error || ""
+      ]);
+    });
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{wch:30},{wch:12},{wch:12},{wch:80}];
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "照片網址");
+    XLSX.writeFile(wb, "HSC_Photo_URLs_" + todayStr() + ".xlsx");
+  }
+
+  // ── 初始化 ─────────────────────────────────────────────
+  function init() {
+    var head = document.getElementById("photoUploadHead");
+    if (!head) return;
+
+    // Collapsible 折疊
+    head.addEventListener("click", function() {
+      var body  = document.getElementById("photoUploadBody");
+      var arrow = head.querySelector(".collapsible-arrow");
+      var open  = body.style.display !== "none";
+      body.style.display = open ? "none" : "block";
+      if (arrow) arrow.textContent = open ? "▶" : "▼";
+    });
+
+    // 選取檔案
+    var fileInput = document.getElementById("photoFileInput");
+    if (fileInput) {
+      fileInput.addEventListener("change", function(e) {
+        photoFiles = Array.from(e.target.files || []);
+        var countEl = document.getElementById("photoFileCount");
+        if (countEl) countEl.textContent = photoFiles.length ? photoFiles.length + " 張" : "";
+        renderPhotoPreview(photoFiles);
+        var actionsEl = document.getElementById("photoUploadActions");
+        if (actionsEl) actionsEl.style.display = photoFiles.length ? "block" : "none";
+        var resultEl = document.getElementById("photoResultWrap");
+        if (resultEl) resultEl.style.display = "none";
+        document.getElementById("photoResultBody").innerHTML = "";
+        photoResults = [];
+      });
+    }
+
+    var btnUpload = document.getElementById("btnStartPhotoUpload");
+    if (btnUpload) btnUpload.addEventListener("click", startPhotoUpload);
+
+    var btnExport = document.getElementById("btnExportPhotoUrls");
+    if (btnExport) btnExport.addEventListener("click", exportPhotoResults);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();

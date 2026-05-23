@@ -1471,6 +1471,72 @@ input:focus, textarea:focus, select:focus { outline: none; }
         </div>
       </div>
 
+      <!-- ── 📷 照片壓縮上傳 ── -->
+      <div class="collapsible" id="photoUploadCollapsible" style="margin-bottom:10px;">
+        <div class="collapsible-head" id="photoUploadHead">
+          <span>📷 照片壓縮上傳（取得圖片連結）</span>
+          <span class="collapsible-arrow">▶</span>
+        </div>
+        <div class="collapsible-body" id="photoUploadBody" style="display:none;padding:12px;">
+          <div style="font-size:12px;color:var(--ink3);margin-bottom:10px;">
+            選取多張照片 → 自動壓縮 → 上傳雲端 → 取得圖片網址，可填入 Excel 的 <b>avatar_url</b> 欄位。
+          </div>
+          <!-- 壓縮設定 -->
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+            <label style="font-size:12px;color:var(--ink2);">最大寬度：
+              <select id="photoMaxWidth" style="font-size:12px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);">
+                <option value="400">400px（頭像用）</option>
+                <option value="600" selected>600px（標準）</option>
+                <option value="800">800px（高解析）</option>
+              </select>
+            </label>
+            <label style="font-size:12px;color:var(--ink2);">壓縮品質：
+              <select id="photoQuality" style="font-size:12px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);">
+                <option value="0.7">70%（檔案較小）</option>
+                <option value="0.8" selected>80%（標準）</option>
+                <option value="0.9">90%（高畫質）</option>
+              </select>
+            </label>
+          </div>
+          <!-- 選取檔案 -->
+          <div style="margin-bottom:10px;">
+            <label class="btn btn-outline" style="cursor:pointer;display:inline-block;font-size:13px;">
+              📂 選取照片（可多選）
+              <input type="file" id="photoFileInput" accept="image/*" multiple style="display:none;">
+            </label>
+            <span id="photoFileCount" style="font-size:12px;color:var(--ink3);margin-left:8px;"></span>
+          </div>
+          <!-- 預覽縮圖列 -->
+          <div id="photoPreviewGrid" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div>
+          <!-- 上傳按鈕 -->
+          <div id="photoUploadActions" style="display:none;margin-bottom:8px;">
+            <button class="btn btn-primary" id="btnStartPhotoUpload">☁️ 開始壓縮並上傳</button>
+          </div>
+          <!-- 進度文字 -->
+          <div id="photoUploadProgress" style="display:none;font-size:12px;color:var(--ink2);margin-bottom:6px;"></div>
+          <!-- 結果 -->
+          <div id="photoResultWrap" style="display:none;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:6px;">✅ 上傳結果</div>
+            <button class="btn btn-outline" id="btnExportPhotoUrls" style="font-size:12px;margin-bottom:8px;">📥 匯出 Excel（檔名＋網址）</button>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead>
+                  <tr style="background:var(--surface2);">
+                    <th style="padding:6px 8px;border:1px solid var(--border);text-align:left;width:52px;">縮圖</th>
+                    <th style="padding:6px 8px;border:1px solid var(--border);text-align:left;">檔名</th>
+                    <th style="padding:6px 8px;border:1px solid var(--border);text-align:left;width:70px;">原始</th>
+                    <th style="padding:6px 8px;border:1px solid var(--border);text-align:left;width:70px;">壓縮後</th>
+                    <th style="padding:6px 8px;border:1px solid var(--border);text-align:left;">圖片網址</th>
+                    <th style="padding:6px 8px;border:1px solid var(--border);text-align:left;width:52px;">複製</th>
+                  </tr>
+                </thead>
+                <tbody id="photoResultBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </section>
 
   </main><!-- /content -->
@@ -1500,6 +1566,10 @@ input:focus, textarea:focus, select:focus { outline: none; }
 <div id="toast" class="hidden"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Firebase compat SDK（照片上傳用） -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
 <script src="admin.js"></script>
 <script>
 // ── UI SHELL SCRIPT (layout / nav / collapsibles only) ──
