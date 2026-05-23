@@ -1372,6 +1372,103 @@ input:focus, textarea:focus, select:focus { outline: none; }
         <button class="btn btn-soft btn-sm" id="btnExportBatchResult" style="margin-top:8px;display:none;">📥 下載建立結果 Excel</button>
       </div>
 
+      <!-- ══════════════════════════════════════ -->
+      <hr style="border:none;border-top:2px solid var(--border);margin:20px 0 16px;">
+      <div style="font-weight:900;font-size:14px;margin-bottom:12px;color:var(--ink1);">其他批次操作</div>
+
+      <!-- ── 📦 批次交付連結匯出 ── -->
+      <div class="collapsible" id="batchDeliveryCollapsible" style="margin-bottom:10px;">
+        <div class="collapsible-head" id="batchDeliveryHead">
+          <span>📦 批次交付連結匯出</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="collapsible-body" style="display:none;padding-top:10px;">
+          <div style="font-size:12px;color:var(--ink2);margin-bottom:10px;line-height:1.6;">
+            輸入負責人卡號，系統查出所有員工卡並匯出 Excel。<br>
+            Excel 包含：卡號、姓名、名片連結、交付卡連結（poster）
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+            <input type="text" id="deliveryReferrerId" placeholder="負責人卡號，例如 TW0200" style="flex:1;min-width:160px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+            <button class="btn btn-primary btn-sm" id="btnFetchDelivery">🔍 查詢並匯出</button>
+          </div>
+          <div id="deliveryStatus" style="font-size:12px;color:var(--ink2);"></div>
+        </div>
+      </div>
+
+      <!-- ── ✏️ 批次更新名片資料 ── -->
+      <div class="collapsible" id="batchUpdateCollapsible" style="margin-bottom:10px;">
+        <div class="collapsible-head" id="batchUpdateHead">
+          <span>✏️ 批次更新名片資料</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="collapsible-body" style="display:none;padding-top:10px;">
+          <div style="font-size:12px;color:var(--ink2);margin-bottom:10px;line-height:1.6;">
+            上傳 Excel，一次更新多張卡的資料。留空的欄位不會被修改。<br>
+            必填欄位：<strong>card_id</strong>｜可改欄位：name、title、company、phone、email、line_id、avatar_url、color
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+            <button class="btn btn-soft btn-sm" id="btnDownloadUpdateTemplate">📥 下載更新範本</button>
+            <label class="btn btn-primary btn-sm" style="cursor:pointer;margin:0;">
+              📤 上傳 Excel
+              <input type="file" id="updateExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
+            </label>
+          </div>
+          <div id="updatePreviewWrap" style="display:none;margin-bottom:10px;">
+            <div id="updateSummary" style="padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;margin-bottom:6px;"></div>
+            <div style="overflow-x:auto;max-height:200px;overflow-y:auto;">
+              <table id="updatePreviewTable" style="width:100%;font-size:11px;border-collapse:collapse;min-width:500px;">
+                <thead id="updatePreviewHead" style="background:var(--surface2);position:sticky;top:0;"></thead>
+                <tbody id="updatePreviewBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="updateActions" style="display:none;margin-bottom:8px;">
+            <button class="btn btn-primary btn-full" id="btnStartBatchUpdate">✏️ 開始批次更新</button>
+          </div>
+          <div id="updateLogWrap" style="display:none;">
+            <div id="updateProgressText" style="font-size:12px;color:var(--ink2);margin-bottom:4px;"></div>
+            <div id="updateLogList" style="max-height:200px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;font-size:12px;font-family:monospace;line-height:1.8;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 🔄 批次續約 ── -->
+      <div class="collapsible" id="batchRenewCollapsible" style="margin-bottom:10px;">
+        <div class="collapsible-head" id="batchRenewHead">
+          <span>🔄 批次續約</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="collapsible-body" style="display:none;padding-top:10px;">
+          <div style="font-size:12px;color:var(--ink2);margin-bottom:10px;line-height:1.6;">
+            上傳 Excel，一次幫多張卡延長效期 365 天。<br>
+            必填欄位：<strong>card_id</strong>｜選填：price（費用，預設 0）
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+            <button class="btn btn-soft btn-sm" id="btnDownloadRenewTemplate">📥 下載續約範本</button>
+            <label class="btn btn-primary btn-sm" style="cursor:pointer;margin:0;">
+              📤 上傳 Excel
+              <input type="file" id="renewExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
+            </label>
+          </div>
+          <div id="renewPreviewWrap" style="display:none;margin-bottom:10px;">
+            <div id="renewSummary" style="padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;margin-bottom:6px;"></div>
+            <div style="overflow-x:auto;max-height:200px;overflow-y:auto;">
+              <table id="renewPreviewTable" style="width:100%;font-size:11px;border-collapse:collapse;min-width:300px;">
+                <thead id="renewPreviewHead" style="background:var(--surface2);position:sticky;top:0;"></thead>
+                <tbody id="renewPreviewBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="renewActions" style="display:none;margin-bottom:8px;">
+            <button class="btn btn-primary btn-full" id="btnStartBatchRenew">🔄 開始批次續約</button>
+          </div>
+          <div id="renewLogWrap" style="display:none;">
+            <div id="renewProgressText" style="font-size:12px;color:var(--ink2);margin-bottom:4px;"></div>
+            <div id="renewLogList" style="max-height:200px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;font-size:12px;font-family:monospace;line-height:1.8;"></div>
+          </div>
+        </div>
+      </div>
+
     </section>
 
   </main><!-- /content -->

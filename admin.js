@@ -3121,7 +3121,7 @@ function bindInit() {
       startBatch(batchCards);
     });
 
-    // collapsible
+    // collapsible (建卡格式說明)
     if (formatHead && formatBody) {
       formatHead.addEventListener("click", () => {
         const open = formatBody.style.display !== "none";
@@ -3130,6 +3130,245 @@ function bindInit() {
         if (ch) ch.style.transform = open ? "" : "rotate(90deg)";
       });
     }
+
+    // ── 其他批次操作的 collapsible ──
+    [
+      ["batchDeliveryHead","batchDeliveryCollapsible"],
+      ["batchUpdateHead","batchUpdateCollapsible"],
+      ["batchRenewHead","batchRenewCollapsible"],
+    ].forEach(([headId, colId]) => {
+      const h = document.getElementById(headId);
+      const c = document.getElementById(colId);
+      if (!h || !c) return;
+      const b = c.querySelector(".collapsible-body");
+      if (!b) return;
+      h.addEventListener("click", () => {
+        const open = b.style.display !== "none";
+        b.style.display = open ? "none" : "";
+        const ch = h.querySelector(".chevron");
+        if (ch) ch.style.transform = open ? "" : "rotate(90deg)";
+      });
+    });
+
+    // ── 📦 批次交付 ──
+    const fetchDeliveryBtn = document.getElementById("btnFetchDelivery");
+    if (fetchDeliveryBtn) {
+      fetchDeliveryBtn.addEventListener("click", async () => {
+        const referrerId = (document.getElementById("deliveryReferrerId")?.value || "").trim().toUpperCase();
+        if (!referrerId) { showToast("⚠️ 請輸入負責人卡號"); return; }
+        const statusEl = document.getElementById("deliveryStatus");
+        if (statusEl) statusEl.textContent = "⏳ 查詢中…";
+        fetchDeliveryBtn.disabled = true;
+        try {
+          const data = await gasPost("adminGetCardsByReferrer", { referrer_id: referrerId });
+          const cards = Array.isArray(data) ? data : (data?.cards || []);
+          if (!cards.length) { showToast("⚠️ 查無資料"); if (statusEl) statusEl.textContent = "查無員工卡"; return; }
+          exportDeliveryExcel(cards, referrerId);
+          if (statusEl) statusEl.textContent = `✅ 已找到 ${cards.length} 張卡，Excel 已下載`;
+          showToast(`✅ 匯出 ${cards.length} 張卡的交付連結`);
+        } catch(err) {
+          showToast("❌ 查詢失敗：" + err.message);
+          if (statusEl) statusEl.textContent = "❌ " + err.message;
+        } finally { fetchDeliveryBtn.disabled = false; }
+      });
+    }
+
+    // ── ✏️ 批次更新 ──
+    const dlUpdateBtn = document.getElementById("btnDownloadUpdateTemplate");
+    const updateInput = document.getElementById("updateExcelInput");
+    const startUpdateBtn = document.getElementById("btnStartBatchUpdate");
+    let updateCards = [];
+
+    if (dlUpdateBtn) dlUpdateBtn.addEventListener("click", () => downloadUpdateTemplate());
+    if (updateInput) updateInput.addEventListener("change", async function(e) {
+      const file = e.target.files?.[0]; if (!file) return;
+      try {
+        const rows = await parseExcel(file);
+        if (!rows.length) { showToast("⚠️ 檔案是空的"); return; }
+        const { errors, normalized } = validateUpdateRows(rows);
+        if (errors.length) { showToast("⚠️ 資料有誤"); alert(errors.join("\n")); return; }
+        updateCards = normalized;
+        renderSimplePreview("updatePreviewWrap","updateSummary","updatePreviewHead","updatePreviewBody","updateActions",
+          updateCards, ["card_id","name","title","company","phone","color","avatar_url"],
+          `共 ${updateCards.length} 筆更新`);
+        showToast(`✅ 已解析 ${updateCards.length} 筆`);
+      } catch(err) { showToast("❌ 解析失敗：" + err.message); }
+    });
+    if (startUpdateBtn) startUpdateBtn.addEventListener("click", () => {
+      if (!updateCards.length) { showToast("⚠️ 請先上傳 Excel"); return; }
+      if (!confirm(`確定要更新 ${updateCards.length} 張卡的資料嗎？`)) return;
+      runBatchOp("adminBatchUpdateCards", { cards: updateCards },
+        "updateLogWrap","updateLogList","updateProgressText", startUpdateBtn, "✏️ 開始批次更新");
+    });
+
+    // ── 🔄 批次續約 ──
+    const dlRenewBtn = document.getElementById("btnDownloadRenewTemplate");
+    const renewInput = document.getElementById("renewExcelInput");
+    const startRenewBtn = document.getElementById("btnStartBatchRenew");
+    let renewCards = [];
+
+    if (dlRenewBtn) dlRenewBtn.addEventListener("click", () => downloadRenewTemplate());
+    if (renewInput) renewInput.addEventListener("change", async function(e) {
+      const file = e.target.files?.[0]; if (!file) return;
+      try {
+        const rows = await parseExcel(file);
+        if (!rows.length) { showToast("⚠️ 檔案是空的"); return; }
+        const { errors, normalized } = validateRenewRows(rows);
+        if (errors.length) { showToast("⚠️ 資料有誤"); alert(errors.join("\n")); return; }
+        renewCards = normalized;
+        renderSimplePreview("renewPreviewWrap","renewSummary","renewPreviewHead","renewPreviewBody","renewActions",
+          renewCards, ["card_id","price"],
+          `共 ${renewCards.length} 張卡待續約`);
+        showToast(`✅ 已解析 ${renewCards.length} 筆`);
+      } catch(err) { showToast("❌ 解析失敗：" + err.message); }
+    });
+    if (startRenewBtn) startRenewBtn.addEventListener("click", () => {
+      if (!renewCards.length) { showToast("⚠️ 請先上傳 Excel"); return; }
+      if (!confirm(`確定要幫 ${renewCards.length} 張卡續約 365 天嗎？`)) return;
+      runBatchOp("adminBatchRenewCards", { cards: renewCards },
+        "renewLogWrap","renewLogList","renewProgressText", startRenewBtn, "🔄 開始批次續約");
+    });
+  }
+
+  // ── 匯出交付 Excel ──
+  function exportDeliveryExcel(cards, referrerId) {
+    withXLSX(function(XLSX) {
+      const BASE = "https://angel-namecard.letssyncus.com";
+      const rows = [["卡號","姓名","職稱","公司","名片連結","交付卡連結","到期日"]].concat(
+        cards.map(c => [
+          c.id || c.card_id || "",
+          c.name || "",
+          c.title || "",
+          c.company || "",
+          `${BASE}/index.html?id=${c.id||c.card_id}&view=1`,
+          `${BASE}/poster.html?id=${c.id||c.card_id}`,
+          c.expires_at || "",
+        ])
+      );
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws["!cols"] = [10,12,10,12,50,50,12].map(w => ({ wch: w }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "交付連結");
+      XLSX.writeFile(wb, `HSC交付連結_${referrerId}.xlsx`);
+    });
+  }
+
+  // ── 下載更新範本 ──
+  function downloadUpdateTemplate() {
+    withXLSX(function(XLSX) {
+      const rows = [
+        ["card_id","name","title","company","phone","email","line_id","avatar_url","color"],
+        ["TW0201","王小明","資深業務","XX科技","0911222333","","","https://...","p2"],
+        ["TW0202","陳小花","主任","XX科技","","","","",""],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "批次更新");
+      XLSX.writeFile(wb, "HSC批次更新範本.xlsx");
+    });
+  }
+
+  // ── 下載續約範本 ──
+  function downloadRenewTemplate() {
+    withXLSX(function(XLSX) {
+      const rows = [
+        ["card_id","price"],
+        ["TW0201","1500"],
+        ["TW0202","1500"],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "批次續約");
+      XLSX.writeFile(wb, "HSC批次續約範本.xlsx");
+    });
+  }
+
+  // ── 驗證更新資料 ──
+  function validateUpdateRows(rows) {
+    const errors = [], normalized = [];
+    rows.forEach((r, i) => {
+      const card_id = String(r.card_id || "").trim().toUpperCase();
+      if (!card_id) { errors.push(`第${i+2}列：card_id 為必填`); return; }
+      normalized.push({
+        card_id,
+        name:       String(r.name       || "").trim(),
+        title:      String(r.title      || "").trim(),
+        company:    String(r.company    || "").trim(),
+        phone:      String(r.phone      || "").trim(),
+        email:      String(r.email      || "").trim(),
+        line_id:    String(r.line_id    || "").trim(),
+        avatar_url: String(r.avatar_url || "").trim(),
+        color:      String(r.color      || "").trim(),
+      });
+    });
+    return { errors, normalized };
+  }
+
+  // ── 驗證續約資料 ──
+  function validateRenewRows(rows) {
+    const errors = [], normalized = [];
+    rows.forEach((r, i) => {
+      const card_id = String(r.card_id || "").trim().toUpperCase();
+      if (!card_id) { errors.push(`第${i+2}列：card_id 為必填`); return; }
+      normalized.push({ card_id, price: Number(r.price) || 0 });
+    });
+    return { errors, normalized };
+  }
+
+  // ── 通用預覽渲染 ──
+  function renderSimplePreview(wrapId, summaryId, headId, bodyId, actionsId, data, cols, summaryText) {
+    const wrap = document.getElementById(wrapId); if (!wrap) return;
+    document.getElementById(summaryId).textContent = summaryText;
+    document.getElementById(headId).innerHTML = "<tr>" + cols.map(c =>
+      `<th style="padding:4px 8px;border:1px solid var(--border);font-size:11px;">${c}</th>`).join("") + "</tr>";
+    document.getElementById(bodyId).innerHTML = data.map(row =>
+      "<tr>" + cols.map(c =>
+        `<td style="padding:3px 8px;border:1px solid var(--border);font-size:11px;">${esc(row[c]||"-")}</td>`
+      ).join("") + "</tr>"
+    ).join("");
+    wrap.style.display = "";
+    const act = document.getElementById(actionsId); if (act) act.style.display = "";
+  }
+
+  // ── 通用批次執行（update / renew）──
+  async function runBatchOp(action, params, logWrapId, logListId, progressId, btn, btnLabel) {
+    const logWrap = document.getElementById(logWrapId);
+    const logList = document.getElementById(logListId);
+    const progressEl = document.getElementById(progressId);
+    if (!logWrap) return;
+    btn.disabled = true; btn.textContent = "⏳ 執行中…";
+    logWrap.style.display = ""; logList.innerHTML = "";
+    const cards = params.cards || [];
+    const total = cards.length; let done = 0;
+
+    function log(msg, ok) {
+      const d = document.createElement("div");
+      d.style.color = ok===false?"var(--danger)":ok===true?"var(--ok,#2d8a4e)":"var(--ink2)";
+      d.textContent = msg;
+      logList.appendChild(d); logList.scrollTop = logList.scrollHeight;
+    }
+
+    for (let start = 0; start < total; start += BATCH_SIZE) {
+      const chunk = cards.slice(start, start + BATCH_SIZE);
+      progressEl.textContent = `進度：${done} / ${total}`;
+      log(`──── 第 ${Math.floor(start/BATCH_SIZE)+1} 批（${chunk.length} 筆）────`);
+      try {
+        const res = await gasPost(action, { cards: chunk });
+        const results = Array.isArray(res) ? res : (res?.results || []);
+        results.forEach(r => {
+          done++;
+          if (r.ok) log(`✅ ${r.card_id||""} ${r.name||""} 完成`, true);
+          else log(`❌ ${r.card_id||r.name||""} 失敗：${r.error||"未知"}`, false);
+        });
+      } catch(err) {
+        log(`❌ 第 ${Math.floor(start/BATCH_SIZE)+1} 批失敗：${err.message}`, false);
+        break;
+      }
+      if (start + BATCH_SIZE < total) { log("⏸ 等待 2 秒…"); await new Promise(r => setTimeout(r, 2000)); }
+    }
+    progressEl.textContent = `完成：${done} / ${total}`;
+    log("══ 全部完成 ══");
+    btn.disabled = false; btn.textContent = btnLabel;
   }
 
   if (document.readyState === "loading") {
