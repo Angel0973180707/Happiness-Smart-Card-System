@@ -1274,6 +1274,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
     <section id="batchCreateSection" class="section">
       <div class="section-header">
         <div class="section-title">🏢 批次建卡</div>
+        <button class="btn btn-outline" id="btnBatchGuide" style="font-size:12px;padding:4px 12px;">📖 操作說明</button>
       </div>
 
       <!-- 顏色代碼參考 -->
@@ -2388,6 +2389,126 @@ if (btnSubmitAgentInbox) {
   // 暴露給外部（例如你要從別處刷新異常清單）
   window.loadPaymentException = loadException;
 })();
-</script>  
+</script>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 📖 批次功能操作說明 Modal                   -->
+<!-- ══════════════════════════════════════════ -->
+<div id="batchGuideModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);overflow-y:auto;">
+  <div style="max-width:680px;margin:20px auto;background:#fff;border-radius:16px;padding:24px 20px 32px;position:relative;">
+
+    <!-- 關閉按鈕 -->
+    <button id="btnCloseBatchGuide" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">✕</button>
+
+    <h2 style="font-size:18px;font-weight:800;margin:0 0 4px;">📖 批次功能操作說明</h2>
+    <p style="font-size:12px;color:#888;margin:0 0 20px;">適用於企業批次建卡、照片上傳、CTA 管理等作業</p>
+
+    <!-- ① 照片上傳 -->
+    <div style="margin-bottom:22px;">
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">① 📷 先上傳員工照片（取得圖片連結）</div>
+      <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
+        <div>1. 展開「📷 照片壓縮上傳」區塊</div>
+        <div>2. 選擇壓縮設定：<b>最大寬度 600px、品質 80%</b>（預設即可）</div>
+        <div>3. 點「📂 選取照片」→ 一次選取所有員工照片</div>
+        <div>4. 點「☁️ 開始壓縮並上傳」→ 系統自動壓縮後存入雲端</div>
+        <div>5. 點「📥 匯出 Excel」→ 取得每張照片的網址</div>
+        <div style="color:#e58;font-size:12px;margin-top:4px;">💡 這些網址等一下要填入建卡 Excel 的 <b>avatar_url</b> 欄</div>
+      </div>
+    </div>
+
+    <!-- ② 批次建卡 -->
+    <div style="margin-bottom:22px;">
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">② 🏢 批次建卡</div>
+      <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
+        <div>1. 點「📥 下載 Excel 範本」，用 Excel 開啟</div>
+        <div>2. 按順序填入資料（<b>負責人排第一行</b>，再填區域卡，最後填員工）：</div>
+        <div style="margin-left:16px;font-size:12px;color:#555;line-height:1.8;">
+          • <b>type</b>：負責人 / 北區 / 中區 / 南區 / 員工<br>
+          • <b>name</b>：姓名（必填）<br>
+          • <b>title</b>：職稱　• <b>company</b>：公司　• <b>phone</b>：電話<br>
+          • <b>email</b>　• <b>line_id</b>　• <b>avatar_url</b>：照片網址（步驟①取得）<br>
+          • <b>plan</b>：premium / free　• <b>color</b>：p1~p7（見顏色參考）<br>
+          • <b>region</b>：員工必填所屬區域（北區／中區／南區）<br>
+          • <b>price</b>：建卡費用（選填）
+        </div>
+        <div>3. 存檔後點「📂 上傳 Excel」選取檔案</div>
+        <div>4. 預覽確認無誤後，點「🚀 開始批次建卡」</div>
+        <div>5. 等待完成後，點「📥 匯出建卡結果」保存卡號對照表</div>
+        <div style="color:#e58;font-size:12px;margin-top:4px;">💡 系統會自動產生卡號（TW####），並把區域卡與員工卡的關聯設定好</div>
+      </div>
+    </div>
+
+    <!-- ③ 批次 CTA -->
+    <div style="margin-bottom:22px;">
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">③ 🔗 設定區域卡的員工按鈕（批次 CTA）</div>
+      <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
+        <div>1. 展開「🔗 批次 CTA 管理」區塊</div>
+        <div>2. 在「<b>要設定 CTA 的卡號</b>」填入區域卡號（如北區服務站的卡號）</div>
+        <div>3. 在「⚡ 快速產生員工連結」填入<b>負責人卡號</b>，點「⚡ 自動產生」</div>
+        <div>4. 系統自動列出所有員工姓名＋卡片連結</div>
+        <div>5. 確認名單後點「💾 儲存」</div>
+        <div>6. <b>北區／中區／南區</b>各做一次</div>
+        <div style="color:#e58;font-size:12px;margin-top:4px;">💡 這樣區域卡上就會出現員工的 CTA 按鈕，點名字跳到員工名片</div>
+      </div>
+    </div>
+
+    <!-- ④ 批次交付 -->
+    <div style="margin-bottom:22px;">
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">④ 📦 批次匯出交付連結</div>
+      <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
+        <div>1. 展開「📦 批次交付連結匯出」區塊</div>
+        <div>2. 填入<b>負責人卡號</b>，點「📦 查詢並匯出」</div>
+        <div>3. 自動下載 Excel，內含每位員工的：</div>
+        <div style="margin-left:16px;font-size:12px;color:#555;line-height:1.8;">
+          • <b>名片連結</b>：客戶看到的名片網址<br>
+          • <b>交付卡連結</b>：員工自己管理名片用的私人連結<br>
+          • <b>到期日</b>
+        </div>
+        <div>4. 把 Excel 交給主管，依此傳給各員工</div>
+      </div>
+    </div>
+
+    <!-- ⑤ 批次更新 -->
+    <div style="margin-bottom:22px;">
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">⑤ ✏️ 批次更新名片資料</div>
+      <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
+        <div>1. 展開「✏️ 批次更新名片資料」區塊</div>
+        <div>2. 點「📥 下載更新範本」，填入要修改的欄位（<b>card_id 必填</b>，其他欄位留空表示不更新）</div>
+        <div>3. 上傳 Excel → 預覽 → 點「✏️ 開始批次更新」</div>
+      </div>
+    </div>
+
+    <!-- ⑥ 批次續約 -->
+    <div style="margin-bottom:8px;">
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">⑥ 🔄 批次續約</div>
+      <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
+        <div>1. 展開「🔄 批次續約」區塊</div>
+        <div>2. 點「📥 下載續約範本」，填入要續約的卡號（<b>card_id 必填</b>，price 選填）</div>
+        <div>3. 上傳 Excel → 預覽 → 點「🔄 開始批次續約」</div>
+        <div>4. 系統自動延長 365 天，並寫入付款記錄</div>
+      </div>
+    </div>
+
+    <button id="btnCloseBatchGuide2" class="btn btn-primary btn-full" style="margin-top:16px;">我了解了，關閉說明</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  function openGuide()  { document.getElementById("batchGuideModal").style.display = "block"; document.body.style.overflow = "hidden"; }
+  function closeGuide() { document.getElementById("batchGuideModal").style.display = "none";  document.body.style.overflow = ""; }
+  document.addEventListener("DOMContentLoaded", function() {
+    var btn = document.getElementById("btnBatchGuide");
+    if (btn) btn.addEventListener("click", openGuide);
+    var c1 = document.getElementById("btnCloseBatchGuide");
+    if (c1) c1.addEventListener("click", closeGuide);
+    var c2 = document.getElementById("btnCloseBatchGuide2");
+    if (c2) c2.addEventListener("click", closeGuide);
+    var modal = document.getElementById("batchGuideModal");
+    if (modal) modal.addEventListener("click", function(e) { if (e.target === modal) closeGuide(); });
+  });
+})();
+</script>
+
 </body>
 </html>
