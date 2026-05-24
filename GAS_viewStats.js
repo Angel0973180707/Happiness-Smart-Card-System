@@ -179,6 +179,56 @@ function _queryViewStats_(cardId) {
   };
 }
 
+// ─────────────────────────────────────────
+//  清理：刪除 tracking_log 超過 N 個月的舊記錄
+//  建議設定每月時間觸發器執行 cleanupTrackingLog_
+// ─────────────────────────────────────────
+function cleanupTrackingLog_() {
+  var KEEP_MONTHS = 12; // 保留幾個月，超過的刪除
+  try {
+    var ss    = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    var sheet = ss.getSheetByName("tracking_log");
+    if (!sheet) return;
+
+    var cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - KEEP_MONTHS);
+    var cutoffStr = Utilities.formatDate(cutoff, "Asia/Taipei", "yyyy-MM-dd");
+
+    var data    = sheet.getDataRange().getValues();
+    var headers = data[0].map(function(h){ return String(h).trim(); });
+    var dateCol = headers.indexOf("created_at");
+    if (dateCol < 0) return;
+
+    // 從後往前掃，超過門檻的列刪除
+    var deleted = 0;
+    for (var r = data.length - 1; r >= 1; r--) {
+      var rowDate = String(data[r][dateCol] || "").substring(0, 10);
+      if (rowDate && rowDate < cutoffStr) {
+        sheet.deleteRow(r + 1);
+        deleted++;
+      }
+    }
+
+    console.log("[cleanupTrackingLog_] 刪除 " + deleted + " 筆，cutoff=" + cutoffStr);
+    writeOpsLog_({
+      module: "system",
+      action: "cleanup_tracking_log",
+      after_status: "done",
+      operator: "system",
+      note: "刪除 " + deleted + " 筆（超過 " + KEEP_MONTHS + " 個月）"
+    });
+  } catch(e) {
+    console.error("[cleanupTrackingLog_] 失敗:", e.message);
+  }
+}
+
+/**
+ * 手動測試用：在 GAS 編輯器點「執行」
+ */
+function testCleanupTrackingLog() {
+  cleanupTrackingLog_();
+}
+
 /*
  * ── 需要做的事 ──
  *
@@ -192,5 +242,8 @@ function _queryViewStats_(cardId) {
  *    case "getCardViewStats":     result = getCardViewStats_(req);     break;
  *    case "adminGetAllViewStats": result = adminGetAllViewStats_(req); break;
  *
- * 4. 重新部署 v438
+ * 4. 設定每月時間觸發器執行 cleanupTrackingLog_：
+ *    GAS 觸發條件 → 新增 → cleanupTrackingLog_ → 時間驅動 → 月計時器 → 每月 1 日
+ *
+ * 5. 重新部署 v438
  */
