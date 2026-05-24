@@ -834,11 +834,11 @@ function calcQuantityAddon(qty, config) {
       document.getElementById("addon_bundle_enabled")?.closest(".addon-item")?.classList.add("already-owned");
     }
     const currentPhotoLimit = Number(card.photo_limit || 0);
-    if (currentPhotoLimit >= 10) {
+    if (currentPhotoLimit >= CONFIG.MAX_WALL_PHOTOS) {
       document.getElementById("addon_photo_enabled")?.closest(".addon-item")?.classList.add("already-owned");
     }
     const currentCtaLimit = Number(card.cta_limit || 0);
-    if (currentCtaLimit >= 10) {
+    if (currentCtaLimit >= CONFIG.MAX_CTAS) {
       document.getElementById("addon_cta_enabled")?.closest(".addon-item")?.classList.add("already-owned");
     }
     const tier = String(card.member_tier || card.agent_type || "").toLowerCase();
@@ -1042,9 +1042,9 @@ function calcQuantityAddon(qty, config) {
     const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.premium;
     return {
       plan, planLabel: base.label, planPrice: base.price,
-      baseWallPhotos: Number(card?.photo_limit ?? base.wallPhotos),
-      wallPhotos:     Number(card?.photo_limit ?? base.wallPhotos),
-      ctas:           Number(card?.cta_limit   ?? base.ctas),
+      baseWallPhotos: Number(card?.photo_limit || base.wallPhotos),
+      wallPhotos:     Number(card?.photo_limit || base.wallPhotos),
+      ctas:           Number(card?.cta_limit   || base.ctas),
       extraWallPhotos: 0, extraCtas: 0
     };
   }
