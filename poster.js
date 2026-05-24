@@ -313,11 +313,11 @@
     if (backendLink) return backendLink;
 
     const agentId =
+      txt(item?.owner_agent_id) ||
+      txt(item?.id) ||
       txt(item?.agent_id) ||
       txt(item?.service_agent) ||
-      txt(item?.owner_agent_id) ||
-      txt(item?.referrer) ||
-      txt(item?.id);
+      txt(item?.referrer);
 
     if (!agentId) return "";
     return `${DEFAULT_BASE}?ref=${encodeURIComponent(agentId)}`;
@@ -517,12 +517,12 @@ function buildRenewalFormUrl(item) {
     setText(q("cardLinkDisplay"), cardLink || "連結尚未建立");
     _setLinkBtns("copyCardLinkBtn2", "shareCardLinkBtn2", !!cardLink);
 
-    // 推薦連結
-    const agentId    = txt(wallet?.agent_id);
+    // 推薦連結（用持卡人自己的卡號當 ref，不用 service_agent）
+    const cardOwnId  = txt(currentItem?.owner_agent_id) || txt(currentItem?.id) || id;
     const backendRef = txt(wallet?.referral_link)
                     || txt(currentItem?.referral_link)
                     || txt(rawPayload?.delivery_guidance?.referral_link);
-    const refUrl = backendRef || (agentId ? buildUrl("index.html", { ref: agentId }) : "");
+    const refUrl = backendRef || (cardOwnId ? `${DEFAULT_BASE}?ref=${encodeURIComponent(cardOwnId)}` : "");
     if (refUrl) currentRefUrl = refUrl;
 
     const hasRef = !!refUrl;

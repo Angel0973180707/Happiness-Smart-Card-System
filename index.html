@@ -1155,15 +1155,11 @@
       }
 
       function buildHubShareUrlFallback(){
-        try{
-          if(typeof window.__getHubShareUrl === "function"){
-            return window.__getHubShareUrl();
-          }
-        }catch(e){}
+        // 固定用持卡人自己的 card_id 當 ref，不走 app.js getReferralSourceCode_
         try{
           var u = new URL(BASE_URL);
-          var id = getCurrentCardId();
-          if(id) u.searchParams.set("ref", id);
+          var cardId = getCurrentCardId();
+          if(cardId) u.searchParams.set("ref", cardId);
           return u.toString();
         }catch(e){
           return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
@@ -1187,10 +1183,11 @@
       }
 
       function buildFacadeHubQrUrl(){
+        // 固定用持卡人自己的 card_id 當 ref
         try{
           var u = new URL(BASE_URL);
-          var refCode = (typeof window.__getReferralSourceCode === "function" ? window.__getReferralSourceCode() : "") || getCurrentCardId();
-          if(refCode) u.searchParams.set("ref", refCode);
+          var cardId = getCurrentCardId();
+          if(cardId) u.searchParams.set("ref", cardId);
           return u.toString();
         }catch(e){
           return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
