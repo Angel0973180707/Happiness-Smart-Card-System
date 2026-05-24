@@ -1,11 +1,15 @@
 /**
  * HSC GAS 瀏覽次數統計 v438
  *
- * 使用現有 tracking_log 表記錄瀏覽，action_type = "card_view"
+ * 使用 view_stats_db 表（每日彙整），不寫 tracking_log
+ * → 每張卡每天只有一筆，不會爆表
+ *
+ * view_stats_db 表頭：
+ *   id    view_date    count    updated_at
  *
  * 整合方式：
  *   在 getCardPublicShell_ 的 cache.put 之後、return 之前加：
- *     try { recordCardView_(targetCardId, req); } catch(_e) {}
+ *     try { recordCardView_(targetCardId); } catch(_e) {}
  *
  *   doPost switch 加：
  *     case "getCardViewStats":     result = getCardViewStats_(req);     break;
@@ -13,41 +17,49 @@
  */
 
 // ─────────────────────────────────────────
-//  寫入：記錄一次瀏覽到 tracking_log
+//  寫入：每日累加（不新增列，只更新 count）
 // ─────────────────────────────────────────
-function recordCardView_(cardId, req) {
+function recordCardView_(cardId) {
   if (!cardId) return;
-  req = req || {};
   try {
     var ss    = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-    var sheet = ss.getSheetByName("tracking_log");
+    var sheet = ss.getSheetByName("view_stats_db");
+
+    // 自動建立（第一次使用時）
     if (!sheet) {
-      console.warn("[viewStats] tracking_log 不存在，略過");
-      return;
+      sheet = ss.insertSheet("view_stats_db");
+      sheet.appendRow(["id", "view_date", "count", "updated_at"]);
     }
 
-    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
-                       .map(function(h){ return String(h).trim(); });
+    var today = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd");
+    var data  = sheet.getDataRange().getValues();
+    var h     = data[0].map(function(x){ return String(x).trim(); });
+    var idCol      = h.indexOf("id");
+    var dateCol    = h.indexOf("view_date");
+    var countCol   = h.indexOf("count");
+    var updatedCol = h.indexOf("updated_at");
+    var now        = new Date().toISOString();
 
-    var now = new Date().toISOString();
-    var row = new Array(headers.length).fill("");
-
-    function set(field, val) {
-      var i = headers.indexOf(field);
-      if (i >= 0) row[i] = val;
+    // 找今天這張卡的那一列 → 直接 +1
+    for (var r = 1; r < data.length; r++) {
+      if (String(data[r][idCol])   === String(cardId) &&
+          String(data[r][dateCol]) === today) {
+        var newCount = (Number(data[r][countCol]) || 0) + 1;
+        sheet.getRange(r + 1, countCol + 1).setValue(newCount);
+        if (updatedCol >= 0) {
+          sheet.getRange(r + 1, updatedCol + 1).setValue(now);
+        }
+        return; // 找到就結束，不新增
+      }
     }
 
-    set("tracking_logid", Utilities.getUuid());
-    set("created_at",     now);
-    set("card_id",        cardId);
-    set("action_type",    "card_view");
-    set("device",         sanitizeText_(req.device || req.ua || ""));
-    set("referrer",       sanitizeText_(req.ref    || req.referrer || ""));
-    set("share_source",   sanitizeText_(req.src    || ""));
-    set("tenant",         sanitizeText_(req.tenant || ""));
-    set("is_test",        "FALSE");
-
-    sheet.appendRow(row);
+    // 今天還沒有這張卡的記錄 → 新增一列
+    var newRow = new Array(h.length).fill("");
+    if (idCol      >= 0) newRow[idCol]      = cardId;
+    if (dateCol    >= 0) newRow[dateCol]    = today;
+    if (countCol   >= 0) newRow[countCol]   = 1;
+    if (updatedCol >= 0) newRow[updatedCol] = now;
+    sheet.appendRow(newRow);
 
   } catch(e) {
     console.warn("[viewStats] recordCardView_ 失敗:", e.message);
@@ -61,21 +73,21 @@ function getCardViewStats_(req) {
   var cardId = sanitizeText_(req.card_id || req.cardId || "");
   if (!cardId) throw new Error("card_id 為必填");
 
-  // 簡單驗證：update_token 或 card_id 是否存在
   var card = findRowByField_("card_db", "id", cardId);
   if (!card) throw new Error("Card not found");
+
+  // 驗證 token（有帶才驗）
   var token = sanitizeText_(req.update_token || req.token || "");
   if (token && sanitizeText_(card.update_token) !== token) {
     throw new Error("Token mismatch");
   }
 
-  var stats = _queryViewStats_(cardId);
   return {
     ok: true,
     version: HSC_VERSION,
     action: "getCardViewStats",
     card_id: cardId,
-    stats: stats
+    stats: _queryViewStats_(cardId)
   };
 }
 
@@ -87,6 +99,8 @@ function adminGetAllViewStats_(req) {
   if (!validateAdminKey_(adminKey)) throw new Error("Admin Key 無效");
 
   var cardId = sanitizeText_(req.card_id || "");
+
+  // 查單張
   if (cardId) {
     return {
       ok: true,
@@ -97,24 +111,22 @@ function adminGetAllViewStats_(req) {
     };
   }
 
-  // 所有卡的總覽
+  // 查所有卡的總瀏覽數
   var ss    = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  var sheet = ss.getSheetByName("tracking_log");
+  var sheet = ss.getSheetByName("view_stats_db");
   if (!sheet) return { ok: true, action: "adminGetAllViewStats", summary: [] };
 
   var data    = sheet.getDataRange().getValues();
-  var headers = data[0].map(function(h){ return String(h).trim(); });
-  var cardIdCol    = headers.indexOf("card_id");
-  var actionCol    = headers.indexOf("action_type");
-  var isTestCol    = headers.indexOf("is_test");
+  var h       = data[0].map(function(x){ return String(x).trim(); });
+  var idCol   = h.indexOf("id");
+  var countCol= h.indexOf("count");
 
   var totals = {};
   for (var r = 1; r < data.length; r++) {
-    if (String(data[r][actionCol] || "") !== "card_view") continue;
-    if (String(data[r][isTestCol] || "").toUpperCase() === "TRUE") continue;
-    var id = String(data[r][cardIdCol] || "").trim();
+    var id  = String(data[r][idCol]   || "").trim();
+    var cnt = Number(data[r][countCol]) || 0;
     if (!id) continue;
-    totals[id] = (totals[id] || 0) + 1;
+    totals[id] = (totals[id] || 0) + cnt;
   }
 
   var summary = Object.keys(totals).map(function(id) {
@@ -126,19 +138,18 @@ function adminGetAllViewStats_(req) {
 }
 
 // ─────────────────────────────────────────
-//  內部：計算單張卡統計數字
+//  內部：計算單張卡統計
 // ─────────────────────────────────────────
 function _queryViewStats_(cardId) {
   var ss    = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  var sheet = ss.getSheetByName("tracking_log");
+  var sheet = ss.getSheetByName("view_stats_db");
   if (!sheet) return { total: 0, today: 0, last7days: 0, daily: [] };
 
   var data    = sheet.getDataRange().getValues();
-  var headers = data[0].map(function(h){ return String(h).trim(); });
-  var cardIdCol  = headers.indexOf("card_id");
-  var actionCol  = headers.indexOf("action_type");
-  var createdCol = headers.indexOf("created_at");
-  var isTestCol  = headers.indexOf("is_test");
+  var h       = data[0].map(function(x){ return String(x).trim(); });
+  var idCol   = h.indexOf("id");
+  var dateCol = h.indexOf("view_date");
+  var countCol= h.indexOf("count");
 
   var today    = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd");
   var sevenAgo = Utilities.formatDate(
@@ -146,41 +157,40 @@ function _queryViewStats_(cardId) {
   );
 
   var total = 0, todayCount = 0, last7 = 0;
-  var dailyMap = {};
+  var daily = [];
 
   for (var r = 1; r < data.length; r++) {
-    if (String(data[r][actionCol]  || "") !== "card_view") continue;
-    if (String(data[r][cardIdCol]  || "").trim() !== String(cardId).trim()) continue;
-    if (String(data[r][isTestCol]  || "").toUpperCase() === "TRUE") continue;
-
-    total++;
-
-    var rawDate = String(data[r][createdCol] || "").substring(0, 10); // "2026-05-24"
-    if (rawDate === today)    todayCount++;
-    if (rawDate >= sevenAgo) last7++;
-    dailyMap[rawDate] = (dailyMap[rawDate] || 0) + 1;
+    if (String(data[r][idCol]).trim() !== String(cardId).trim()) continue;
+    var date  = String(data[r][dateCol]  || "").trim();
+    var count = Number(data[r][countCol]) || 0;
+    total += count;
+    if (date === today)    todayCount = count;
+    if (date >= sevenAgo) last7     += count;
+    daily.push({ date: date, count: count });
   }
 
-  var daily = Object.keys(dailyMap).map(function(d) {
-    return { date: d, count: dailyMap[d] };
-  });
   daily.sort(function(a, b) { return a.date > b.date ? -1 : 1; });
 
   return {
     total:     total,
     today:     todayCount,
     last7days: last7,
-    daily:     daily.slice(0, 30)
+    daily:     daily.slice(0, 30)   // 最近 30 天
   };
 }
 
 /*
- * ── getCardPublicShell_ 的 cache.put 之後加 ──
+ * ── 需要做的事 ──
  *
- *   try { recordCardView_(targetCardId, req); } catch(_e) {}
+ * 1. Google Sheets 新增工作表「view_stats_db」，表頭：
+ *    id    view_date    count    updated_at
  *
- * ── doPost switch-case 加這兩段 ──
+ * 2. getCardPublicShell_ 的 cache.put(...) 之後加：
+ *    try { recordCardView_(targetCardId); } catch(_e) {}
  *
- *   case "getCardViewStats":     result = getCardViewStats_(req);     break;
- *   case "adminGetAllViewStats": result = adminGetAllViewStats_(req); break;
+ * 3. doPost switch 加：
+ *    case "getCardViewStats":     result = getCardViewStats_(req);     break;
+ *    case "adminGetAllViewStats": result = adminGetAllViewStats_(req); break;
+ *
+ * 4. 重新部署 v438
  */
