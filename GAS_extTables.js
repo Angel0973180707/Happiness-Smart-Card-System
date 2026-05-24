@@ -76,7 +76,7 @@ function saveOverflowPhotos_(cardId, params) {
     // 如果 sheet 不存在，自動建立
     if (!sheet) {
       sheet = ss.insertSheet("card_photo_ext");
-      sheet.appendRow(["id", "seq", "photo_url", "created_at"]);
+      sheet.appendRow(["id", "seq", "photo_url", "photo_key", "photo_meta_json"]);
       console.log("[extTables] 自動建立 card_photo_ext");
     }
 
@@ -95,11 +95,23 @@ function saveOverflowPhotos_(cardId, params) {
     }
 
     // 寫入新的 overflow 照片（seq 11 以上）
-    var now = new Date().toISOString();
+    // 欄位：id, seq, photo_url, photo_key, photo_meta_json
     for (var i = PHOTO_DB_MAX + 1; i <= PHOTO_EXT_MAX; i++) {
       var photoUrl = String(params["photo" + i + "_url"] || "").trim();
       if (!photoUrl) continue;
-      sheet.appendRow([cardId, i, photoUrl, now]);
+      var photoKey  = String(params["photo" + i + "_key"]       || "").trim();
+      var photoMeta = String(params["photo" + i + "_meta_json"] || "").trim();
+      var newRow = new Array(headers.length).fill("");
+      function setCol(field, val) {
+        var idx = headers.indexOf(field);
+        if (idx >= 0) newRow[idx] = val;
+      }
+      setCol("id",              cardId);
+      setCol("seq",             i);
+      setCol("photo_url",       photoUrl);
+      setCol("photo_key",       photoKey);
+      setCol("photo_meta_json", photoMeta);
+      sheet.appendRow(newRow);
     }
 
     // 清快取
