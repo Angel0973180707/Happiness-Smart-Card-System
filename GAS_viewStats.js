@@ -37,15 +37,15 @@ function recordCardView_(cardId, req) {
       if (i >= 0) row[i] = val;
     }
 
-    set("id",           generateId_("TL"));   // 若無此函式可改 Utilities.getUuid()
-    set("created_at",   now);
-    set("card_id",      cardId);
-    set("action_type",  "card_view");
-    set("device",       sanitizeText_(req.device || req.ua || ""));
-    set("referrer",     sanitizeText_(req.ref    || req.referrer || ""));
-    set("share_source", sanitizeText_(req.src    || ""));
-    set("tenant",       sanitizeText_(req.tenant || ""));
-    set("is_test",      "FALSE");
+    set("tracking_logid", Utilities.getUuid());
+    set("created_at",     now);
+    set("card_id",        cardId);
+    set("action_type",    "card_view");
+    set("device",         sanitizeText_(req.device || req.ua || ""));
+    set("referrer",       sanitizeText_(req.ref    || req.referrer || ""));
+    set("share_source",   sanitizeText_(req.src    || ""));
+    set("tenant",         sanitizeText_(req.tenant || ""));
+    set("is_test",        "FALSE");
 
     sheet.appendRow(row);
 
