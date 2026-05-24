@@ -166,6 +166,9 @@
       renderUpdateAndRenewal(currentItem, rawPayload);
       renderWallet(currentWallet);
 
+      // 非同步載入瀏覽統計（不阻擋主畫面）
+      fetchViewStats(id).then(stats => { if (stats) renderViewStats(stats); }).catch(() => {});
+
       await renderQrLocal(currentCardUrl);
       await renderQrCenterAvatar(getAvatarUrl(currentItem));
 
@@ -439,6 +442,36 @@ function buildRenewalFormUrl(item) {
         el_vc.style.color = "var(--gold-deep)";
         el_vc.style.fontWeight = "900";
       }
+    }
+  }
+
+  // 從 GAS 取得真實瀏覽統計（非同步）
+  async function fetchViewStats(cardId) {
+    try {
+      const data = await callGas({ action: "getCardViewStats", card_id: cardId });
+      return data?.stats || null;
+    } catch(_) {
+      return null;
+    }
+  }
+
+  // 顯示詳細瀏覽統計（覆蓋 renderViewCount 的結果）
+  function renderViewStats(stats) {
+    const el = q("statusViewCount");
+    if (!el || !stats) return;
+    const total = stats.total || 0;
+    const today = stats.today || 0;
+    const last7 = stats.last7days || 0;
+    if (total === 0) {
+      el.textContent = "尚無紀錄";
+      return;
+    }
+    el.innerHTML =
+      `<span style="font-size:1.1em;font-weight:bold">${fmtInt(total)}</span> 次` +
+      `<span style="font-size:0.8em;color:#888;margin-left:8px">今日 ${today} · 近7天 ${last7}</span>`;
+    if (total >= 50) {
+      el.style.color = "var(--gold-deep)";
+      el.style.fontWeight = "900";
     }
   }
 
