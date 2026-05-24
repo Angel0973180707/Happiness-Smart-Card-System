@@ -26,8 +26,9 @@ function saveOverflowCtas_(cardId, params) {
     var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     var sheet = ss.getSheetByName("card_cta_ext");
     if (!sheet) {
-      console.warn("[extTables] card_cta_ext 不存在，略過");
-      return;
+      sheet = ss.insertSheet("card_cta_ext");
+      sheet.appendRow(["id", "seq", "cta_text", "cta_link"]);
+      console.log("[extTables] 自動建立 card_cta_ext");
     }
 
     var data = sheet.getDataRange().getValues();
