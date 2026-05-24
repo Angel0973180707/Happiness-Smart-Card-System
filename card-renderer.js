@@ -1,7 +1,11 @@
 /* ============================================================
    card-renderer.js
    HSC 唯一渲染模組
-   v8.4.3-cta-collapse+photo-limit-buyup+carousel-autoplay-fix
+   v8.4.4-cta-ext-display-fix
+
+   v8.4.4 更新:
+   - getCtaLimitFromPayload：若 payload 實際有超過 limit 的 CTA 資料（來自 card_cta_ext），就顯示實際數量
+   - 修正 cta_limit 為空時只顯示 3 個的問題
 
    v8.4.3 更新:
    - PLAN_LIMITS 保留「預設值」(free 2/1、premium 5/3)
@@ -404,10 +408,23 @@
   }
 
   function getCtaLimitFromPayload(p) {
-    var limit = Number(pick(p, ["cta_limit"]));
-    if (Number.isFinite(limit) && limit > 0 && limit <= CTA_HARD_CAP) return limit;
-    var theme = getEffectiveTheme(p);
-    return PLAN_LIMITS[theme] ? PLAN_LIMITS[theme].maxCtas : PLAN_LIMITS.free.maxCtas;
+    var stored = Number(pick(p, ["cta_limit"]));
+    var limit;
+    if (Number.isFinite(stored) && stored > 0 && stored <= CTA_HARD_CAP) {
+      limit = stored;
+    } else {
+      var theme = getEffectiveTheme(p);
+      limit = PLAN_LIMITS[theme] ? PLAN_LIMITS[theme].maxCtas : PLAN_LIMITS.free.maxCtas;
+    }
+    // ★ v8.4.4-fix：若 payload 裡有超過 limit 的 CTA 實際資料，就顯示全部
+    // （例如 cta_limit 為空但 card_cta_ext 已補入 cta_text_4 等）
+    for (var i = limit + 1; i <= CTA_HARD_CAP; i++) {
+      var lbl = String(pick(p, ["cta_text_" + i]) || "").trim();
+      var lnk = String(pick(p, ["cta_link_" + i]) || "").trim();
+      if (lbl && lnk) { limit = i; }
+      else { break; }
+    }
+    return limit;
   }
 
   function getMarqueeText(p) {

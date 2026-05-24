@@ -1,6 +1,10 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v8.3.5-perf-optimized
+   v8.3.6-cta-ext-fetch-fix
+
+   v8.3.6 更新（基於 v8.3.5）：
+   - renderPersonalCard_：lite fetch 改 GAS 優先（含 card_cta_ext 資料）
+   - _loadLiteInBackground_ 同步（已在 v8.3.5 修正）
 
    效能優化項目（基於 v8.3.4）：
    1. 快取優先渲染（cache-first）
@@ -1037,11 +1041,12 @@ async function renderPersonalCard_(cardId){
   renderShellUiFriendly_(normalizedShell, root);
 
   // ── ★ lite & full 並行發起，不再串行等待 ──
+  // ★ v8.4.4-fix：GAS 優先（含 card_cta_ext / card_photo_ext 資料），靜態 JSON 作 fallback
   const cachedLite = readCardCache_("lite", cardId, CONFIG.CACHE_LITE_MS);
   const liteFetchPromise = cachedLite
     ? Promise.resolve(cachedLite)
-    :fetchJsonRobust_(buildStaticCardUrl_(cardId), { cacheMode: "default" })
-  .catch(() => fetchJsonRobust_(buildCardPublicLiteUrl_(cardId), { cacheMode: "default" }))
+    :fetchJsonRobust_(buildCardPublicLiteUrl_(cardId), { cacheMode: "default" })
+  .catch(() => fetchJsonRobust_(buildStaticCardUrl_(cardId), { cacheMode: "default" }))
         .then(p => {
           const r = extractCardRow_(p);
           if(r && Object.keys(r).length) writeCardCache_("lite", cardId, r);
