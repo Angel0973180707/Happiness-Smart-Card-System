@@ -904,13 +904,15 @@ async function _refreshShellInBackground_(cardId){
 }
 
 // 背景載入 lite，完成後 merge 並補渲染
+// ★ v443+：直接走 GAS getCardPublicLite（含 mergeExtCtas_/mergeExtPhotos_），
+//   不再先讀靜態 JSON（靜態 JSON 不含 card_cta_ext / card_photo_ext 資料）
 async function _loadLiteInBackground_(cardId){
   try{
    let litePayload;
 try {
-  litePayload = await fetchJsonRobust_(buildStaticCardUrl_(cardId), { cacheMode: "default" });
-} catch(_e) {
   litePayload = await fetchJsonRobust_(buildCardPublicLiteUrl_(cardId), { cacheMode: "default" });
+} catch(_e) {
+  litePayload = await fetchJsonRobust_(buildStaticCardUrl_(cardId), { cacheMode: "default" });
 }
     const lite = extractCardRow_(litePayload);
     if(!lite || typeof lite !== "object" || !Object.keys(lite).length) return;
