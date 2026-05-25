@@ -17,7 +17,7 @@
   const VERSION = "v1.4-fixed";
 
   const DEFAULT_GAS =
-    "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+    "https://angel-namecard.letssyncus.com/gas-proxy/exec";
 
   const DEFAULT_BASE =
     "https://angel-namecard.letssyncus.com/";
@@ -784,18 +784,19 @@ function buildRenewalFormUrl(item) {
     const dg     = payload?.delivery_guidance || {};
     const nested = item?.agent || item?.agent_info || item?.delivery_agent || {};
 
-    const pointsLifetime    = toNum(nested?.points_lifetime, NaN);
+    const pointsLifetime     = toNum(nested?.points_lifetime, NaN);
     const pointsFromGuidance = toNum(dg?.points_lifetime, NaN);
 
     return {
-      wallet_mode:  txt(nested?.wallet_mode || item?.wallet_mode),
+      // v451：優先讀 nested（未來擴充用），fallback 到 dg（GAS delivery_guidance）
+      wallet_mode:  txt(nested?.wallet_mode || item?.wallet_mode || dg?.wallet_mode),
       agent_type:   txt(nested?.agent_type  || item?.agent_type),
-      agent_id:     txt(nested?.agent_id || item?.agent_id || item?.service_agent || item?.owner_agent_id),
-      referral_link:txt(nested?.referral_link || item?.referral_link),
-      referral_count:  toNum(nested?.referral_count  ?? item?.referral_count, 0),
-      converted_count: toNum(nested?.converted_count ?? item?.converted_count, 0),
-      commission_monthly: toNum(nested?.commission_monthly ?? item?.commission_monthly, 0),
-      commission_total:   toNum(nested?.commission_total   ?? item?.commission_total, 0),
+      agent_id:     txt(nested?.agent_id || item?.agent_id || item?.service_agent || item?.owner_agent_id || dg?.agent_id),
+      referral_link:txt(nested?.referral_link || item?.referral_link || dg?.referral_link),
+      referral_count:  toNum(nested?.referral_count  ?? item?.referral_count  ?? dg?.referral_count,  0),
+      converted_count: toNum(nested?.converted_count ?? item?.converted_count ?? dg?.converted_count, 0),
+      commission_monthly: toNum(nested?.commission_monthly ?? item?.commission_monthly ?? dg?.commission_monthly, 0),
+      commission_total:   toNum(nested?.commission_total   ?? item?.commission_total   ?? dg?.commission_total,   0),
       member_tier:  txt(dg?.member_tier || nested?.member_tier || item?.member_tier),
       points_lifetime: Number.isFinite(pointsLifetime)
         ? pointsLifetime

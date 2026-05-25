@@ -1346,6 +1346,42 @@ input:focus, textarea:focus, select:focus { outline: none; }
       <div id="schemaStatus" class="result-box" style="min-height:40px;">尚未檢查</div>
     </section>
 
+    <!-- ── 主附卡管理 (v452) ── -->
+    <section id="mainCardSection" class="section">
+      <div class="section-header">
+        <div class="section-title">🔗 主附卡管理</div>
+      </div>
+      <p style="font-size:13px;color:var(--ink3);margin:0 0 14px;">設定卡片的主從關係。附卡的推薦分潤會集中到主卡持卡人，按主卡等級計算。</p>
+
+      <!-- 查詢附卡 -->
+      <div class="form-group">
+        <label class="form-label">輸入主卡卡號，查看附卡列表</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="mainCardQueryId" class="form-control" placeholder="TW0001" style="text-transform:uppercase;max-width:160px;">
+          <button class="btn btn-outline" id="btnQueryAttached">🔍 查詢</button>
+        </div>
+      </div>
+      <div id="attachedCardsList" style="display:none;margin-bottom:16px;">
+        <div class="section-label" style="margin-bottom:6px;">目前附卡列表</div>
+        <div id="attachedCardsTable"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- 設定附卡 -->
+      <div class="section-label" style="margin-bottom:8px;">設定附卡關係</div>
+      <div class="form-group">
+        <label class="form-label">附卡卡號（要掛在主卡下面的卡）</label>
+        <input type="text" id="subCardId" class="form-control" placeholder="TW0110" style="text-transform:uppercase;max-width:160px;">
+      </div>
+      <div class="form-group">
+        <label class="form-label">主卡卡號（空白 = 解除附卡關係）</label>
+        <input type="text" id="mainCardSetId" class="form-control" placeholder="TW0001（空白為解除）" style="text-transform:uppercase;max-width:200px;">
+      </div>
+      <button class="btn btn-primary" id="btnSetMainCard">💾 儲存附卡設定</button>
+      <div id="mainCardResult" class="result-box" style="margin-top:10px;min-height:36px;display:none;"></div>
+    </section>
+
     <!-- ── 批次建卡 ── -->
     <section id="batchCreateSection" class="section">
       <div class="section-header">
@@ -1689,6 +1725,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
       <button class="more-menu-btn" data-section="announcementSection">📢 公告管理</button>
       <button class="more-menu-btn" data-section="trackingSection">📈 追蹤統計</button>
       <button class="more-menu-btn" data-section="systemSection">⚙️ 系統工具</button>
+      <button class="more-menu-btn" data-section="mainCardSection">🔗 主附卡管理</button>
       <button class="more-menu-btn" data-section="batchCreateSection">🏢 批次建卡</button>
     </div>
   </div>

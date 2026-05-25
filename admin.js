@@ -4164,6 +4164,102 @@ function bindInit() {
     if (btnConfirm) btnConfirm.addEventListener("click", confirmBankImport);
   }
 
+  // ── 主附卡管理 (v452) ─────────────────────────────────────────
+  function initMainCardSection() {
+    var btnQuery = document.getElementById("btnQueryAttached");
+    var btnSet   = document.getElementById("btnSetMainCard");
+    if (!btnQuery || !btnSet) return;
+
+    btnQuery.addEventListener("click", async function() {
+      var mainId = (document.getElementById("mainCardQueryId").value || "").trim().toUpperCase();
+      if (!mainId) { alert("請輸入主卡卡號"); return; }
+      btnQuery.disabled = true;
+      btnQuery.textContent = "查詢中…";
+      try {
+        var res = await gasPost("adminGetAttachedCards", { main_card_id: mainId });
+        var wrap  = document.getElementById("attachedCardsList");
+        var table = document.getElementById("attachedCardsTable");
+        if (!res.ok) throw new Error(res.error || "查詢失敗");
+        if (res.cards.length === 0) {
+          table.innerHTML = '<p style="font-size:13px;color:var(--ink3);">目前無附卡</p>';
+        } else {
+          var rows = res.cards.map(function(c) {
+            return '<tr>' +
+              '<td style="padding:5px 8px;">' + c.card_id + '</td>' +
+              '<td style="padding:5px 8px;">' + (c.name||"") + '</td>' +
+              '<td style="padding:5px 8px;">' + (c.unit||"") + '</td>' +
+              '<td style="padding:5px 8px;">' + (c.status||"") + '</td>' +
+              '<td style="padding:5px 8px;">' +
+                '<button class="btn btn-soft btn-sm detach-btn" data-card="' + c.card_id + '">解除</button>' +
+              '</td></tr>';
+          }).join("");
+          table.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
+            '<thead><tr style="background:var(--surface2);">' +
+            '<th style="padding:5px 8px;border-bottom:1px solid var(--border);">卡號</th>' +
+            '<th style="padding:5px 8px;border-bottom:1px solid var(--border);">姓名</th>' +
+            '<th style="padding:5px 8px;border-bottom:1px solid var(--border);">單位</th>' +
+            '<th style="padding:5px 8px;border-bottom:1px solid var(--border);">狀態</th>' +
+            '<th style="padding:5px 8px;border-bottom:1px solid var(--border);">操作</th>' +
+            '</tr></thead><tbody>' + rows + '</tbody></table>';
+          // 解除附卡按鈕
+          table.querySelectorAll(".detach-btn").forEach(function(btn) {
+            btn.addEventListener("click", async function() {
+              var cardId = btn.dataset.card;
+              if (!confirm("確定解除 " + cardId + " 的附卡關係？")) return;
+              btn.disabled = true;
+              try {
+                var r = await gasPost("adminSetCardMainCard", { card_id: cardId, main_card_id: "" });
+                if (r.ok) {
+                  btn.closest("tr").remove();
+                  showMainCardResult("✅ " + cardId + " 已解除附卡關係", true);
+                } else { throw new Error(r.error || "解除失敗"); }
+              } catch(e) {
+                btn.disabled = false;
+                showMainCardResult("❌ " + e.message, false);
+              }
+            });
+          });
+        }
+        wrap.style.display = "block";
+      } catch(e) {
+        alert("❌ " + e.message);
+      } finally {
+        btnQuery.disabled = false;
+        btnQuery.textContent = "🔍 查詢";
+      }
+    });
+
+    btnSet.addEventListener("click", async function() {
+      var subCard  = (document.getElementById("subCardId").value || "").trim().toUpperCase();
+      var mainCard = (document.getElementById("mainCardSetId").value || "").trim().toUpperCase();
+      if (!subCard) { alert("請輸入附卡卡號"); return; }
+      var action = mainCard ? ("將 " + subCard + " 設為 " + mainCard + " 的附卡") : ("解除 " + subCard + " 的附卡關係");
+      if (!confirm(action + "，確定？")) return;
+      btnSet.disabled = true;
+      try {
+        var res = await gasPost("adminSetCardMainCard", { card_id: subCard, main_card_id: mainCard });
+        if (!res.ok) throw new Error(res.error || "設定失敗");
+        showMainCardResult("✅ " + action + " 完成", true);
+        document.getElementById("subCardId").value = "";
+        document.getElementById("mainCardSetId").value = "";
+      } catch(e) {
+        showMainCardResult("❌ " + e.message, false);
+      } finally {
+        btnSet.disabled = false;
+      }
+    });
+  }
+
+  function showMainCardResult(msg, ok) {
+    var el = document.getElementById("mainCardResult");
+    if (!el) return;
+    el.style.display = "block";
+    el.style.color = ok ? "var(--success)" : "var(--danger)";
+    el.textContent = msg;
+  }
+
+  initMainCardSection();
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {
