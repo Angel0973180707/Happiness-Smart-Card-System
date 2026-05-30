@@ -17,8 +17,7 @@
 // 📦 批次交付：查詢某負責人的所有員工卡
 // ─────────────────────────────────────────
 function adminGetCardsByReferrer_(params) {
-  var adminKey = params.admin_key || params.adminKey || "";
-  if (!validateAdminKey_(adminKey)) throw new Error("Admin Key 無效");
+  requireAdminKey_(params);
 
   var referrerId = String(params.referrer_id || "").trim().toUpperCase();
   if (!referrerId) throw new Error("referrer_id 為必填");
@@ -59,8 +58,7 @@ function adminGetCardsByReferrer_(params) {
 // ✏️ 批次更新名片資料
 // ─────────────────────────────────────────
 function adminBatchUpdateCards_(params) {
-  var adminKey = params.admin_key || params.adminKey || "";
-  if (!validateAdminKey_(adminKey)) throw new Error("Admin Key 無效");
+  requireAdminKey_(params);
 
   var cards = params.cards;
   if (!Array.isArray(cards) || !cards.length) throw new Error("cards 為空");
@@ -116,8 +114,7 @@ function adminBatchUpdateCards_(params) {
 // 🔄 批次續約（延長 365 天）
 // ─────────────────────────────────────────
 function adminBatchRenewCards_(params) {
-  var adminKey = params.admin_key || params.adminKey || "";
-  if (!validateAdminKey_(adminKey)) throw new Error("Admin Key 無效");
+  requireAdminKey_(params);
 
   var cards = params.cards;
   if (!Array.isArray(cards) || !cards.length) throw new Error("cards 為空");
@@ -189,6 +186,47 @@ function adminBatchRenewCards_(params) {
       results.push({ card_id: cardId, ok: false, error: err.message });
     }
   });
+
+  return { ok: true, results: results };
+}
+
+// ─────────────────────────────────────────
+// 💳 批次直接確認付款
+// params: { cards: [{card_id, amount, note}], admin_key }
+// ─────────────────────────────────────────
+function adminBatchDirectConfirmPayment_(params) {
+  requireAdminKey_(params);
+
+  var cards = params.cards;
+  if (!Array.isArray(cards) || !cards.length) throw new Error("cards 為空");
+
+  var results = [];
+
+  cards.forEach(function(card) {
+    var cardId = String(card.card_id || "").trim().toUpperCase();
+    if (!cardId) { results.push({ card_id: cardId, ok: false, error: "card_id 為空" }); return; }
+    try {
+      var res = adminDirectConfirmPayment_({
+        admin_key:   params.admin_key,
+        cardId:      cardId,
+        amount:      Number(card.amount) || 0,
+        note:        String(card.note || "批次確認付款"),
+        paymentType: "first_payment"
+      });
+      results.push({ card_id: cardId, ok: res.ok !== false, error: res.error || "" });
+    } catch(err) {
+      results.push({ card_id: cardId, ok: false, error: err.message });
+    }
+  });
+
+  // 清快取
+  try {
+    CacheService.getScriptCache().removeAll([
+      "hsc:sheet_rows:card_db",
+      "hsc:sheet_rows:payment_db",
+      "hsc:sheet_rows:payment_inbox_db"
+    ]);
+  } catch(_) {}
 
   return { ok: true, results: results };
 }

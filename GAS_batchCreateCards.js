@@ -15,10 +15,7 @@
  * @param {Object} params - { cards: Array, admin_key: string }
  */
 function adminBatchCreateCards_(params) {
-  var adminKey = params.admin_key || params.adminKey || "";
-  if (!validateAdminKey_(adminKey)) {
-    throw new Error("Admin Key 無效");
-  }
+  requireAdminKey_(params);
 
   var cards = params.cards;
   if (!Array.isArray(cards) || cards.length === 0) {
@@ -150,12 +147,14 @@ function adminBatchCreateCards_(params) {
     });
   }
 
-  // 清快取
+  // 清快取（個別卡 + card_db 整體）
   try {
     var cache = CacheService.getScriptCache();
+    var keysToRemove = ["hsc:sheet_rows:card_db", "hsc:sheet_rows:card_cta_ext"];
     results.filter(function(r) { return r.ok; }).forEach(function(r) {
-      try { cache.remove("card_" + r.card_id); } catch(_) {}
+      keysToRemove.push("card_" + r.card_id);
     });
+    cache.removeAll(keysToRemove);
   } catch(_) {}
 
   return { ok: true, results: results };

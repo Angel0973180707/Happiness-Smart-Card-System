@@ -16,8 +16,7 @@
 // 🔍 查詢某張卡的所有 CTA
 // ─────────────────────────────────────────
 function adminGetCardCtas_(params) {
-  var adminKey = params.admin_key || params.adminKey || "";
-  if (!validateAdminKey_(adminKey)) throw new Error("Admin Key 無效");
+  requireAdminKey_(params);
 
   var cardId = String(params.card_id || "").trim().toUpperCase();
   if (!cardId) throw new Error("card_id 為必填");
@@ -55,8 +54,7 @@ function adminGetCardCtas_(params) {
 // 💾 整批儲存（取代該卡所有 CTA）
 // ─────────────────────────────────────────
 function adminSetCardCtas_(params) {
-  var adminKey = params.admin_key || params.adminKey || "";
-  if (!validateAdminKey_(adminKey)) throw new Error("Admin Key 無效");
+  requireAdminKey_(params);
 
   var cardId = String(params.card_id || "").trim().toUpperCase();
   if (!cardId) throw new Error("card_id 為必填");

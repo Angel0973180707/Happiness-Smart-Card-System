@@ -1485,6 +1485,17 @@ input:focus, textarea:focus, select:focus { outline: none; }
         </div>
         <div id="batchLogList" style="max-height:280px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;font-family:monospace;line-height:1.9;"></div>
         <button class="btn btn-soft btn-sm" id="btnExportBatchResult" style="margin-top:8px;display:none;">📥 下載建立結果 Excel</button>
+        <!-- 批次確認付款 -->
+        <div id="batchConfirmPayWrap" style="display:none;margin-top:14px;padding:12px;background:var(--primary-bg);border:1.5px solid var(--primary);border-radius:var(--radius-sm);">
+          <div style="font-weight:700;color:var(--primary);margin-bottom:8px;font-size:13px;">💳 批次確認付款</div>
+          <div style="font-size:12px;color:var(--ink2);margin-bottom:8px;">幫剛建立的所有卡片確認付款。填統一金額，或填 0 表示贈送。</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="number" id="batchConfirmAmount" placeholder="統一金額（NT$，0=贈送）" min="0" style="flex:1;min-width:180px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+            <input type="text" id="batchConfirmNote" placeholder="備註（選填）" style="flex:1;min-width:140px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+            <button class="btn btn-primary btn-sm" id="btnBatchConfirmPay">✅ 全部確認付款</button>
+          </div>
+          <div id="batchConfirmPayStatus" style="font-size:12px;color:var(--ink2);margin-top:6px;"></div>
+        </div>
       </div>
 
       <!-- ══════════════════════════════════════ -->

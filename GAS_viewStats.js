@@ -95,8 +95,7 @@ function getCardViewStats_(req) {
 //  查詢：後台用（需 admin_key）
 // ─────────────────────────────────────────
 function adminGetAllViewStats_(req) {
-  var adminKey = sanitizeText_(req.admin_key || req.adminKey || "");
-  if (!validateAdminKey_(adminKey)) throw new Error("Admin Key 無效");
+  requireAdminKey_(req);
 
   var cardId = sanitizeText_(req.card_id || "");
 

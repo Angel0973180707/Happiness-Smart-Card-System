@@ -130,6 +130,24 @@
     return v;
   }
 
+  // 個人 LINE → 加好友格式 https://line.me/ti/p/~{id}
+  function toLinePersonalUrl(raw) {
+    var v = String(raw || "").trim();
+    if (!v) return "";
+    if (/^(https?:\/\/|line:\/\/)/i.test(v)) return v;
+    if (/^~/.test(v)) return "https://line.me/ti/p/" + v;
+    return "https://line.me/ti/p/~" + v;
+  }
+
+  // LINE OA → 加入官方帳號格式 https://line.me/R/ti/p/@{id}
+  function toLineOaUrl(raw) {
+    var v = String(raw || "").trim();
+    if (!v) return "";
+    if (/^https?:\/\//i.test(v)) return v;
+    if (/^@/.test(v)) return "https://line.me/R/ti/p/" + v;
+    return "https://line.me/R/ti/p/@" + v;
+  }
+
   function isDataUrl(url) {
     return typeof url === "string" && url.startsWith("data:");
   }
@@ -942,15 +960,25 @@
     var phone    = pick(p, ["phone", "電話"]);
     var email    = pick(p, ["email", "Email"]);
     var address  = pick(p, ["address", "地址"]);
-    var lineUrl  = normalizeUrl(pick(p, ["line_url", "line_oa", "LINE連結"]));
+    var linePersonalUrl = toLinePersonalUrl(text(pick(p, ["line_url"])));
+    var lineOaUrl       = toLineOaUrl(text(pick(p, ["line_oa"])));
     var wechatId = text(pick(p, ["wechat_id", "wechat", "微信ID", "微信"]));
     var allowActions = options.allowActions !== false;
     var list = [];
 
-    if (lineUrl) {
-      list.push(createDockBtn("私訊 LINE", "fa-brands fa-line", "dock-line", function () {
-        if (allowActions) openUrl(lineUrl);
-      }));
+    if (linePersonalUrl) {
+      (function (u) {
+        list.push(createDockBtn("加 LINE 好友", "fa-brands fa-line", "dock-line", function () {
+          if (allowActions) openUrl(u);
+        }));
+      })(linePersonalUrl);
+    }
+    if (lineOaUrl) {
+      (function (u) {
+        list.push(createDockBtn("加入官方帳號", "fa-brands fa-line", "dock-line", function () {
+          if (allowActions) openUrl(u);
+        }));
+      })(lineOaUrl);
     }
     if (wechatId) {
       list.push(createDockBtn("微信ID", "fa-brands fa-weixin", "dock-web", function () {

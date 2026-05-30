@@ -21,8 +21,7 @@
  * params.entries = [{ date, amount, last5, note }]
  */
 function adminBatchBankMatch_(params) {
-  var adminKey = params.admin_key || params.adminKey || "";
-  if (!validateAdminKey_(adminKey)) throw new Error("Admin Key 無效");
+  requireAdminKey_(params);
 
   var entries = params.entries;
   if (!Array.isArray(entries) || !entries.length) throw new Error("entries 為空");
@@ -129,8 +128,7 @@ function adminBatchBankMatch_(params) {
  * params.entries = [{ date, amount, last5, note, card_id }]
  */
 function adminConfirmBankImport_(params) {
-  var adminKey = params.admin_key || params.adminKey || "";
-  if (!validateAdminKey_(adminKey)) throw new Error("Admin Key 無效");
+  requireAdminKey_(params);
 
   var entries = params.entries;
   if (!Array.isArray(entries) || !entries.length) throw new Error("entries 為空");

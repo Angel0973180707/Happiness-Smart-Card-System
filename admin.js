@@ -3057,6 +3057,8 @@ function bindInit() {
     btn.disabled = false;
     btn.textContent = "🚀 開始批次建卡";
     document.getElementById("btnExportBatchResult").style.display = "";
+    const confirmWrap = document.getElementById("batchConfirmPayWrap");
+    if (confirmWrap && batchResults.some(r => r.ok)) confirmWrap.style.display = "";
   }
 
   // ── 匯出結果 ──
@@ -3119,6 +3121,32 @@ function bindInit() {
       if (!batchCards.length) { showToast("⚠️ 請先上傳 Excel"); return; }
       if (!confirm(`確定要批次建立 ${batchCards.length} 張卡片嗎？\n\n此操作不可復原，請確認預覽無誤後再執行。`)) return;
       startBatch(batchCards);
+    });
+
+    // ── 💳 批次確認付款 ──
+    const confirmPayBtn = document.getElementById("btnBatchConfirmPay");
+    if (confirmPayBtn) confirmPayBtn.addEventListener("click", async () => {
+      if (!batchResults.length) { showToast("⚠️ 請先完成批次建卡"); return; }
+      const successCards = batchResults.filter(r => r.ok && r.card_id);
+      if (!successCards.length) { showToast("⚠️ 沒有成功建立的卡片"); return; }
+      const amount = Number(document.getElementById("batchConfirmAmount")?.value) || 0;
+      const note   = (document.getElementById("batchConfirmNote")?.value || "批次確認付款").trim();
+      const statusEl = document.getElementById("batchConfirmPayStatus");
+      if (!confirm(`確定要幫 ${successCards.length} 張卡確認付款（每張 NT$${amount}）？`)) return;
+      confirmPayBtn.disabled = true;
+      if (statusEl) statusEl.textContent = "⏳ 確認中…";
+      try {
+        const cards = successCards.map(r => ({ card_id: r.card_id, amount, note }));
+        const res = await gasPost("adminBatchDirectConfirmPayment", { cards });
+        const results = Array.isArray(res) ? res : (res?.results || []);
+        const ok  = results.filter(r => r.ok).length;
+        const err = results.filter(r => !r.ok);
+        if (statusEl) statusEl.textContent = `✅ 成功 ${ok} 張${err.length ? `，失敗 ${err.length} 張：` + err.map(r => r.card_id + "(" + r.error + ")").join("、") : ""}`;
+        showToast(`✅ 批次付款確認完成：${ok} 張成功`);
+      } catch(err) {
+        if (statusEl) statusEl.textContent = "❌ " + err.message;
+        showToast("❌ 批次付款確認失敗：" + err.message);
+      } finally { confirmPayBtn.disabled = false; }
     });
 
     // collapsible (建卡格式說明)
