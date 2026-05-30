@@ -1451,6 +1451,62 @@ input:focus, textarea:focus, select:focus { outline: none; }
         </div>
       </div>
 
+      <!-- ── 🤖 AI 協作建卡轉換 ── -->
+      <div class="collapsible" id="aiConvertCollapsible" style="margin-bottom:12px;">
+        <div class="collapsible-head" id="aiConvertHead">
+          <span>🤖 AI 協作建卡轉換（客戶資料 → 直接載入）</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="collapsible-body" style="display:none;padding-top:10px;">
+          <div style="font-size:12px;color:var(--ink3);margin-bottom:12px;line-height:1.7;">
+            貼上客戶給的任何格式資料 → 系統產生 Claude 指令 → 貼給 Claude → 把回傳的 JSON 貼回來 → 直接載入建卡，同時存為主檔（供批次更新／續約使用）
+          </div>
+
+          <!-- ① 原始資料 -->
+          <div style="margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--primary);">① 貼上客戶提供的原始資料（任何格式）</div>
+            <textarea id="aiRawInput" rows="5" placeholder="可以是 LINE 訊息、Excel 複製貼上、逐行名單…任何格式都行"
+              style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);resize:vertical;box-sizing:border-box;"></textarea>
+            <button class="btn btn-primary btn-sm" id="btnGenPrompt" style="margin-top:6px;">📋 產生 Claude 指令</button>
+          </div>
+
+          <!-- ② 複製指令 -->
+          <div id="aiStep2" style="display:none;margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--primary);">② 複製下面這段指令，貼給 Claude</div>
+            <textarea id="aiPromptOutput" rows="7" readonly
+              style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11px;background:var(--surface2);resize:vertical;box-sizing:border-box;font-family:monospace;"></textarea>
+            <button class="btn btn-outline btn-sm" id="btnCopyPrompt" style="margin-top:6px;">📋 一鍵複製</button>
+          </div>
+
+          <!-- ③ 貼回 JSON -->
+          <div id="aiStep3" style="display:none;margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--primary);">③ 把 Claude 回傳的 JSON 貼到這裡</div>
+            <textarea id="aiJsonInput" rows="5" placeholder='[{"type":"負責人","name":"王小明",...},...]'
+              style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);resize:vertical;box-sizing:border-box;font-family:monospace;"></textarea>
+            <button class="btn btn-primary btn-sm" id="btnParseJson" style="margin-top:6px;">🔍 解析預覽</button>
+          </div>
+
+          <!-- 預覽 + 動作 -->
+          <div id="aiPreviewWrap" style="display:none;margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+              <span style="font-size:13px;font-weight:700;" id="aiPreviewTitle">預覽</span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-soft btn-sm" id="btnDownloadAiExcel">📥 下載 Excel</button>
+                <button class="btn btn-primary btn-sm" id="btnSaveAiMaster">💾 儲存主檔並載入建卡</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;max-height:220px;overflow-y:auto;">
+              <table style="width:100%;font-size:11px;border-collapse:collapse;min-width:500px;">
+                <thead id="aiPreviewHead" style="background:var(--surface2);position:sticky;top:0;"></thead>
+                <tbody id="aiPreviewBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="aiConvertStatus" style="font-size:12px;color:var(--ink2);min-height:18px;"></div>
+        </div>
+      </div>
+
       <!-- 上傳按鈕 -->
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
         <button class="btn btn-soft btn-sm" id="btnDownloadBatchTemplate">📥 下載 Excel 範本</button>
@@ -1500,7 +1556,10 @@ input:focus, textarea:focus, select:focus { outline: none; }
 
       <!-- ══════════════════════════════════════ -->
       <hr style="border:none;border-top:2px solid var(--border);margin:20px 0 16px;">
-      <div style="font-weight:900;font-size:14px;margin-bottom:12px;color:var(--ink1);">其他批次操作</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
+        <div style="font-weight:900;font-size:14px;color:var(--ink1);">其他批次操作</div>
+        <div id="masterFileStatus" style="font-size:11px;color:var(--ink3);"></div>
+      </div>
 
       <!-- ── 📦 批次交付連結匯出 ── -->
       <div class="collapsible" id="batchDeliveryCollapsible" style="margin-bottom:10px;">
@@ -1538,6 +1597,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
               📤 上傳 Excel
               <input type="file" id="updateExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
             </label>
+            <button class="btn btn-soft btn-sm" id="btnLoadMasterForUpdate">📂 載入主檔</button>
           </div>
           <div id="updatePreviewWrap" style="display:none;margin-bottom:10px;">
             <div id="updateSummary" style="padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;margin-bottom:6px;"></div>
@@ -1575,6 +1635,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
               📤 上傳 Excel
               <input type="file" id="renewExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
             </label>
+            <button class="btn btn-soft btn-sm" id="btnLoadMasterForRenew">📂 載入主檔</button>
           </div>
           <div id="renewPreviewWrap" style="display:none;margin-bottom:10px;">
             <div id="renewSummary" style="padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;margin-bottom:6px;"></div>

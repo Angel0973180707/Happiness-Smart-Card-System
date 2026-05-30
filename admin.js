@@ -3059,6 +3059,22 @@ function bindInit() {
     document.getElementById("btnExportBatchResult").style.display = "";
     const confirmWrap = document.getElementById("batchConfirmPayWrap");
     if (confirmWrap && batchResults.some(r => r.ok)) confirmWrap.style.display = "";
+
+    // 建卡完成 → 存主檔（含 card_id）
+    try {
+      const masterData = batchCards.map((c, i) => {
+        const r = batchResults[i] || {};
+        return Object.assign({}, c, { card_id: r.ok ? (r.card_id || "") : "" });
+      });
+      localStorage.setItem("hsc_batch_master", JSON.stringify({
+        data: masterData,
+        saved_at: new Date().toISOString(),
+        source: "batch_create",
+        success: batchResults.filter(r => r.ok).length
+      }));
+      const statusEl = document.getElementById("masterFileStatus");
+      if (statusEl) statusEl.textContent = "📋 主檔已儲存（" + masterData.length + " 筆，" + new Date().toLocaleString("zh-TW") + "）";
+    } catch(_) {}
   }
 
   // ── 匯出結果 ──
@@ -3086,6 +3102,30 @@ function bindInit() {
 
     if (dlBtn) dlBtn.addEventListener("click", downloadTemplate);
     if (exportBtn) exportBtn.addEventListener("click", exportResults);
+
+    // 允許外部（AI轉換模組）直接載入資料
+    window._hscBatchLoad = function(cards) {
+      const { errors, normalized } = validateRows(cards);
+      if (errors.length) { alert("資料有問題：\n" + errors.join("\n")); return false; }
+      batchCards = normalized;
+      renderPreview(batchCards);
+      document.getElementById("batchCreateSection")?.scrollIntoView({ behavior: "smooth" });
+      showToast("✅ 已從 AI 轉換載入 " + batchCards.length + " 筆");
+      return true;
+    };
+
+    // 顯示主檔狀態
+    try {
+      const stored = localStorage.getItem("hsc_batch_master");
+      if (stored) {
+        const m = JSON.parse(stored);
+        const statusEl = document.getElementById("masterFileStatus");
+        if (statusEl && m.saved_at) {
+          const d = new Date(m.saved_at).toLocaleString("zh-TW");
+          statusEl.textContent = "📋 主檔：" + (m.data||[]).length + " 筆，存於 " + d;
+        }
+      }
+    } catch(_) {}
 
     if (clearBtn) clearBtn.addEventListener("click", () => {
       batchCards = []; batchResults = [];
@@ -3207,6 +3247,28 @@ function bindInit() {
     const startUpdateBtn = document.getElementById("btnStartBatchUpdate");
     let updateCards = [];
 
+    const loadMasterUpdateBtn = document.getElementById("btnLoadMasterForUpdate");
+    if (loadMasterUpdateBtn) loadMasterUpdateBtn.addEventListener("click", function() {
+      try {
+        const stored = localStorage.getItem("hsc_batch_master");
+        if (!stored) { showToast("⚠️ 找不到主檔，請先執行批次建卡或 AI 轉換"); return; }
+        const master = JSON.parse(stored);
+        const valid = (master.data || []).filter(c => c.card_id);
+        if (!valid.length) { showToast("⚠️ 主檔中沒有已建立的卡片（card_id）"); return; }
+        updateCards = valid.map(c => ({
+          card_id: c.card_id, name: c.name || "", title: c.title || "",
+          company: c.company || "", phone: c.phone || "", email: c.email || "",
+          line_id: c.line_id || "", avatar_url: c.avatar_url || "", color: c.color || ""
+        }));
+        renderSimplePreview("updatePreviewWrap","updateSummary","updatePreviewHead","updatePreviewBody","updateActions",
+          updateCards, ["card_id","name","title","company","phone","color","avatar_url"],
+          "共 " + updateCards.length + " 筆更新（主檔）");
+        const b = document.querySelector("#batchUpdateCollapsible .collapsible-body");
+        if (b) b.style.display = "";
+        showToast("✅ 已載入主檔 " + updateCards.length + " 筆");
+      } catch(err) { showToast("❌ 載入主檔失敗：" + err.message); }
+    });
+
     if (dlUpdateBtn) dlUpdateBtn.addEventListener("click", () => downloadUpdateTemplate());
     if (updateInput) updateInput.addEventListener("change", async function(e) {
       const file = e.target.files?.[0]; if (!file) return;
@@ -3234,6 +3296,24 @@ function bindInit() {
     const renewInput = document.getElementById("renewExcelInput");
     const startRenewBtn = document.getElementById("btnStartBatchRenew");
     let renewCards = [];
+
+    const loadMasterRenewBtn = document.getElementById("btnLoadMasterForRenew");
+    if (loadMasterRenewBtn) loadMasterRenewBtn.addEventListener("click", function() {
+      try {
+        const stored = localStorage.getItem("hsc_batch_master");
+        if (!stored) { showToast("⚠️ 找不到主檔，請先執行批次建卡或 AI 轉換"); return; }
+        const master = JSON.parse(stored);
+        const valid = (master.data || []).filter(c => c.card_id);
+        if (!valid.length) { showToast("⚠️ 主檔中沒有已建立的卡片（card_id）"); return; }
+        renewCards = valid.map(c => ({ card_id: c.card_id, price: c.price || 0 }));
+        renderSimplePreview("renewPreviewWrap","renewSummary","renewPreviewHead","renewPreviewBody","renewActions",
+          renewCards, ["card_id","price"],
+          "共 " + renewCards.length + " 張卡待續約（主檔）");
+        const b = document.querySelector("#batchRenewCollapsible .collapsible-body");
+        if (b) b.style.display = "";
+        showToast("✅ 已載入主檔 " + renewCards.length + " 筆");
+      } catch(err) { showToast("❌ 載入主檔失敗：" + err.message); }
+    });
 
     if (dlRenewBtn) dlRenewBtn.addEventListener("click", () => downloadRenewTemplate());
     if (renewInput) renewInput.addEventListener("change", async function(e) {
@@ -4284,6 +4364,200 @@ function bindInit() {
   }
 
   initMainCardSection();
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+
+// ═══════════════════════════════════════════════════════════
+// 🤖 AI 協作建卡轉換模組
+// ═══════════════════════════════════════════════════════════
+(function() {
+  "use strict";
+
+  var parsedCards = null;
+
+  var PROMPT_TEMPLATE = [
+    "你是資料轉換助手。請把下方「客戶資料」轉換為 JSON 陣列，用於建立幸福智慧名片。",
+    "",
+    "輸出格式：JSON 陣列，每筆物件包含以下欄位（沒有的資料填空字串 \"\"）：",
+    "[",
+    "  {",
+    "    \"type\": \"負責人 或 員工\",",
+    "    \"name\": \"姓名（必填）\",",
+    "    \"title\": \"職稱\",",
+    "    \"company\": \"公司名稱\",",
+    "    \"phone\": \"手機號碼\",",
+    "    \"email\": \"電子信箱\",",
+    "    \"line_id\": \"LINE ID（如果有 @ 開頭是官方帳號也照填）\",",
+    "    \"avatar_url\": \"\",",
+    "    \"plan\": \"premium\",",
+    "    \"color\": \"\",",
+    "    \"region\": \"\",",
+    "    \"price\": 0",
+    "  }",
+    "]",
+    "",
+    "規則：",
+    "1. 第一個人設 type=\"負責人\"，其餘設 type=\"員工\"",
+    "2. 若資料中有明確說明職位為主管、負責人、老闆，設為 type=\"負責人\"",
+    "3. avatar_url、color、region 全部填 \"\"（空字串）",
+    "4. plan 全部填 \"premium\"",
+    "5. price 全部填數字 0（不加引號）",
+    "6. 只輸出 JSON 陣列本身，不加任何說明文字，不加 markdown 程式碼標記",
+    "",
+    "客戶資料：",
+    "===",
+    "{RAW_DATA}",
+    "==="
+  ].join("\n");
+
+  function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function setStatus(msg, ok) {
+    var el = document.getElementById("aiConvertStatus");
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = ok === false ? "#e55" : (ok === true ? "var(--primary)" : "var(--ink2)");
+  }
+
+  function renderPreview(data) {
+    var wrap  = document.getElementById("aiPreviewWrap");
+    var head  = document.getElementById("aiPreviewHead");
+    var body  = document.getElementById("aiPreviewBody");
+    var title = document.getElementById("aiPreviewTitle");
+    if (!wrap || !head || !body) return;
+
+    if (title) title.textContent = "預覽（共 " + data.length + " 筆）";
+
+    var cols = ["#","type","name","title","company","phone","email"];
+    head.innerHTML = "<tr>" + cols.map(function(c) {
+      return "<th style='padding:5px 8px;text-align:left;border:1px solid var(--border);white-space:nowrap;font-size:11px;'>" + c + "</th>";
+    }).join("") + "</tr>";
+
+    body.innerHTML = data.map(function(c, i) {
+      var bg = c.type === "負責人" ? "background:#fff8e8;" : "";
+      var vals = [i+1, "<strong>" + esc(c.type||"") + "</strong>",
+        esc(c.name||""), esc(c.title||"-"), esc(c.company||"-"),
+        esc(c.phone||"-"), esc(c.email||"-")];
+      return "<tr style='" + bg + "'>" + vals.map(function(v) {
+        return "<td style='padding:4px 8px;border:1px solid var(--border);font-size:11px;'>" + v + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+
+    wrap.style.display = "";
+  }
+
+  function downloadExcel() {
+    if (!parsedCards || !parsedCards.length) { setStatus("請先解析 JSON", false); return; }
+    if (!window.XLSX) { setStatus("❌ XLSX 未載入", false); return; }
+    var headers = ["type","name","title","company","phone","email","line_id","avatar_url","plan","color","region","price"];
+    var rows = [headers].concat(parsedCards.map(function(c) {
+      return headers.map(function(k) { return c[k] !== undefined ? c[k] : ""; });
+    }));
+    var ws = window.XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [8,12,10,12,12,18,12,30,8,6,6,6].map(function(w) { return { wch: w }; });
+    var wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, ws, "批次建卡");
+    window.XLSX.writeFile(wb, "HSC批次建卡_AI轉換.xlsx");
+  }
+
+  function saveMasterInput(data) {
+    try {
+      localStorage.setItem("hsc_batch_master", JSON.stringify({
+        data: data.map(function(c) { return Object.assign({}, c, { card_id: "" }); }),
+        saved_at: new Date().toISOString(),
+        source: "ai_convert"
+      }));
+      var statusEl = document.getElementById("masterFileStatus");
+      if (statusEl) statusEl.textContent = "📋 主檔已儲存（" + data.length + " 筆，待建卡）";
+    } catch(_) {}
+  }
+
+  function init() {
+    var head = document.getElementById("aiConvertHead");
+    var body = document.getElementById("aiConvertBody") ||
+               (head && head.closest(".collapsible") && head.closest(".collapsible").querySelector(".collapsible-body"));
+    if (!head) return;
+
+    // Collapsible
+    head.addEventListener("click", function() {
+      if (!body) return;
+      var open = body.style.display !== "none";
+      body.style.display = open ? "none" : "";
+      var ch = head.querySelector(".chevron");
+      if (ch) ch.style.transform = open ? "" : "rotate(90deg)";
+    });
+
+    // ① 產生 Claude 指令
+    var btnGen = document.getElementById("btnGenPrompt");
+    if (btnGen) btnGen.addEventListener("click", function() {
+      var raw = ((document.getElementById("aiRawInput") || {}).value || "").trim();
+      if (!raw) { setStatus("請先貼上客戶資料", false); return; }
+      var prompt = PROMPT_TEMPLATE.replace("{RAW_DATA}", raw);
+      var out = document.getElementById("aiPromptOutput");
+      if (out) out.value = prompt;
+      var s2 = document.getElementById("aiStep2");
+      var s3 = document.getElementById("aiStep3");
+      if (s2) s2.style.display = "";
+      if (s3) s3.style.display = "";
+      setStatus("✅ 指令已產生，請複製後貼給 Claude", true);
+    });
+
+    // ② 複製指令
+    var btnCopy = document.getElementById("btnCopyPrompt");
+    if (btnCopy) btnCopy.addEventListener("click", function() {
+      var out = document.getElementById("aiPromptOutput");
+      if (!out) return;
+      navigator.clipboard.writeText(out.value).then(function() {
+        btnCopy.textContent = "✅ 已複製！";
+        setTimeout(function() { btnCopy.textContent = "📋 一鍵複製"; }, 2500);
+      });
+    });
+
+    // ③ 解析 Claude JSON
+    var btnParse = document.getElementById("btnParseJson");
+    if (btnParse) btnParse.addEventListener("click", function() {
+      var json = ((document.getElementById("aiJsonInput") || {}).value || "").trim();
+      if (!json) { setStatus("請貼上 Claude 回傳的 JSON", false); return; }
+
+      var match = json.match(/\[[\s\S]*\]/);
+      if (!match) { setStatus("❌ 找不到 JSON 陣列，請確認 Claude 有正確輸出（需要 [ ] 包起來的格式）", false); return; }
+
+      var data;
+      try { data = JSON.parse(match[0]); }
+      catch(err) { setStatus("❌ JSON 格式有誤：" + err.message, false); return; }
+
+      if (!Array.isArray(data) || !data.length) { setStatus("❌ 資料是空的", false); return; }
+
+      parsedCards = data;
+      renderPreview(data);
+      setStatus("✅ 解析成功，共 " + data.length + " 筆。確認無誤後按「儲存主檔並載入建卡」", true);
+    });
+
+    // 下載 Excel
+    var btnDl = document.getElementById("btnDownloadAiExcel");
+    if (btnDl) btnDl.addEventListener("click", downloadExcel);
+
+    // 儲存主檔並載入建卡
+    var btnSave = document.getElementById("btnSaveAiMaster");
+    if (btnSave) btnSave.addEventListener("click", function() {
+      if (!parsedCards || !parsedCards.length) { setStatus("請先解析 Claude 回傳的 JSON", false); return; }
+      saveMasterInput(parsedCards);
+      if (window._hscBatchLoad) {
+        var ok = window._hscBatchLoad(parsedCards);
+        if (ok) setStatus("✅ 主檔已儲存，建卡預覽已載入！往下捲動確認預覽，再按「開始批次建卡」", true);
+      } else {
+        downloadExcel();
+        setStatus("✅ 主檔已儲存，Excel 已下載，請至建卡區上傳", true);
+      }
+    });
+  }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
