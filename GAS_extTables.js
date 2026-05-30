@@ -56,8 +56,7 @@ function saveOverflowCtas_(cardId, params) {
 
     // 清快取（card_cta_ext 資料異動）
     try {
-      var cache = CacheService.getScriptCache();
-      cache.remove("sheet_card_cta_ext");
+      CacheService.getScriptCache().remove("hsc:sheet_rows:card_cta_ext");
     } catch(_) {}
 
     console.log("[extTables] saveOverflowCtas_ 完成，cardId=" + cardId);
@@ -117,8 +116,7 @@ function saveOverflowPhotos_(cardId, params) {
 
     // 清快取
     try {
-      var cache = CacheService.getScriptCache();
-      cache.remove("sheet_card_photo_ext");
+      CacheService.getScriptCache().remove("hsc:sheet_rows:card_photo_ext");
     } catch(_) {}
 
     console.log("[extTables] saveOverflowPhotos_ 完成，cardId=" + cardId);

@@ -1,7 +1,10 @@
 /* ============================================================
    card-renderer.js
    HSC 唯一渲染模組
-   v8.4.4-cta-ext-display-fix
+   v8.4.5-cta-stability
+
+   v8.4.5 更新:
+   - getCtaLimitFromPayload：掃描邏輯改為全範圍掃描，遇空隙不中斷，確保所有 CTA 都被找到
 
    v8.4.4 更新:
    - getCtaLimitFromPayload：若 payload 實際有超過 limit 的 CTA 資料（來自 card_cta_ext），就顯示實際數量
@@ -434,13 +437,11 @@
       var theme = getEffectiveTheme(p);
       limit = PLAN_LIMITS[theme] ? PLAN_LIMITS[theme].maxCtas : PLAN_LIMITS.free.maxCtas;
     }
-    // ★ v8.4.4-fix：若 payload 裡有超過 limit 的 CTA 實際資料，就顯示全部
-    // （例如 cta_limit 為空但 card_cta_ext 已補入 cta_text_4 等）
+    // v8.4.5：掃描全範圍找到最後一個有資料的位置，不因空隙中斷
     for (var i = limit + 1; i <= CTA_HARD_CAP; i++) {
       var lbl = String(pick(p, ["cta_text_" + i]) || "").trim();
       var lnk = String(pick(p, ["cta_link_" + i]) || "").trim();
-      if (lbl && lnk) { limit = i; }
-      else { break; }
+      if (lbl && lnk) limit = i;
     }
     return limit;
   }
@@ -1649,7 +1650,7 @@
     renderShell:             renderShell,
     mergeLite:               mergeLite,
     mergeCardData:           mergeCardData,
-    version: "HSC-card-renderer-v8.4.3-cta-collapse+photo-limit-buyup+carousel-autoplay-fix"
+    version: "HSC-card-renderer-v8.4.5-cta-stability"
   };
 
   global.HscCardRenderer  = api;
