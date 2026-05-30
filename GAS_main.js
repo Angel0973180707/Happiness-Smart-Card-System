@@ -20377,14 +20377,16 @@ function __initCardIdSequence() {
 }
 
 /**
- * [REPLACE] generateCardId_ - 純序號版（含自我修復）
- * Property 未設定時自動掃 card_db 初始化，避免產生已存在的 ID
+ * [REPLACE] generateCardId_ - 序號版（完全自給自足）
+ * 1. Property 未設定 → 掃 card_db 找最大現有卡號初始化
+ * 2. 內部自己跳過已存在的卡號，不依賴外層 ensureUniqueGeneratedValue_ 重試
+ * 3. 無論 card_db 有幾張卡，都能正確產出下一個未使用的 ID
  */
 function generateCardId_() {
   var lock = LockService.getScriptLock();
 
   try {
-    lock.waitLock(3000);
+    lock.waitLock(5000);
   } catch (lockErr) {
     var now = new Date();
     var millis6 = String(now.getTime()).slice(-6);
@@ -20400,22 +20402,27 @@ function generateCardId_() {
     var rawProp = props.getProperty(key);
     var currentSeq = (rawProp !== null) ? Number(rawProp) : -1;
 
-    // 自我修復：Property 未設定（null）或無效 → 掃 card_db 找最大現有卡號
+    // Property 未設定或無效 → 掃 card_db 找目前最大卡號
     if (currentSeq < 0 || !isFinite(currentSeq)) {
-      var rows = getSheetRowsByName_("card_db");
+      var allRows = getSheetRowsByName_("card_db");
       var maxNum = 0;
-      rows.forEach(function(r) {
+      allRows.forEach(function(r) {
         var m = /^TW(\d{4,})$/i.exec(sanitizeText_(r.id || ""));
         if (m) { var n = Number(m[1]); if (n > maxNum) maxNum = n; }
       });
       currentSeq = maxNum;
-      props.setProperty(key, String(maxNum));
       Logger.log("generateCardId_: HSC_CARD_SEQ_TW 自動初始化為 " + maxNum);
     }
 
+    // 從 currentSeq+1 開始往上找，直到找到不存在的卡號
     var nextSeq = currentSeq + 1;
+    while (findRowByField_("card_db", "id", "TW" + String(nextSeq).padStart(4, "0"))) {
+      nextSeq++;
+    }
+
     var nextId = "TW" + String(nextSeq).padStart(4, "0");
     props.setProperty(key, String(nextSeq));
+    Logger.log("generateCardId_: 產出 " + nextId);
     return nextId;
 
   } finally {
