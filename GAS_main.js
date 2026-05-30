@@ -13252,7 +13252,7 @@ function createCard_(req) {
   var now = new Date();
   var tenant = sanitizeText_(lead.tenant) || CONFIG.DEFAULT_TENANT;
 
-  var cardId = ensureUniqueGeneratedValue_("card_db", "id", generateCardId_);
+  var cardId = ensureUniqueGeneratedValue_("card_db", "id", generateCardId_, 200);
   var token = Utilities.getUuid();
 
   var planId = sanitizeText_(lead.plan);
@@ -20377,8 +20377,8 @@ function __initCardIdSequence() {
 }
 
 /**
- * [REPLACE] generateCardId_ - 純序號版,不再掃 card_db
- * Lock 從 30 秒降到 3 秒
+ * [REPLACE] generateCardId_ - 純序號版（含自我修復）
+ * Property 未設定時自動掃 card_db 初始化，避免產生已存在的 ID
  */
 function generateCardId_() {
   var lock = LockService.getScriptLock();
@@ -20386,7 +20386,6 @@ function generateCardId_() {
   try {
     lock.waitLock(3000);
   } catch (lockErr) {
-    // Lock 拿不到就 fallback 用時間戳
     var now = new Date();
     var millis6 = String(now.getTime()).slice(-6);
     var rand4 = String(Math.floor(Math.random() * 9000 + 1000));
@@ -20398,13 +20397,24 @@ function generateCardId_() {
   try {
     var props = PropertiesService.getScriptProperties();
     var key = "HSC_CARD_SEQ_TW";
-    var currentSeq = Number(props.getProperty(key) || 0);
+    var rawProp = props.getProperty(key);
+    var currentSeq = (rawProp !== null) ? Number(rawProp) : -1;
 
-    if (!isFinite(currentSeq) || currentSeq < 0) currentSeq = 0;
+    // 自我修復：Property 未設定（null）或無效 → 掃 card_db 找最大現有卡號
+    if (currentSeq < 0 || !isFinite(currentSeq)) {
+      var rows = getSheetRowsByName_("card_db");
+      var maxNum = 0;
+      rows.forEach(function(r) {
+        var m = /^TW(\d{4,})$/i.exec(sanitizeText_(r.id || ""));
+        if (m) { var n = Number(m[1]); if (n > maxNum) maxNum = n; }
+      });
+      currentSeq = maxNum;
+      props.setProperty(key, String(maxNum));
+      Logger.log("generateCardId_: HSC_CARD_SEQ_TW 自動初始化為 " + maxNum);
+    }
 
     var nextSeq = currentSeq + 1;
     var nextId = "TW" + String(nextSeq).padStart(4, "0");
-
     props.setProperty(key, String(nextSeq));
     return nextId;
 
