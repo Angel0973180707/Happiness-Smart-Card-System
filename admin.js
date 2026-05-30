@@ -3798,15 +3798,12 @@ function bindInit() {
     el.style.color = ok === false ? "#e55" : (ok === true ? "var(--primary)" : "var(--ink2)");
   }
 
-  // ── 查詢現有 CTA ────────────────────────────────────────
+  // ── 查詢現有 CTA（輔助功能）────────────────────────────────
   async function fetchCtas() {
     var cardId = (document.getElementById("ctaCardId").value || "").trim().toUpperCase();
-    if (!cardId) { setStatus("請輸入卡號", false); return; }
+    if (!cardId) { setStatus("請先輸入主綁卡號", false); return; }
 
-    var btn = document.getElementById("btnFetchCtas");
-    btn.disabled = true; btn.textContent = "查詢中…";
     setStatus("查詢中…");
-
     try {
       var res = await gasPost("adminGetCardCtas", { card_id: cardId });
       var ctas = res.ctas || [];
@@ -3822,38 +3819,37 @@ function bindInit() {
       setStatus("查詢完成，共 " + ctas.length + " 筆", true);
     } catch(err) {
       setStatus("❌ " + err.message, false);
-    } finally {
-      btn.disabled = false; btn.textContent = "🔍 查詢現有";
     }
   }
 
-  // ── 自動產生員工連結 ─────────────────────────────────────
+  // ── 自動產生員工連結（主流程）────────────────────────────
   async function autoGenCtas() {
-    var referrerId = (document.getElementById("ctaReferrerId").value || "").trim().toUpperCase();
-    if (!referrerId) { setStatus("請輸入負責人卡號", false); return; }
+    var mainCardId = (document.getElementById("ctaCardId").value || "").trim().toUpperCase();
+    if (!mainCardId) { setStatus("請輸入主綁卡號（負責人）", false); return; }
 
     var btn = document.getElementById("btnAutoGenCtas");
     btn.disabled = true; btn.textContent = "讀取中…";
     setStatus("讀取員工清單中…");
 
     try {
-      var res = await gasPost("adminGetCardsByReferrer", { referrer_id: referrerId });
+      var res = await gasPost("adminGetCardsByReferrer", { referrer_id: mainCardId });
       var cards = res.cards || [];
-      if (!cards.length) { setStatus("找不到此負責人轄下的員工卡", false); return; }
+      if (!cards.length) { setStatus("找不到此主綁卡轄下的員工卡，可手動新增", false); return; }
 
       var tbody = document.getElementById("ctaEditorBody");
       tbody.innerHTML = "";
       cards.forEach(function(card, i) {
+        var ctaText = [card.name, card.title].filter(Boolean).join(" ");
         var link = "https://angel-namecard.letssyncus.com/index.html?id=" + card.id;
-        addCtaRow(i + 1, card.name, link);
+        addCtaRow(i + 1, ctaText, link);
       });
       document.getElementById("ctaEditorTitle").textContent =
-        "CTA 列表（從 " + referrerId + " 自動產生，共 " + cards.length + " 筆）";
-      setStatus("已自動填入 " + cards.length + " 筆，確認後按儲存", true);
+        "CTA 列表（" + mainCardId + " 轄下，共 " + cards.length + " 筆）";
+      setStatus("已填入 " + cards.length + " 筆員工 CTA，確認後按儲存到主綁卡", true);
     } catch(err) {
       setStatus("❌ " + err.message, false);
     } finally {
-      btn.disabled = false; btn.textContent = "⚡ 自動產生";
+      btn.disabled = false; btn.textContent = "⚡ 抓員工建 CTA";
     }
   }
 
@@ -3896,8 +3892,8 @@ function bindInit() {
       if (arrow) arrow.textContent = open ? "▶" : "▼";
     });
 
-    var btnFetch = document.getElementById("btnFetchCtas");
-    if (btnFetch) btnFetch.addEventListener("click", fetchCtas);
+    var lnkFetch = document.getElementById("lnkFetchCtas");
+    if (lnkFetch) lnkFetch.addEventListener("click", function(e) { e.preventDefault(); fetchCtas(); });
 
     var btnAuto = document.getElementById("btnAutoGenCtas");
     if (btnAuto) btnAuto.addEventListener("click", autoGenCtas);
@@ -3911,7 +3907,7 @@ function bindInit() {
     var cardIdInput = document.getElementById("ctaCardId");
     if (cardIdInput) {
       cardIdInput.addEventListener("keydown", function(e) {
-        if (e.key === "Enter") fetchCtas();
+        if (e.key === "Enter") autoGenCtas();
       });
     }
   }

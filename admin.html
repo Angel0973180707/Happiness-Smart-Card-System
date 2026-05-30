@@ -1664,36 +1664,29 @@ input:focus, textarea:focus, select:focus { outline: none; }
       <!-- ── 🔗 批次 CTA 管理 ── -->
       <div class="collapsible" id="ctaManagerCollapsible" style="margin-bottom:10px;">
         <div class="collapsible-head" id="ctaManagerHead">
-          <span>🔗 批次 CTA 管理（新增／編輯按鈕連結）</span>
+          <span>🔗 批次 CTA 管理（員工連結自動建立）</span>
           <span class="collapsible-arrow">▶</span>
         </div>
         <div class="collapsible-body" id="ctaManagerBody" style="display:none;padding:12px;">
           <div style="font-size:12px;color:var(--ink3);margin-bottom:12px;">
-            輸入卡號查詢現有 CTA，可新增、編輯後一鍵儲存（會取代該卡所有現有 CTA）。
+            輸入主綁卡號（負責人），系統自動抓取轄下員工清單，CTA 按鈕名稱＝姓名＋職稱，連結＝員工名片網址，確認後一鍵儲存到主綁卡。
           </div>
 
-          <!-- 卡號查詢 -->
-          <div style="display:flex;gap:8px;margin-bottom:12px;">
-            <input type="text" id="ctaCardId" placeholder="輸入要設定 CTA 的卡號（如 TW0201）"
+          <!-- 主綁卡查詢 -->
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input type="text" id="ctaCardId" placeholder="主綁卡號（負責人卡，如 TW0100）"
               style="flex:1;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);">
-            <button class="btn btn-outline" id="btnFetchCtas" style="font-size:13px;white-space:nowrap;">🔍 查詢現有</button>
+            <button class="btn btn-primary" id="btnAutoGenCtas" style="font-size:13px;white-space:nowrap;">⚡ 抓員工建 CTA</button>
           </div>
-
-          <!-- 快速產生：從負責人員工清單 -->
-          <div style="margin-bottom:12px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);">
-            <div style="font-size:12px;font-weight:700;margin-bottom:4px;">⚡ 快速產生員工連結</div>
-            <div style="font-size:11px;color:var(--ink3);margin-bottom:8px;">輸入負責人卡號，自動抓取員工清單並填入 CTA（適合區域卡）</div>
-            <div style="display:flex;gap:8px;">
-              <input type="text" id="ctaReferrerId" placeholder="負責人卡號（如 TW0100）"
-                style="flex:1;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);">
-              <button class="btn btn-outline" id="btnAutoGenCtas" style="font-size:12px;white-space:nowrap;">⚡ 自動產生</button>
-            </div>
+          <div style="margin-bottom:12px;font-size:11px;color:var(--ink3);">
+            ※ 也可直接手動新增 CTA，或
+            <a href="#" id="lnkFetchCtas" style="color:var(--primary);text-decoration:none;">查詢現有 CTA</a>
           </div>
 
           <!-- CTA 編輯表格 -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <span style="font-size:13px;font-weight:700;" id="ctaEditorTitle">CTA 列表（尚未查詢）</span>
-            <button class="btn btn-outline" id="btnAddCtaRow" style="font-size:12px;">＋ 新增一行</button>
+            <button class="btn btn-outline" id="btnAddCtaRow" style="font-size:12px;">＋ 手動新增</button>
           </div>
           <div style="overflow-x:auto;margin-bottom:10px;">
             <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -1706,13 +1699,13 @@ input:focus, textarea:focus, select:focus { outline: none; }
                 </tr>
               </thead>
               <tbody id="ctaEditorBody">
-                <tr><td colspan="4" style="padding:12px;text-align:center;color:var(--ink3);font-size:12px;border:1px solid var(--border);">先輸入卡號查詢，或直接新增</td></tr>
+                <tr><td colspan="4" style="padding:12px;text-align:center;color:var(--ink3);font-size:12px;border:1px solid var(--border);">輸入主綁卡號後按「抓員工建 CTA」</td></tr>
               </tbody>
             </table>
           </div>
 
           <!-- 儲存按鈕 -->
-          <button class="btn btn-primary btn-full" id="btnSaveCtas" style="margin-bottom:8px;">💾 儲存（取代該卡所有 CTA）</button>
+          <button class="btn btn-primary btn-full" id="btnSaveCtas" style="margin-bottom:8px;">💾 儲存到主綁卡（取代所有 CTA）</button>
           <div id="ctaSaveStatus" style="font-size:12px;color:var(--ink2);min-height:18px;"></div>
         </div>
       </div>
