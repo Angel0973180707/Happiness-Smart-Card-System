@@ -1504,6 +1504,17 @@ input:focus, textarea:focus, select:focus { outline: none; }
           </div>
 
           <div id="aiConvertStatus" style="font-size:12px;color:var(--ink2);min-height:18px;"></div>
+
+          <!-- 雲端存檔（解析後出現） -->
+          <div id="aiCloudSaveWrap" style="display:none;margin-top:10px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);">
+            <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--primary);">☁️ 儲存到雲端（可供任何裝置下次載入）</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input type="text" id="aiCloudLabel" placeholder="批次名稱（如：XX公司 2026-06）"
+                style="flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);">
+              <button class="btn btn-primary btn-sm" id="btnSaveToCloud">☁️ 儲存到雲端</button>
+            </div>
+            <div id="aiCloudSaveStatus" style="font-size:11px;color:var(--ink2);margin-top:4px;"></div>
+          </div>
         </div>
       </div>
 
@@ -1551,6 +1562,17 @@ input:focus, textarea:focus, select:focus { outline: none; }
             <button class="btn btn-primary btn-sm" id="btnBatchConfirmPay">✅ 全部確認付款</button>
           </div>
           <div id="batchConfirmPayStatus" style="font-size:12px;color:var(--ink2);margin-top:6px;"></div>
+        </div>
+
+        <!-- 建卡完成後儲存雲端 -->
+        <div id="batchCloudSaveWrap" style="display:none;margin-top:10px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);">
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--primary);">☁️ 儲存主檔到雲端</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="batchCloudLabel" placeholder="批次名稱（如：XX公司 2026-06）"
+              style="flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);">
+            <button class="btn btn-primary btn-sm" id="btnBatchSaveToCloud">☁️ 儲存到雲端</button>
+          </div>
+          <div id="batchCloudSaveStatus" style="font-size:11px;color:var(--ink2);margin-top:4px;"></div>
         </div>
       </div>
 
@@ -1600,7 +1622,8 @@ input:focus, textarea:focus, select:focus { outline: none; }
               📤 上傳 Excel
               <input type="file" id="updateExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
             </label>
-            <button class="btn btn-soft btn-sm" id="btnLoadMasterForUpdate">📂 載入主檔</button>
+            <button class="btn btn-soft btn-sm" id="btnLoadMasterForUpdate">📂 載入本機主檔</button>
+            <button class="btn btn-soft btn-sm" id="btnLoadCloudForUpdate">☁️ 從雲端載入</button>
           </div>
           <div id="updatePreviewWrap" style="display:none;margin-bottom:10px;">
             <div id="updateSummary" style="padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;margin-bottom:6px;"></div>
@@ -1641,7 +1664,8 @@ input:focus, textarea:focus, select:focus { outline: none; }
               📤 上傳 Excel
               <input type="file" id="renewExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
             </label>
-            <button class="btn btn-soft btn-sm" id="btnLoadMasterForRenew">📂 載入主檔</button>
+            <button class="btn btn-soft btn-sm" id="btnLoadMasterForRenew">📂 載入本機主檔</button>
+            <button class="btn btn-soft btn-sm" id="btnLoadCloudForRenew">☁️ 從雲端載入</button>
           </div>
           <div id="renewPreviewWrap" style="display:none;margin-bottom:10px;">
             <div id="renewSummary" style="padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px;font-weight:700;margin-bottom:6px;"></div>

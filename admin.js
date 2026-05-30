@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   "use strict";
 
   const CONFIG = {
@@ -3059,6 +3059,8 @@ function bindInit() {
     document.getElementById("btnExportBatchResult").style.display = "";
     const confirmWrap = document.getElementById("batchConfirmPayWrap");
     if (confirmWrap && batchResults.some(r => r.ok)) confirmWrap.style.display = "";
+    const cloudSaveWrap = document.getElementById("batchCloudSaveWrap");
+    if (cloudSaveWrap && batchResults.some(r => r.ok)) cloudSaveWrap.style.display = "";
 
     // 建卡完成 → 存主檔（含 card_id）
     try {
@@ -3247,6 +3249,20 @@ function bindInit() {
     const startUpdateBtn = document.getElementById("btnStartBatchUpdate");
     let updateCards = [];
 
+    window._hscLoadUpdateCards = function(cards) {
+      updateCards = cards.map(c => ({
+        card_id: c.card_id, name: c.name || "", title: c.title || "",
+        company: c.company || "", phone: c.phone || "", email: c.email || "",
+        line_id: c.line_id || "", avatar_url: c.avatar_url || "", color: c.color || ""
+      }));
+      renderSimplePreview("updatePreviewWrap","updateSummary","updatePreviewHead","updatePreviewBody","updateActions",
+        updateCards, ["card_id","name","title","company","phone","color","avatar_url"],
+        "共 " + updateCards.length + " 筆更新（雲端主檔）");
+      const b = document.querySelector("#batchUpdateCollapsible .collapsible-body");
+      if (b) b.style.display = "";
+      showToast("✅ 已從雲端載入 " + updateCards.length + " 筆到更新清單");
+    };
+
     const loadMasterUpdateBtn = document.getElementById("btnLoadMasterForUpdate");
     if (loadMasterUpdateBtn) loadMasterUpdateBtn.addEventListener("click", function() {
       try {
@@ -3296,6 +3312,16 @@ function bindInit() {
     const renewInput = document.getElementById("renewExcelInput");
     const startRenewBtn = document.getElementById("btnStartBatchRenew");
     let renewCards = [];
+
+    window._hscLoadRenewCards = function(cards) {
+      renewCards = cards.map(c => ({ card_id: c.card_id, price: c.price || 0 }));
+      renderSimplePreview("renewPreviewWrap","renewSummary","renewPreviewHead","renewPreviewBody","renewActions",
+        renewCards, ["card_id","price"],
+        "共 " + renewCards.length + " 張卡待續約（雲端主檔）");
+      const b = document.querySelector("#batchRenewCollapsible .collapsible-body");
+      if (b) b.style.display = "";
+      showToast("✅ 已從雲端載入 " + renewCards.length + " 筆到續約清單");
+    };
 
     const loadMasterRenewBtn = document.getElementById("btnLoadMasterForRenew");
     if (loadMasterRenewBtn) loadMasterRenewBtn.addEventListener("click", function() {
@@ -4536,8 +4562,11 @@ function bindInit() {
       if (!Array.isArray(data) || !data.length) { setStatus("❌ 資料是空的", false); return; }
 
       parsedCards = data;
+      window._hscParsedCards = data;
       renderPreview(data);
       setStatus("✅ 解析成功，共 " + data.length + " 筆。確認無誤後按「儲存主檔並載入建卡」", true);
+      var aiWrap = document.getElementById("aiCloudSaveWrap");
+      if (aiWrap) aiWrap.style.display = "";
     });
 
     // 下載 Excel
@@ -4564,4 +4593,126 @@ function bindInit() {
   } else {
     init();
   }
+})();
+
+// ═══════════════════════════════════════════════════════════
+// ☁️ 批次主檔雲端儲存/載入模組
+// ═══════════════════════════════════════════════════════════
+(function() {
+  "use strict";
+
+  var GAS_URL = "https://angel-namecard.letssyncus.com/gas-proxy/exec";
+
+  function getKey() { return localStorage.getItem("hsc_admin_key") || ""; }
+
+  async function gasPost(action, params) {
+    var body = JSON.stringify(Object.assign({ action: action, admin_key: getKey() }, params));
+    var res = await fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: body });
+    var text = await res.text();
+    var json;
+    try { json = JSON.parse(text); } catch(_) { throw new Error("GAS 回傳非 JSON"); }
+    if (json.ok === false) throw new Error(json.error || "未知錯誤");
+    return json.data != null ? json.data : json;
+  }
+
+  async function pickCloudBatch() {
+    var res = await gasPost("adminListBatchMasters", {});
+    var batches = res.batches || [];
+    if (!batches.length) { alert("雲端尚無儲存的主檔"); return null; }
+    var opts = batches.map(function(b, i) {
+      var d = b.saved_at ? new Date(b.saved_at).toLocaleString("zh-TW") : "";
+      return (i + 1) + ". " + b.label + "（" + b.card_count + " 張，" + d + "）";
+    }).join("\n");
+    var choice = prompt("請輸入要載入的編號：\n\n" + opts);
+    if (!choice) return null;
+    var idx = parseInt(choice, 10) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= batches.length) { alert("編號無效"); return null; }
+    return batches[idx];
+  }
+
+  function initAiCloudSave() {
+    var btn = document.getElementById("btnSaveToCloud");
+    if (!btn) return;
+    btn.addEventListener("click", async function() {
+      var cards = window._hscParsedCards;
+      if (!cards || !cards.length) { alert("請先解析 Claude JSON"); return; }
+      var label = (document.getElementById("aiCloudLabel") || {}).value || "";
+      var statusEl = document.getElementById("aiCloudSaveStatus");
+      btn.disabled = true; btn.textContent = "儲存中…";
+      try {
+        var res = await gasPost("adminSaveBatchMaster", { label: label, cards: cards });
+        if (statusEl) statusEl.textContent = "✅ 已儲存：" + res.label + "（" + res.card_count + " 筆）";
+      } catch(err) {
+        if (statusEl) statusEl.textContent = "❌ " + err.message;
+      } finally { btn.disabled = false; btn.textContent = "☁️ 儲存到雲端"; }
+    });
+  }
+
+  function initBatchCloudSave() {
+    var btn = document.getElementById("btnBatchSaveToCloud");
+    if (!btn) return;
+    btn.addEventListener("click", async function() {
+      var master = null;
+      try { master = JSON.parse(localStorage.getItem("hsc_batch_master") || "null"); } catch(_) {}
+      if (!master || !(master.data || []).length) { alert("找不到主檔，請先完成批次建卡"); return; }
+      var label = (document.getElementById("batchCloudLabel") || {}).value || "";
+      var statusEl = document.getElementById("batchCloudSaveStatus");
+      btn.disabled = true; btn.textContent = "儲存中…";
+      try {
+        var res = await gasPost("adminSaveBatchMaster", { label: label, cards: master.data });
+        if (statusEl) statusEl.textContent = "✅ 已儲存：" + res.label + "（" + res.card_count + " 筆）";
+      } catch(err) {
+        if (statusEl) statusEl.textContent = "❌ " + err.message;
+      } finally { btn.disabled = false; btn.textContent = "☁️ 儲存到雲端"; }
+    });
+  }
+
+  function initCloudLoadForUpdate() {
+    var btn = document.getElementById("btnLoadCloudForUpdate");
+    if (!btn) return;
+    btn.addEventListener("click", async function() {
+      try {
+        btn.disabled = true; btn.textContent = "讀取中…";
+        var batch = await pickCloudBatch();
+        if (!batch) return;
+        var res = await gasPost("adminGetBatchMaster", { batch_id: batch.batch_id });
+        var valid = (res.cards || []).filter(function(c) { return c.card_id; });
+        if (!valid.length) { alert("此主檔沒有 card_id，可能尚未執行建卡"); return; }
+        if (window._hscLoadUpdateCards) window._hscLoadUpdateCards(valid);
+        var b = document.querySelector("#batchUpdateCollapsible .collapsible-body");
+        if (b) b.style.display = "";
+      } catch(err) { alert("❌ " + err.message); }
+      finally { btn.disabled = false; btn.textContent = "☁️ 從雲端載入"; }
+    });
+  }
+
+  function initCloudLoadForRenew() {
+    var btn = document.getElementById("btnLoadCloudForRenew");
+    if (!btn) return;
+    btn.addEventListener("click", async function() {
+      try {
+        btn.disabled = true; btn.textContent = "讀取中…";
+        var batch = await pickCloudBatch();
+        if (!batch) return;
+        var res = await gasPost("adminGetBatchMaster", { batch_id: batch.batch_id });
+        var valid = (res.cards || []).filter(function(c) { return c.card_id; });
+        if (!valid.length) { alert("此主檔沒有 card_id，可能尚未執行建卡"); return; }
+        if (window._hscLoadRenewCards) window._hscLoadRenewCards(valid);
+        var b = document.querySelector("#batchRenewCollapsible .collapsible-body");
+        if (b) b.style.display = "";
+      } catch(err) { alert("❌ " + err.message); }
+      finally { btn.disabled = false; btn.textContent = "☁️ 從雲端載入"; }
+    });
+  }
+
+  function init() {
+    initAiCloudSave();
+    initBatchCloudSave();
+    initCloudLoadForUpdate();
+    initCloudLoadForRenew();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else { init(); }
 })();

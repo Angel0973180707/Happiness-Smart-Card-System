@@ -565,7 +565,11 @@ const ACTIONS = [
   "adminSetCardCtas",
   "adminBatchBankMatch",
   "adminConfirmBankImport",
-  "adminBatchDirectConfirmPayment"
+  "adminBatchDirectConfirmPayment",
+  "adminSaveBatchMaster",
+  "adminListBatchMasters",
+  "adminGetBatchMaster",
+  "adminDeleteBatchMaster"
 ];
 const ADMIN_PROTECTED_ACTIONS = [
   "getTrackingSummary",
@@ -685,7 +689,11 @@ const ADMIN_PROTECTED_ACTIONS = [
   "adminSetCardCtas",
   "adminBatchBankMatch",
   "adminConfirmBankImport",
-  "adminBatchDirectConfirmPayment"
+  "adminBatchDirectConfirmPayment",
+  "adminSaveBatchMaster",
+  "adminListBatchMasters",
+  "adminGetBatchMaster",
+  "adminDeleteBatchMaster"
 ];
 // ============================================================
 // 主題欄位驗證與標準化 (清洗用)
@@ -19894,6 +19902,11 @@ case "adminDirectConfirmPayment": result = adminDirectConfirmPayment_(req);break
   case "adminBatchDirectConfirmPayment":  result = adminBatchDirectConfirmPayment_(req);  break;
   case "adminSetCardMainCard":   result = adminSetCardMainCard_(req);   break;
   case "adminGetAttachedCards":  result = adminGetAttachedCards_(req);  break;
+
+  case "adminSaveBatchMaster":   result = adminSaveBatchMaster_(req);   break;
+  case "adminListBatchMasters":  result = adminListBatchMasters_(req);  break;
+  case "adminGetBatchMaster":    result = adminGetBatchMaster_(req);    break;
+  case "adminDeleteBatchMaster": result = adminDeleteBatchMaster_(req); break;
 
 
       default:
