@@ -1587,9 +1587,12 @@ input:focus, textarea:focus, select:focus { outline: none; }
           <span class="chevron">›</span>
         </div>
         <div class="collapsible-body" style="display:none;padding-top:10px;">
-          <div style="font-size:12px;color:var(--ink2);margin-bottom:10px;line-height:1.6;">
-            上傳 Excel，一次更新多張卡的資料。留空的欄位不會被修改。<br>
-            必填欄位：<strong>card_id</strong>｜可改欄位：name、title、company、phone、email、line_id、avatar_url、color
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+            <div style="font-size:12px;color:var(--ink2);line-height:1.6;flex:1;">
+              一次更新多張卡的資料，留空的欄位不會被修改。<br>
+              必填：<strong>card_id</strong>｜可改：name、title、company、phone、email、line_id、avatar_url、color
+            </div>
+            <button class="btn btn-outline btn-sm" id="btnUpdateGuide" style="margin-left:8px;flex-shrink:0;font-size:11px;">📖 說明</button>
           </div>
           <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
             <button class="btn btn-soft btn-sm" id="btnDownloadUpdateTemplate">📥 下載更新範本</button>
@@ -1625,9 +1628,12 @@ input:focus, textarea:focus, select:focus { outline: none; }
           <span class="chevron">›</span>
         </div>
         <div class="collapsible-body" style="display:none;padding-top:10px;">
-          <div style="font-size:12px;color:var(--ink2);margin-bottom:10px;line-height:1.6;">
-            上傳 Excel，一次幫多張卡延長效期 365 天。<br>
-            必填欄位：<strong>card_id</strong>｜選填：price（費用，預設 0）
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+            <div style="font-size:12px;color:var(--ink2);line-height:1.6;flex:1;">
+              一次幫多張卡延長效期 365 天，並寫入付款記錄。<br>
+              必填：<strong>card_id</strong>｜選填：price（費用，預設 0）
+            </div>
+            <button class="btn btn-outline btn-sm" id="btnRenewGuide" style="margin-left:8px;flex-shrink:0;font-size:11px;">📖 說明</button>
           </div>
           <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
             <button class="btn btn-soft btn-sm" id="btnDownloadRenewTemplate">📥 下載續約範本</button>
@@ -2578,96 +2584,89 @@ if (btnSubmitAgentInbox) {
     <!-- 關閉按鈕 -->
     <button id="btnCloseBatchGuide" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">✕</button>
 
-    <h2 style="font-size:18px;font-weight:800;margin:0 0 4px;">📖 批次功能操作說明</h2>
-    <p style="font-size:12px;color:#888;margin:0 0 20px;">適用於企業批次建卡、照片上傳、CTA 管理等作業</p>
+    <h2 style="font-size:18px;font-weight:800;margin:0 0 4px;">📖 企業批次建卡完整流程</h2>
+    <p style="font-size:12px;color:#888;margin:0 0 20px;">從收到客戶資料到交付完成，依序做以下 6 個步驟</p>
 
     <!-- ① 照片上傳 -->
-    <div style="margin-bottom:22px;">
-      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">① 📷 先上傳員工照片（取得圖片連結）</div>
+    <div style="margin-bottom:20px;">
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:8px;">① 📷 上傳員工照片（先做）</div>
       <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
-        <div>1. 展開「📷 照片壓縮上傳」區塊</div>
-        <div>2. 選擇壓縮設定：<b>最大寬度 600px、品質 80%</b>（預設即可）</div>
-        <div>3. 點「📂 選取照片」→ 一次選取所有員工照片</div>
-        <div>4. 點「☁️ 開始壓縮並上傳」→ 系統自動壓縮後存入雲端</div>
-        <div>5. 點「📥 匯出 Excel」→ 取得每張照片的網址</div>
-        <div style="color:#e58;font-size:12px;margin-top:4px;">💡 這些網址等一下要填入建卡 Excel 的 <b>avatar_url</b> 欄</div>
+        <div>1. 把所有員工照片依<b>名單順序</b>命名（建議：01_王小明.jpg、02_李小華.jpg…）</div>
+        <div>2. 展開「📷 照片壓縮上傳」→ 選取全部照片 → 按「☁️ 開始壓縮並上傳」</div>
+        <div>3. 上傳完成 → 按「📥 匯出 Excel」→ 取得每張照片的網址和序號</div>
+        <div style="color:#e58;font-size:12px;margin-top:2px;">💡 照片序號對應 AI 轉換後的人員順序，之後再把網址填入</div>
       </div>
     </div>
 
-    <!-- ② 批次建卡 -->
-    <div style="margin-bottom:22px;">
-      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">② 🏢 批次建卡</div>
-      <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
-        <div>1. 點「📥 下載 Excel 範本」，用 Excel 開啟</div>
-        <div>2. 按順序填入資料（<b>負責人排第一行</b>，再填區域卡，最後填員工）：</div>
-        <div style="margin-left:16px;font-size:12px;color:#555;line-height:1.8;">
-          • <b>type</b>：負責人 / 北區 / 中區 / 南區 / 員工<br>
-          • <b>name</b>：姓名（必填）<br>
-          • <b>title</b>：職稱　• <b>company</b>：公司　• <b>phone</b>：電話<br>
-          • <b>email</b>　• <b>line_id</b>　• <b>avatar_url</b>：照片網址（步驟①取得）<br>
-          • <b>plan</b>：premium / free　• <b>color</b>：p1~p7（見顏色參考）<br>
-          • <b>region</b>：員工必填所屬區域（北區／中區／南區）<br>
-          • <b>price</b>：建卡費用（選填）
-        </div>
-        <div>3. 存檔後點「📂 上傳 Excel」選取檔案</div>
-        <div>4. 預覽確認無誤後，點「🚀 開始批次建卡」</div>
-        <div>5. 等待完成後，點「📥 匯出建卡結果」保存卡號對照表</div>
-        <div style="color:#e58;font-size:12px;margin-top:4px;">💡 系統會自動產生卡號（TW####），並把區域卡與員工卡的關聯設定好</div>
+    <!-- ② AI 協作轉換（主方法） -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:8px;">② 🤖 AI 協作轉換（把客戶資料變成建卡清單）</div>
+      <div style="background:#f0fff4;border:1.5px solid #a8e6c0;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
+        <div style="font-weight:700;color:#2a7;margin-bottom:4px;">✨ 推薦方法：不用自己填 Excel！</div>
+        <div>1. 展開「🤖 AI 協作建卡轉換」區塊</div>
+        <div>2. 把客戶給的任何格式資料（LINE 訊息、截圖文字、名冊）貼進①欄位</div>
+        <div>3. 按「📋 產生 Claude 指令」→ 複製② 產生的指令</div>
+        <div>4. 貼給 Claude（或 claude.ai）→ 把 Claude 回傳的 JSON 貼回③</div>
+        <div>5. 按「🔍 解析預覽」確認名單正確</div>
+        <div>6. 把照片網址補填到 avatar_url 欄（可手動改預覽表格，或先跳過）</div>
+        <div>7. 按「💾 儲存主檔並載入建卡」→ 自動帶入下方建卡預覽</div>
+        <div style="color:#e58;font-size:12px;margin-top:2px;">💡 主檔儲存後，批次更新和續約都能用「📂 載入主檔」一鍵帶入，不用重填</div>
+      </div>
+      <div style="background:#f8f8f8;border-radius:10px;padding:10px 14px;font-size:12px;line-height:1.8;margin-top:6px;color:#666;">
+        <b>備用方法（手動填 Excel）：</b>點「📥 下載 Excel 範本」→ 按格式填入 → 「📤 上傳 Excel」<br>
+        欄位：type（負責人/員工）、name、title、company、phone、email、line_id、avatar_url、plan（premium）、color（p1~p7）、region、price
       </div>
     </div>
 
-    <!-- ③ 批次 CTA -->
-    <div style="margin-bottom:22px;">
-      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">③ 🔗 設定區域卡的員工按鈕（批次 CTA）</div>
+    <!-- ③ 批次建卡 + 付款 -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:8px;">③ 🚀 確認預覽 → 建卡 → 確認付款</div>
       <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
-        <div>1. 展開「🔗 批次 CTA 管理」區塊</div>
-        <div>2. 在「<b>要設定 CTA 的卡號</b>」填入區域卡號（如北區服務站的卡號）</div>
-        <div>3. 在「⚡ 快速產生員工連結」填入<b>負責人卡號</b>，點「⚡ 自動產生」</div>
-        <div>4. 系統自動列出所有員工姓名＋卡片連結</div>
-        <div>5. 確認名單後點「💾 儲存」</div>
-        <div>6. <b>北區／中區／南區</b>各做一次</div>
-        <div style="color:#e58;font-size:12px;margin-top:4px;">💡 這樣區域卡上就會出現員工的 CTA 按鈕，點名字跳到員工名片</div>
+        <div>1. 預覽表格確認人員、類型、顏色無誤 → 按「🚀 開始批次建卡」</div>
+        <div>2. 等待完成（每批 20 張，批次間隔 2 秒）</div>
+        <div>3. 建卡成功後，「💳 批次確認付款」區塊自動出現</div>
+        <div>4. 填統一金額（0 = 贈送）→ 按「✅ 全部確認付款」→ 卡片正式開通</div>
+        <div>5. 按「📥 下載建立結果 Excel」儲存卡號對照表</div>
+        <div style="color:#e58;font-size:12px;margin-top:2px;">💡 建卡完成後系統自動存「主檔」，之後更新/續約直接用主檔，不用重填卡號</div>
       </div>
     </div>
 
-    <!-- ④ 批次交付 -->
-    <div style="margin-bottom:22px;">
-      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">④ 📦 批次匯出交付連結</div>
+    <!-- ④ CTA -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:8px;">④ 🔗 設定負責人卡的員工按鈕（CTA）</div>
       <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
-        <div>1. 展開「📦 批次交付連結匯出」區塊</div>
-        <div>2. 填入<b>負責人卡號</b>，點「📦 查詢並匯出」</div>
-        <div>3. 自動下載 Excel，內含每位員工的：</div>
-        <div style="margin-left:16px;font-size:12px;color:#555;line-height:1.8;">
-          • <b>名片連結</b>：客戶看到的名片網址<br>
-          • <b>交付卡連結</b>：員工自己管理名片用的私人連結<br>
-          • <b>到期日</b>
-        </div>
-        <div>4. 把 Excel 交給主管，依此傳給各員工</div>
+        <div>1. 展開「🔗 批次 CTA 管理」</div>
+        <div>2. 輸入<b>主綁卡號（負責人）</b></div>
+        <div>3. 按「⚡ 抓員工建 CTA」→ 自動列出所有員工，按鈕名稱＝姓名＋職稱</div>
+        <div>4. 確認清單 → 按「💾 儲存到主綁卡」</div>
+        <div style="color:#e58;font-size:12px;margin-top:2px;">💡 主綁卡上就會出現所有員工的連結按鈕</div>
       </div>
     </div>
 
-    <!-- ⑤ 批次更新 -->
-    <div style="margin-bottom:22px;">
-      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">⑤ ✏️ 批次更新名片資料</div>
+    <!-- ⑤ 交付 -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:8px;">⑤ 📦 匯出交付連結給主管</div>
       <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
-        <div>1. 展開「✏️ 批次更新名片資料」區塊</div>
-        <div>2. 點「📥 下載更新範本」，填入要修改的欄位（<b>card_id 必填</b>，其他欄位留空表示不更新）</div>
-        <div>3. 上傳 Excel → 預覽 → 點「✏️ 開始批次更新」</div>
+        <div>1. 展開「📦 批次交付連結匯出」</div>
+        <div>2. 填入<b>負責人卡號</b> → 按「🔍 查詢並匯出」</div>
+        <div>3. 下載 Excel（含每人的名片連結、交付卡連結、到期日）</div>
+        <div>4. 把 Excel 傳給主管，請主管依此轉發給各員工</div>
       </div>
     </div>
 
-    <!-- ⑥ 批次續約 -->
+    <!-- ⑥ 更新/續約 -->
     <div style="margin-bottom:8px;">
-      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:10px;">⑥ 🔄 批次續約</div>
+      <div style="font-size:15px;font-weight:800;color:#3c5878;margin-bottom:8px;">⑥ ✏️🔄 日後批次更新 ／ 批次續約</div>
       <div style="background:#f5f8ff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:2;">
-        <div>1. 展開「🔄 批次續約」區塊</div>
-        <div>2. 點「📥 下載續約範本」，填入要續約的卡號（<b>card_id 必填</b>，price 選填）</div>
-        <div>3. 上傳 Excel → 預覽 → 點「🔄 開始批次續約」</div>
-        <div>4. 系統自動延長 365 天，並寫入付款記錄</div>
+        <div><b>批次更新名片資料：</b></div>
+        <div style="margin-left:12px;">展開「✏️ 批次更新名片資料」→ 按「📂 載入主檔」（自動帶入所有卡號）→ 或上傳 Excel → 開始更新</div>
+        <div><b>批次續約：</b></div>
+        <div style="margin-left:12px;">展開「🔄 批次續約」→ 按「📂 載入主檔」→ 確認 → 開始續約（自動延長 365 天）</div>
+        <div style="color:#e58;font-size:12px;margin-top:4px;">💡 主檔存在瀏覽器裡，不用重新上傳 Excel，直接載入即可</div>
       </div>
     </div>
 
-    <button id="btnCloseBatchGuide2" class="btn btn-primary btn-full" style="margin-top:16px;">我了解了，關閉說明</button>
+    <button id="btnCloseBatchGuide2" class="btn btn-primary btn-full" style="margin-top:16px;">了解了，關閉說明</button>
   </div>
 </div>
 
@@ -2676,8 +2675,10 @@ if (btnSubmitAgentInbox) {
   function openGuide()  { document.getElementById("batchGuideModal").style.display = "block"; document.body.style.overflow = "hidden"; }
   function closeGuide() { document.getElementById("batchGuideModal").style.display = "none";  document.body.style.overflow = ""; }
   document.addEventListener("DOMContentLoaded", function() {
-    var btn = document.getElementById("btnBatchGuide");
-    if (btn) btn.addEventListener("click", openGuide);
+    ["btnBatchGuide","btnUpdateGuide","btnRenewGuide"].forEach(function(id) {
+      var btn = document.getElementById(id);
+      if (btn) btn.addEventListener("click", openGuide);
+    });
     var c1 = document.getElementById("btnCloseBatchGuide");
     if (c1) c1.addEventListener("click", closeGuide);
     var c2 = document.getElementById("btnCloseBatchGuide2");
