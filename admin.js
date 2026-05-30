@@ -3634,9 +3634,10 @@ function bindInit() {
   // ── 匯出 Excel ─────────────────────────────────────────
   function exportPhotoResults() {
     if (!window.XLSX || !photoResults.length) { alert("尚無結果可匯出"); return; }
-    var rows = [["檔名", "原始大小(KB)", "壓縮後(KB)", "圖片網址（貼入 avatar_url）"]];
-    photoResults.forEach(function(r) {
+    var rows = [["序號（對應建卡Excel行數）", "檔名", "原始大小(KB)", "壓縮後(KB)", "圖片網址（貼入 avatar_url）"]];
+    photoResults.forEach(function(r, i) {
       rows.push([
+        i + 1,
         r.name,
         Math.round((r.origSize || 0) / 1024),
         r.compSize ? Math.round(r.compSize / 1024) : "",
@@ -3644,7 +3645,7 @@ function bindInit() {
       ]);
     });
     var ws = XLSX.utils.aoa_to_sheet(rows);
-    ws["!cols"] = [{wch:30},{wch:12},{wch:12},{wch:80}];
+    ws["!cols"] = [{wch:20},{wch:30},{wch:12},{wch:12},{wch:80}];
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "照片網址");
     XLSX.writeFile(wb, "HSC_Photo_URLs_" + todayStr() + ".xlsx");
