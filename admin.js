@@ -486,6 +486,7 @@ function buildInviteReplyText(request) {
       <div class="action-strip">
         <button class="btn btn-primary btn-sm" id="btnGoDeliveryFromDetail" data-cid="${escapeHtml(id)}">📦 前往交付</button>
         <button class="btn btn-soft btn-sm" id="btnOpenPreview" data-cid="${escapeHtml(id)}">預覽</button>
+        <button class="btn btn-warn btn-sm" id="btnGrantUnlimitedUpdate" data-cid="${escapeHtml(id)}">🔄 補開無限更新</button>
       </div>`;
     wrap.querySelector('#btnGoDeliveryFromDetail')?.addEventListener('click', e => {
       const cid = e.currentTarget.dataset.cid;
@@ -499,7 +500,21 @@ function buildInviteReplyText(request) {
     wrap.querySelector('#btnOpenPreview')?.addEventListener('click', e => {
       window.open(buildPreviewLink(e.currentTarget.dataset.cid), '_blank');
     });
-    
+    wrap.querySelector('#btnGrantUnlimitedUpdate')?.addEventListener('click', async e => {
+      const cid = e.currentTarget.dataset.cid;
+      if (!confirm(`確定要為 ${cid} 補開無限更新？\n（到期日與卡片相同）`)) return;
+      e.currentTarget.disabled = true;
+      e.currentTarget.textContent = '處理中…';
+      try {
+        const res = await postToGas({ action: 'adminGrantUnlimitedUpdate', card_id: cid });
+        if (!res.ok) throw new Error(res.error || '失敗');
+        alert(`✅ 已為 ${cid} 開通無限更新\n到期日：${res.update_unlimited_expires_at}`);
+      } catch (err) {
+        alert('❌ 失敗：' + err.message);
+        e.currentTarget.disabled = false;
+        e.currentTarget.textContent = '🔄 補開無限更新';
+      }
+    });
   }
 
   // ── 分頁輔助：產生「載入更多」按鈕 HTML ──

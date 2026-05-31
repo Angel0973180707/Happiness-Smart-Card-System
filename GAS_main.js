@@ -16881,7 +16881,7 @@ function assignPaymentToCard_(req) {
 // 原檔:
 //   const HSC_VERSION = "v7.12.2-payment-type-routing";
 // 改為:
-const HSC_VERSION = "v460";
+const HSC_VERSION = "v461";
 
 /* ============================================================
  * ======= [ADD] LIFF URL 轉換工具(v7.15 LINE 整合)==========
@@ -19747,6 +19747,7 @@ function routeAction_(e, method) {
       case "adminGetRenewalDetail": result = adminGetRenewalDetail_(req); break;
       case "getRenewalDetail": result = adminGetRenewalDetail_(req); break;
       case "adminGrantAddon": result = adminGrantAddon_(req); break;
+      case "adminGrantUnlimitedUpdate": result = adminGrantUnlimitedUpdate_(req); break;
       case "adminReassignServiceAgent": result = adminReassignServiceAgent_(req); break;  
       case "adminBuildBindUrl": result = adminBuildBindUrl_(req); break;
       case "adminListTestCards": result = adminListTestCards_(req); break;
@@ -22306,4 +22307,35 @@ function fixTestAgentTypes() {
   // 清快取，確保後續讀取不走舊資料
   CacheService.getScriptCache().removeAll(["hsc:sheet_rows:agent_db"]);
   Logger.log("=== fixTestAgentTypes 完成，快取已清除 ===");
+}
+
+// ─── 補開無限更新（v460）────────────────────────────────────────────
+function adminGrantUnlimitedUpdate_(req) {
+  requireAdminKey_(req);
+  var cardId = normalizeCardId_(req.card_id || req.cardId || "");
+  if (!cardId) throw new Error("card_id 為必填");
+
+  var card = findRowByField_("card_db", "id", cardId);
+  if (!card) throw new Error("找不到卡片：" + cardId);
+
+  var expiresAt = sanitizeText_(card.expires_at);
+  if (!expiresAt) throw new Error("卡片缺少 expires_at，無法設定無限更新到期日");
+
+  var updated = shallowClone_(card);
+  updated.update_unlimited_enabled   = "TRUE";
+  updated.update_unlimited_expires_at = expiresAt;
+  updated.updated_at = nowIso_();
+
+  updateRowByName_("card_db", card.__rowNum, updated);
+  invalidateCardPublicCache_(cardId);
+  clearSheetRowCache_("card_db");
+
+  return {
+    ok: true,
+    version: HSC_VERSION,
+    action: "adminGrantUnlimitedUpdate",
+    card_id: cardId,
+    update_unlimited_enabled: true,
+    update_unlimited_expires_at: expiresAt
+  };
 }
