@@ -560,13 +560,24 @@ function calcQuantityAddon(qty, config) {
     restoreDraft();
     ensureDefaultPlan();
     state.tempCardId = "TEMP_" + Date.now();
-    
-    // R0d 階段 4-B:從 GAS 動態取得 PRICING_V2(失敗會 fallback 用前端寫死值)
-    await loadPricingV2FromGas();
-    
+
+    // pricing 改背景載入，不擋初始化（避免等待期間 mode 被覆蓋）
+    loadPricingV2FromGas();
+
     loadModeBootstrap();
     refreshAll();
   }
+
+  // ── bfcache 防禦：iOS Safari 從快取復原時重新初始化 ────────────────
+  window.addEventListener("pageshow", function (e) {
+    if (e.persisted) {
+      // 頁面從 bfcache 恢復，重跑 mode 設定與 UI，避免顯示舊的申請表單
+      hydrateQueryParams();
+      hydrateModeFromQuery();
+      applyModeUi();
+      refreshAll();
+    }
+  });
   function upgradeExperienceToTextarea() {
     const old = document.getElementById("experience");
     if (!old || old.tagName === "TEXTAREA") return;
