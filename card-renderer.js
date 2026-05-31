@@ -494,8 +494,8 @@
       var label = text(pick(p, ["cta_text_" + i, "ctaText" + i, "CTA文字" + i]));
       var link  = normalizeUrl(pick(p, ["cta_link_" + i, "ctaLink" + i, "CTA連結" + i]));
       if (!label || !link) continue;
-      if (items.length >= limit) break;
       items.push({ label: label, link: link });
+      if (items.length >= limit) break;
     }
     return items;
   }

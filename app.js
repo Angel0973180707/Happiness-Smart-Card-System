@@ -455,10 +455,8 @@ function normalizeForRenderer_(row){
   if (Array.isArray(out.ctas)) {
     out.ctas.forEach((cta, idx) => {
       const n = idx + 1;
-      if (n <= 3) {
-        if (!out[`cta_text_${n}`]) out[`cta_text_${n}`] = cta?.text || "";
-        if (!out[`cta_link_${n}`]) out[`cta_link_${n}`] = cta?.link || "";
-      }
+      if (n <= 50 && !out[`cta_text_${n}`]) out[`cta_text_${n}`] = cta?.text || "";
+      if (n <= 50 && !out[`cta_link_${n}`]) out[`cta_link_${n}`] = cta?.link || "";
     });
   }
   if (typeof out.marquee_enabled === "boolean") {
