@@ -2806,8 +2806,8 @@ function normalizePublicCardPayload_(card) {
   var cardId = getRowCardId_(card);
 
   // === v8.4.3:動態讀上限 + 合併擴充分頁 ===
-  var PHOTO_HARD_CAP = 20;
-  var CTA_HARD_CAP   = 20;
+  var PHOTO_HARD_CAP = 30;  // v459 對齊 PHOTO_EXT_MAX
+  var CTA_HARD_CAP   = 50;  // v459 對齊 CTA_EXT_MAX
 
   var photoLimit = Math.min(PHOTO_HARD_CAP, Math.max(0, toNumber_(card.photo_limit, 10)));
   var ctaLimit   = Math.min(CTA_HARD_CAP,   Math.max(0, toNumber_(card.cta_limit,   3)));
