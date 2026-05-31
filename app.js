@@ -27,8 +27,8 @@ const CONFIG = {
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
   VERSION: "v8.3.5-perf-optimized",
-  FETCH_TIMEOUT_MS: 15000,
-  RETRY: 3,
+  FETCH_TIMEOUT_MS: 7000,
+  RETRY: 1,
   HUB_URL: "https://angel-namecard.letssyncus.com/",
   // 快取 TTL 設定（延長減少 GAS 冷啟動頻率）
   CACHE_SHELL_MS:  20 * 60 * 1000,  // 20 分鐘（原 5 分）
@@ -1039,17 +1039,27 @@ async function renderPersonalCard_(cardId){
   renderShellUiFriendly_(normalizedShell, root);
 
   // ── ★ lite & full 並行發起，不再串行等待 ──
-  // ★ v8.4.4-fix：GAS 優先（含 card_cta_ext / card_photo_ext 資料），靜態 JSON 作 fallback
+  // 靜態 JSON 優先（快，~100ms），GAS 背景更新快取（含 ext 資料）
   const cachedLite = readCardCache_("lite", cardId, CONFIG.CACHE_LITE_MS);
   const liteFetchPromise = cachedLite
     ? Promise.resolve(cachedLite)
-    :fetchJsonRobust_(buildCardPublicLiteUrl_(cardId), { cacheMode: "default" })
-  .catch(() => fetchJsonRobust_(buildStaticCardUrl_(cardId), { cacheMode: "default" }))
-        .then(p => {
-          const r = extractCardRow_(p);
-          if(r && Object.keys(r).length) writeCardCache_("lite", cardId, r);
-          return r;
-        });
+    : (async () => {
+        // 同時發起靜態 JSON 和 GAS，靜態 JSON 通常更快
+        const staticP = fetchWithTimeout_(buildStaticCardUrl_(cardId), 3000, "default")
+          .then(p => { const r = extractCardRow_(p); return (r && Object.keys(r).length) ? r : null; })
+          .catch(() => null);
+        const gasP = fetchWithTimeout_(buildCardPublicLiteUrl_(cardId), CONFIG.FETCH_TIMEOUT_MS, "default")
+          .then(p => { const r = extractCardRow_(p); return (r && Object.keys(r).length) ? r : null; })
+          .catch(() => null);
+
+        // 用先到的有效資料渲染
+        const first = await Promise.race([staticP, gasP.then(r => r || new Promise(() => {}))]);
+        const result = first || await gasP;
+        if (result && Object.keys(result).length) writeCardCache_("lite", cardId, result);
+        // GAS 還沒到的話背景更新快取（確保下次有 ext 資料）
+        if (first) gasP.then(r => { if (r && Object.keys(r).length) writeCardCache_("lite", cardId, r); }).catch(() => {});
+        return result;
+      })();
 
   // full 在 lite 之後 60ms 發起，錯開 GAS 並發
   const fullFetchPromise = new Promise(resolve => {
