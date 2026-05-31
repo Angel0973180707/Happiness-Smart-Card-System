@@ -133,19 +133,24 @@
     return v;
   }
 
-  // 個人 LINE → 加好友格式 https://line.me/ti/p/~{id}
+  // 個人 LINE → 加好友格式 https://line.me/R/ti/p/~{id}（/R/ 確保 LINE 內建瀏覽器也能正常跳轉）
   function toLinePersonalUrl(raw) {
     var v = String(raw || "").trim();
     if (!v) return "";
-    if (/^(https?:\/\/|line:\/\/)/i.test(v)) return v;
-    if (/^~/.test(v)) return "https://line.me/ti/p/" + v;
-    return "https://line.me/ti/p/~" + v;
+    if (/^line:\/\//i.test(v)) return v;
+    // 舊格式 /ti/p/ 自動補 /R/
+    if (/^https?:\/\/line\.me\/ti\/p\//i.test(v)) return v.replace(/\/ti\/p\//i, "/R/ti/p/");
+    if (/^https?:\/\//i.test(v)) return v;
+    if (/^~/.test(v)) return "https://line.me/R/ti/p/" + v;
+    return "https://line.me/R/ti/p/~" + v;
   }
 
   // LINE OA → 加入官方帳號格式 https://line.me/R/ti/p/@{id}
   function toLineOaUrl(raw) {
     var v = String(raw || "").trim();
     if (!v) return "";
+    // 舊格式 /ti/p/ 自動補 /R/
+    if (/^https?:\/\/line\.me\/ti\/p\//i.test(v)) return v.replace(/\/ti\/p\//i, "/R/ti/p/");
     if (/^https?:\/\//i.test(v)) return v;
     if (/^@/.test(v)) return "https://line.me/R/ti/p/" + v;
     return "https://line.me/R/ti/p/@" + v;
