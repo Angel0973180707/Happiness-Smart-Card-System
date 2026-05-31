@@ -2209,3 +2209,69 @@ __hscCopyrightObserver.observe(
   // 立即執行(不等 DOMContentLoaded,越早越好)
   boot().catch(err => console.warn("[HSC maint] boot failed:", err));
 })();
+
+// ── 強制用系統瀏覽器開啟（偵測 App 內建瀏覽器）──────────────────────
+(function initExternalBrowserGuard() {
+  var ua = navigator.userAgent || '';
+  var isLine      = /Line\//i.test(ua);
+  var isWeChat    = /MicroMessenger/i.test(ua);
+  var isFacebook  = /FBAN|FBAV/i.test(ua);
+  var isInstagram = /Instagram/i.test(ua);
+
+  // LINE（Android + iOS）：openExternalBrowser=1 讓 LINE 自動用系統瀏覽器開啟
+  if (isLine) {
+    var href = window.location.href;
+    if (href.indexOf('openExternalBrowser=1') === -1) {
+      window.location.replace(href + (href.indexOf('?') === -1 ? '?' : '&') + 'openExternalBrowser=1');
+      return;
+    }
+  }
+
+  // 其他 App 內建瀏覽器：顯示提示橫幅
+  var isInApp = isWeChat || isFacebook || isInstagram;
+  if (!isInApp) return;
+
+  function showBanner() {
+    if (document.getElementById('hscExtBrowserBanner')) return;
+
+    var isIos = /iPhone|iPad|iPod/i.test(ua);
+    var hint  = isWeChat && isIos
+      ? '點右上角 ••• → 選「在瀏覽器中開啟」'
+      : isWeChat
+      ? '點右上角 ••• → 選「在瀏覽器中開啟」'
+      : '建議用系統瀏覽器開啟，功能更完整';
+
+    var b = document.createElement('div');
+    b.id = 'hscExtBrowserBanner';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;' +
+      'background:#1a1a2e;color:#fff;padding:10px 14px;' +
+      'display:flex;align-items:center;gap:10px;' +
+      'font-size:13px;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.35)';
+
+    var msg = document.createElement('span');
+    msg.style.flex = '1';
+    msg.textContent = '🌐 ' + hint;
+
+    var close = document.createElement('button');
+    close.style.cssText = 'background:none;border:none;color:#ccc;font-size:20px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0';
+    close.textContent = '×';
+    close.addEventListener('click', function () { b.remove(); });
+
+    b.appendChild(msg);
+    b.appendChild(close);
+
+    if (document.body) {
+      document.body.insertBefore(b, document.body.firstChild);
+    } else {
+      document.addEventListener('DOMContentLoaded', function () {
+        document.body.insertBefore(b, document.body.firstChild);
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', showBanner);
+  } else {
+    showBanner();
+  }
+})();
