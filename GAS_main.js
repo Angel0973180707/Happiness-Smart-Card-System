@@ -15841,6 +15841,11 @@ function shouldApplyUpdateValue_(field, value) {
     return true;
   }
 
+  // v458：CTA 欄位允許空字串穿透（讓用戶能清空 CTA 文字/連結）
+  if (/^cta_(text|link)_\d+$/.test(field)) {
+    return true;
+  }
+
   return s !== "";
 }
 
@@ -16876,7 +16881,7 @@ function assignPaymentToCard_(req) {
 // 原檔:
 //   const HSC_VERSION = "v7.12.2-payment-type-routing";
 // 改為:
-const HSC_VERSION = "v7.16.2-main-card";
+const HSC_VERSION = "v458";
 
 /* ============================================================
  * ======= [ADD] LIFF URL 轉換工具(v7.15 LINE 整合)==========
