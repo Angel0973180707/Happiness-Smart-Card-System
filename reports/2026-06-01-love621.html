@@ -7,15 +7,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600;700&family=Noto+Sans+TC:wght@300;400;500&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
-    --forest: #2D5016;
-    --moss: #4A7C28;
-    --sage: #8AB87A;
-    --mist: #C8DFB8;
+    --ocean: #1A4A6B;
+    --sky: #2E7DA8;
+    --mist: #A8CCE0;
+    --foam: #D8EEF7;
     --cream: #F7F3EC;
     --warm: #F2E8D5;
     --gold: #C4922A;
     --amber: #E8B84B;
-    --clay: #9B5E3A;
+    --terracotta: #C4603A;
     --ink: #1A1A1A;
     --mid: #4A4A4A;
     --light: #7A7A7A;
@@ -30,9 +30,8 @@
     line-height: 1.8;
   }
 
-  /* ── HERO ── */
   .hero {
-    background: linear-gradient(160deg, var(--forest) 0%, var(--moss) 60%, #5A9A30 100%);
+    background: linear-gradient(160deg, var(--ocean) 0%, var(--sky) 60%, #3A8FC0 100%);
     color: white;
     padding: 64px 40px 80px;
     position: relative;
@@ -45,14 +44,6 @@
     width: 360px; height: 360px;
     border-radius: 50%;
     background: rgba(255,255,255,0.04);
-  }
-  .hero::after {
-    content: '';
-    position: absolute;
-    bottom: -60px; left: 20%;
-    width: 200px; height: 200px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.03);
   }
   .hero-badge {
     display: inline-block;
@@ -72,9 +63,7 @@
     line-height: 1.3;
     margin-bottom: 12px;
   }
-  .hero h1 span {
-    color: var(--amber);
-  }
+  .hero h1 span { color: var(--amber); }
   .hero-sub {
     font-size: 14px;
     color: rgba(255,255,255,0.7);
@@ -94,7 +83,6 @@
     color: rgba(255,255,255,0.9);
   }
 
-  /* ── SECTIONS ── */
   .section {
     padding: 56px 28px;
     border-bottom: 1px solid rgba(0,0,0,0.06);
@@ -125,7 +113,7 @@
     font-family: 'Noto Serif TC', serif;
     font-size: 20px;
     font-weight: 700;
-    color: var(--forest);
+    color: var(--ocean);
   }
   .section-num {
     font-size: 11px;
@@ -134,28 +122,24 @@
     text-transform: uppercase;
   }
 
-  /* ── CARDS ── */
   .card {
     background: white;
     border-radius: 16px;
     padding: 28px;
     margin-bottom: 20px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    border-left: 4px solid var(--sage);
+    border-left: 4px solid var(--mist);
   }
   .card-urgent { border-left-color: #E05C5C; }
   .card-gold { border-left-color: var(--gold); }
-  .card-blue { border-left-color: #5C82E0; }
+  .card-blue { border-left-color: var(--sky); }
 
   .card h3 {
     font-family: 'Noto Serif TC', serif;
     font-size: 16px;
     font-weight: 700;
-    color: var(--forest);
+    color: var(--ocean);
     margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
   }
   .card p {
     font-size: 14px;
@@ -164,36 +148,20 @@
   }
   .card p + p { margin-top: 10px; }
 
-  /* ── HIGHLIGHT BOX ── */
   .highlight {
-    background: linear-gradient(135deg, #F7F3EC, #EEF5E8);
+    background: linear-gradient(135deg, #EEF6FB, #E8F4F0);
     border: 1px solid var(--mist);
     border-radius: 12px;
     padding: 20px 24px;
     margin: 16px 0;
     font-size: 14px;
-    color: var(--forest);
+    color: var(--ocean);
     font-weight: 500;
   }
-  .highlight::before {
-    content: '💡 ';
-  }
+  .highlight::before { content: '💡 '; }
 
-  /* ── WARNING BOX ── */
-  .warning {
-    background: #FFF5F5;
-    border: 1px solid #FECACA;
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin: 16px 0;
-    font-size: 14px;
-    color: #9B3A3A;
-  }
-  .warning::before { content: '⚠️ '; }
-
-  /* ── POSITIONING STATEMENT ── */
   .position-hero {
-    background: linear-gradient(135deg, var(--forest), var(--moss));
+    background: linear-gradient(135deg, var(--ocean), var(--sky));
     color: white;
     border-radius: 20px;
     padding: 36px 28px;
@@ -212,7 +180,6 @@
     font-size: 22px;
     font-weight: 700;
     line-height: 1.5;
-    color: white;
   }
   .position-hero .sub {
     margin-top: 14px;
@@ -220,7 +187,6 @@
     color: rgba(255,255,255,0.7);
   }
 
-  /* ── VIDEO SCRIPT ── */
   .script-box {
     background: var(--ink);
     color: white;
@@ -235,9 +201,7 @@
     color: var(--amber);
     text-transform: uppercase;
   }
-  .script-body {
-    padding: 24px;
-  }
+  .script-body { padding: 24px; }
   .script-row {
     display: flex;
     gap: 16px;
@@ -265,11 +229,7 @@
     line-height: 1.5;
   }
 
-  /* ── ACTION LIST ── */
-  .action-grid {
-    display: grid;
-    gap: 20px;
-  }
+  .action-grid { display: grid; gap: 20px; }
   .action-card {
     background: white;
     border-radius: 16px;
@@ -323,7 +283,6 @@
     line-height: 1.7;
   }
 
-  /* ── TOOLS ROW ── */
   .tools-row {
     display: flex;
     flex-wrap: wrap;
@@ -332,17 +291,65 @@
   }
   .tool-tag {
     background: white;
-    border: 1px solid var(--mist);
+    border: 1px solid var(--foam);
     border-radius: 8px;
     padding: 8px 14px;
     font-size: 12px;
-    color: var(--forest);
+    color: var(--ocean);
     font-weight: 500;
   }
 
-  /* ── FOOTER ── */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step {
+    display: flex;
+    gap: 16px;
+    position: relative;
+  }
+  .step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 19px; top: 40px;
+    width: 2px;
+    height: calc(100% - 8px);
+    background: var(--foam);
+  }
+  .step-dot {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--sky);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .step-body { padding: 8px 0 32px; }
+  .step-body h4 {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ocean);
+    margin-bottom: 6px;
+  }
+  .step-body p {
+    font-size: 13px;
+    color: var(--mid);
+    line-height: 1.8;
+  }
+
+  .review-box {
+    background: linear-gradient(135deg, #FDF8F0, #FFF3E0);
+    border: 1px solid #F0D080;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #7A5A10;
+  }
+  .review-box::before { content: '⭐ '; }
+
   .footer {
-    background: var(--forest);
+    background: var(--ocean);
     color: rgba(255,255,255,0.7);
     padding: 40px 28px;
     text-align: center;
@@ -354,52 +361,6 @@
     font-size: 16px;
     font-family: 'Noto Serif TC', serif;
     margin-bottom: 8px;
-  }
-
-  /* ── STEP INDICATOR ── */
-  .steps {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
-  .step {
-    display: flex;
-    gap: 16px;
-    position: relative;
-  }
-  .step:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    left: 19px;
-    top: 40px;
-    width: 2px;
-    height: calc(100% - 8px);
-    background: var(--mist);
-  }
-  .step-dot {
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    background: var(--sage);
-    color: white;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700;
-    font-size: 14px;
-    flex-shrink: 0;
-    z-index: 1;
-  }
-  .step-body {
-    padding: 8px 0 32px;
-  }
-  .step-body h4 {
-    font-weight: 700;
-    font-size: 15px;
-    color: var(--forest);
-    margin-bottom: 6px;
-  }
-  .step-body p {
-    font-size: 13px;
-    color: var(--mid);
-    line-height: 1.8;
   }
 
   @media (max-width: 480px) {
@@ -416,18 +377,18 @@
 <!-- HERO -->
 <div class="hero">
   <div class="hero-badge">幸福天使品牌顧問｜初步診斷報告</div>
-  <h1>愛在幸福621<br><span>你的宜蘭故事，值得被看見</span></h1>
-  <p class="hero-sub">診斷日期：2026年6月｜行業：在家接單服務業（宜蘭旅遊管家）</p>
+  <h1>愛在幸福621<br><span>讓宜蘭的溫度，成為你的競爭力</span></h1>
+  <p class="hero-sub">診斷日期：2026年6月1日｜行業：宜蘭民宿經營者</p>
   <div class="hero-meta">
-    <span class="meta-chip">🗺 宜蘭在地</span>
-    <span class="meta-chip">🏠 實體據點</span>
+    <span class="meta-chip">🏡 宜蘭民宿</span>
+    <span class="meta-chip">🗺 實體據點</span>
     <span class="meta-chip">📱 FB・IG・Google地圖</span>
     <span class="meta-chip">⏰ 每週3-5小時</span>
     <span class="meta-chip">💰 零預算啟動</span>
   </div>
 </div>
 
-<!-- SECTION 1：卡點分析 -->
+<!-- SECTION 1 -->
 <div class="section">
   <div class="section-header">
     <div class="section-icon icon-red">🔍</div>
@@ -438,42 +399,40 @@
   </div>
 
   <div class="card card-urgent">
-    <h3>📌 根本原因：你的問題不是「沒有流量」</h3>
-    <p>你列出了六個卡點，但它們背後只有<strong>一個根本原因</strong>——<strong>陌生人還不相信你</strong>。</p>
-    <p>在家接單、旅遊管家這個行業，客人要花錢、把行程交給你，決策成本很高。他們在按下「下單」之前，必須先確認：這個人是誰？可信嗎？值得嗎？</p>
-    <p>而你目前幾乎沒有任何「讓人相信你」的證明——沒有作品集、沒有案例故事、沒有客戶評價、沒有讓人秒懂你的一句話。<strong>這不是你的錯，這是起步期每個人都要跨過的第一關。</strong></p>
+    <h3>📌 根本原因：客人選民宿，選的是「感覺」</h3>
+    <p>你列出的六個卡點——缺曝光、缺成交、不知道做內容、回購低、不知道導流、沒有固定客源——背後只有<strong>一個根本問題：陌生客人在網路上找不到理由選你</strong>。</p>
+    <p>民宿和飯店不一樣。飯店客人選的是品牌和星級；民宿客人選的是「這個地方感覺適合我嗎？住起來舒服嗎？主人友善嗎？」這些感覺，必須靠照片、影片、真實評價來傳遞——但你目前這些都還沒有建立起來。</p>
   </div>
 
   <div class="card card-urgent">
-    <h3>⚠️ 為什麼這個行業特別容易卡在這裡？</h3>
-    <p>旅遊管家是<strong>高度信任型服務</strong>——客人沒辦法先「試用」你，他們只能靠感覺判斷。這和賣實體商品很不一樣，商品可以退，旅程不行。</p>
-    <p>加上宜蘭這個地方，已經有不少「在地人帶路」的競爭者在做，如果你的差異化不夠清晰，客人就算看到你也會跳過。</p>
-    <p><strong>缺曝光是表象，缺信任才是核心。</strong></p>
+    <h3>⚠️ 民宿行業為什麼特別容易卡在這裡？</h3>
+    <p>宜蘭民宿競爭非常激烈，光是礁溪一帶就有幾百家。客人在訂房前，會同時比較五到十家，比的不只是價格，更是<strong>「視覺吸引力」和「評價數量」</strong>。</p>
+    <p>沒有內容、沒有評價，就算你的民宿再好，客人根本看不到你；就算看到了，也沒有信心按下訂房。<strong>這是一個「先有內容，才有客人」的行業。</strong></p>
   </div>
 
   <div class="card card-urgent">
-    <h3>🔥 如果三個月後還沒解決……</h3>
-    <p>你會繼續靠口耳相傳等客人，但這個速度太慢，客源不穩定、收入不穩定，最後你會覺得「做了也沒用」然後放棄。</p>
-    <p>反過來，<strong>如果你現在開始建立一個「讓人信任你的數位形象」</strong>，三個月後就會有人主動找上門，第一句話不是問「你能做什麼」，而是「我想跟你訂這個行程」。</p>
+    <h3>🔥 三個月後如果還沒改變……</h3>
+    <p>你會繼續靠老客人介紹和偶爾的散客撐著，旺季勉強、淡季很空。更麻煩的是，宜蘭每個月都有新民宿開業，他們一開始就有漂亮的照片和內容——你的落差只會越來越大。</p>
+    <p><strong>反過來，只要你現在開始建立數位形象，三個月後就能看到Google地圖評價增加、IG開始有人詢問、回頭客開始主動推薦你。</strong></p>
   </div>
 
   <div class="card">
-    <h3>✨ 突破口：先做「讓人秒懂你」這一件事</h3>
-    <p>最快的第一步，不是拍影片、不是買廣告，而是<strong>把你的Google地圖頁面填完整、把你第一篇「自我介紹文」發出去</strong>。</p>
-    <p>為什麼？因為當客人搜尋「宜蘭旅遊管家」，Google地圖是最先出現的。你有實體據點，這是天大的優勢——很多在家接單的人連這個都沒有。讓陌生人第一眼找到你、信任你，才有後面所有的事。</p>
+    <h3>✨ 突破口：先讓Google地圖「活起來」</h3>
+    <p>民宿客人最常用的訂房前動作是：<strong>Google搜尋地名 + 民宿 → 看地圖評價 → 點進去看照片</strong>。你有實體據點，Google地圖就是你最重要的免費廣告看板。</p>
+    <p>把地圖頁面填完整、上傳漂亮的房間照片、開始累積評價——這一步比任何廣告都划算，而且完全免費。</p>
   </div>
 
   <div class="card card-gold">
     <h3>💎 你被低估的資源</h3>
-    <p><strong>「都還沒有」不代表你沒有資源。</strong>你有：</p>
-    <p>✦ <strong>實體據點</strong>——在宜蘭有個真實的空間，比純線上的競爭者多一個「可以來找我」的信任感<br>
-    ✦ <strong>露臉意願</strong>——很多同業不敢露臉，你願意，這本身就是差異化<br>
-    ✦ <strong>在地知識</strong>——你知道宜蘭哪裡好、哪裡坑、哪個時間去最值，這是外地人買不到的<br>
-    ✦ <strong>核心故事</strong>——「對客人舒適友善的空間」這個心意，是有溫度、有賣點的</p>
+    <p>「都還沒有」不代表你沒有籌碼：</p>
+    <p>✦ <strong>實體民宿空間</strong>——這本身就是最好的拍攝場景，不需要租場地<br>
+    ✦ <strong>宜蘭在地知識</strong>——你知道附近哪裡好吃、哪條路不塞車、哪個季節最美，這些是外地民宿沒有的<br>
+    ✦ <strong>願意露臉</strong>——民宿最大的賣點就是「有溫度的主人」，你願意露臉，等於直接建立信任<br>
+    ✦ <strong>核心故事</strong>——「舒適友善的空間」這個心意，是可以打動人的品牌價值</p>
   </div>
 </div>
 
-<!-- SECTION 2：品牌建議 -->
+<!-- SECTION 2 -->
 <div class="section">
   <div class="section-header">
     <div class="section-icon icon-blue">🎯</div>
@@ -485,29 +444,29 @@
 
   <div class="position-hero">
     <div class="label">建議品牌定位</div>
-    <div class="statement">「宜蘭人帶路，旅遊不踩雷」<br>你的管家，不只訂行程</div>
-    <div class="sub">差異化核心：在地知識 × 舒適服務 × 真實露臉</div>
+    <div class="statement">「不只是住一晚——<br>是在宜蘭有個家的感覺」</div>
+    <div class="sub">差異化核心：主人溫度 × 在地生活感 × 舒適空間</div>
   </div>
 
   <div class="card card-blue">
     <h3>🌟 你和同行最不一樣的地方</h3>
-    <p>大部分宜蘭旅遊資訊都是「景點介紹文」，冷冰冰的。你要做的是：<strong>讓客人感覺像有個宜蘭朋友，幫他們量身規劃、幫他們避開地雷、幫他們找到真正舒服的地方待著。</strong></p>
-    <p>這不是旅行社，也不是部落客——是「有人情味的在地管家」。</p>
+    <p>宜蘭很多民宿在賣「景觀」「湯屋」「網美打卡點」，這些你不一定有。但你有的是<strong>讓客人感覺被照顧、被歡迎、像回到家</strong>的溫度——這在民宿市場裡其實更稀缺、更難複製。</p>
+    <p>你的差異化不是硬體，是<strong>「主人的心」</strong>。把這個放大，就是你最強的競爭力。</p>
   </div>
 
   <div class="card">
-    <h3>📇 智慧名片（HSC）如何幫你解卡點</h3>
-    <p>你現在最缺的是「一個讓人第一眼就懂你、可以馬上聯繫你、可以直接下單」的入口。智慧名片就是這個入口。</p>
+    <h3>📇 智慧名片（HSC）在民宿的應用場景</h3>
+    <p>民宿有一個黃金時刻常被忽略：<strong>客人退房的那一刻</strong>。他們剛住完、心情最好、最想推薦你——但你沒有一個讓他們「馬上行動」的工具。</p>
     <p style="margin-top:12px;"><strong>最重要的三個功能：</strong></p>
-    <p><strong>① 一鍵聯繫 CTA</strong>——「現在詢問」「LINE我」「看行程」直接連結，讓客人不用找、不用想，按下去就到你<br>
-    <strong>② 作品集展示</strong>——拍幾張你的空間照、帶過的地方，放上去就是你的「成果證明」<br>
-    <strong>③ 可分享連結</strong>——每次客人滿意，你就把名片連結給他，他轉傳給朋友，你的口碑就自動擴散</p>
+    <p><strong>① 一鍵訂房 CTA</strong>——「再訂一次」「推薦給朋友」直接連到訂房連結，讓回頭客和口碑轉介零阻力<br>
+    <strong>② Google評價快速連結</strong>——退房時把名片連結傳給客人，他點一下就能留評價，大幅提升評價數量<br>
+    <strong>③ 民宿空間照片展示</strong>——讓客人把你的名片傳給朋友時，朋友第一眼就看到漂亮的房間照片</p>
   </div>
 
-  <div class="highlight">本月可以馬上做的三件事：① 把Google地圖頁面填滿（照片＋服務說明＋聯絡方式）② 寫第一篇「我是誰」的自我介紹發在FB ③ 拍一張你的空間照或帶路照發在IG，加上宜蘭旅遊相關標籤</div>
+  <div class="highlight">本月最重要的三件事：① 把Google地圖商家資訊填完整並上傳至少10張房間照片 ② 請前三位熟識客人幫你留Google評價 ③ 拍一張民宿最美角落發到IG，加上宜蘭民宿相關標籤</div>
 </div>
 
-<!-- SECTION 3：影音策略 -->
+<!-- SECTION 3 -->
 <div class="section">
   <div class="section-header">
     <div class="section-icon icon-green">🎬</div>
@@ -518,10 +477,10 @@
   </div>
 
   <div class="card card-blue">
-    <h3>📱 最適合你的平台是：IG Reels ＋ Google地圖</h3>
-    <p><strong>為什麼是IG Reels？</strong>因為你的目標客群「旅遊、看重價格和配備」，在決定去宜蘭之前，大多數人會刷IG找靈感。Reels的觸及是免費的，只要影片夠吸引人，就算你現在沒有粉絲，也可以被陌生人看見。</p>
-    <p><strong>為什麼Google地圖一定要搭配？</strong>因為有人看完你的Reels，下一步一定是Google搜尋你——你的地圖頁面如果空空的，就是白白浪費了前面的努力。兩個搭配，才是完整的曝光路徑。</p>
-    <p><strong>FB的角色：</strong>用來發長文、建立信任故事，偶爾放到社團裡觸及有需要的旅遊族群。</p>
+    <h3>📱 最適合你的平台：IG Reels ＋ Google地圖（雙軌並行）</h3>
+    <p><strong>為什麼是IG Reels？</strong>訂民宿的客人，特別是35歲以下，幾乎都是先在IG刷到「宜蘭民宿」相關影片，然後心動、然後搜尋、然後訂房。Reels的觸及完全免費，只要畫面夠美、夠有感覺，就能被陌生人看見。</p>
+    <p><strong>Google地圖為什麼同樣重要？</strong>因為IG看到你之後，下一步就是Google確認你是否真實可信。地圖頁面的評價數、照片品質，決定他們最後訂不訂。兩個平台缺一不可。</p>
+    <p><strong>FB的角色：</strong>發長篇住宿心得故事，觸及年齡層較大的旅遊族群，也適合加入宜蘭旅遊相關社團。</p>
   </div>
 
   <div class="card">
@@ -530,29 +489,29 @@
       <div class="step">
         <div class="step-dot">一</div>
         <div class="step-body">
-          <h4>週一（30分鐘）：想本週主題</h4>
-          <p>問自己：「這週在宜蘭，有什麼客人最常問我的問題？」把答案寫下來，就是這週的內容。</p>
+          <h4>週一（30分鐘）：定本週主題</h4>
+          <p>問自己：「這週民宿有什麼值得記錄的？」可以是換季佈置、早餐新菜單、窗外的景色、客人的一句感謝話。</p>
         </div>
       </div>
       <div class="step">
         <div class="step-dot">三</div>
         <div class="step-body">
           <h4>週三（1.5小時）：拍攝＋剪輯</h4>
-          <p>出門帶路的時候順手錄、在空間裡直接拍，用手機剪，不用完美，真實感比精緻更有說服力。</p>
+          <p>整理房間後順手拍、迎接新客人時錄幾秒、早餐擺盤時記錄。用CapCut剪成30-60秒，配上輕音樂，真實感比精緻更重要。</p>
         </div>
       </div>
       <div class="step">
         <div class="step-dot">五</div>
         <div class="step-body">
           <h4>週五（1小時）：發文＋互動</h4>
-          <p>IG發Reels＋FB同步發長文版本，回覆所有留言，這是建立信任最快的方式。</p>
+          <p>IG發Reels，寫2-3行溫暖的說明文字，加上10個相關標籤。回覆所有留言，這是建立粉絲關係最快的方式。</p>
         </div>
       </div>
       <div class="step">
-        <div class="step-dot">假</div>
+        <div class="step-dot">客</div>
         <div class="step-body">
-          <h4>假日（彈性）：順手記錄</h4>
-          <p>帶客人的時候拍幾張、錄幾秒，不用刻意，就是素材的積累。</p>
+          <h4>客人退房時（5分鐘）：請留評價</h4>
+          <p>傳一則訊息給退房客人：「謝謝你的住宿，如果方便的話，幫我們在Google留個評價，對我們很有幫助！」附上Google評價連結。</p>
         </div>
       </div>
     </div>
@@ -566,28 +525,36 @@
         <div class="script-row">
           <div class="script-time">前3秒<br>HOOK</div>
           <div class="script-content">
-            <div class="script-hook">「去宜蘭玩，你還在用Google找景點嗎？」</div>
-            <div style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.5);">直視鏡頭說，語氣輕鬆，背景是你的空間或某個宜蘭美景</div>
+            <div class="script-hook">「這是宜蘭最讓人想賴著不走的地方之一」</div>
+            <div style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.5);">鏡頭緩緩掃過民宿最美的角落，可以是窗景、床鋪、或早餐桌</div>
           </div>
         </div>
         <div class="script-row">
-          <div class="script-time">3-15秒<br>痛點</div>
-          <div class="script-content">「我每個月都有客人跟我說，上次去宜蘭踩雷、排隊兩小時、找不到停車、行程塞滿但沒玩到精髓……」</div>
+          <div class="script-time">3-15秒<br>空間</div>
+          <div class="script-content">帶鏡頭走一圈民宿空間，不用說話，配輕音樂，讓畫面說話。重點放在光線最好的角落、最有質感的細節。</div>
         </div>
         <div class="script-row">
-          <div class="script-time">15-35秒<br>你是誰</div>
-          <div class="script-content">「我叫（名字），是住在宜蘭的管家。我不是旅行社，我是你在宜蘭的朋友——幫你找真正值得去的地方、幫你查好價格和配備、幫你規劃讓你輕鬆又舒服的行程。」</div>
+          <div class="script-time">15-35秒<br>主人現身</div>
+          <div class="script-content">「我是（名字），這是我在宜蘭用心打造的小空間。我希望每個來這裡的客人，都能放下手機、放慢腳步，真正休息一次。」</div>
         </div>
         <div class="script-row">
-          <div class="script-time">35-50秒<br>證明</div>
-          <div class="script-content">「你看這裡（帶鏡頭掃過你的空間或某個景點）——這是我每次帶客人都會推薦的地方，平日去、這個時間去，人少、漂亮、不用排隊。」</div>
+          <div class="script-time">35-50秒<br>在地加值</div>
+          <div class="script-content">「我住宜蘭這麼多年，知道哪裡的早市最新鮮、哪條秘密小路最美、哪家店值得排隊——住我這裡，這些都包在裡面。」</div>
         </div>
         <div class="script-row">
           <div class="script-time">最後10秒<br>CTA</div>
-          <div class="script-content">「下次去宜蘭，私訊我，我幫你規劃。連結在我的簡介裡。」</div>
+          <div class="script-content">「下次來宜蘭，來住我這裡。簡介連結直接訂房，或者私訊我，我親自回覆你。」</div>
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="card">
+    <h3>📝 接下來4週的內容主題建議</h3>
+    <p><strong>第1週：民宿空間介紹</strong>——讓人第一眼就愛上你的空間<br>
+    <strong>第2週：宜蘭在地推薦</strong>——「我最愛帶客人去的3個地方」<br>
+    <strong>第3週：主人故事</strong>——「為什麼我在宜蘭開民宿」<br>
+    <strong>第4週：客人真實回饋</strong>——徵得同意後，分享客人的住宿心得</p>
   </div>
 
   <div class="card">
@@ -595,16 +562,15 @@
     <div class="tools-row">
       <div class="tool-tag">📱 CapCut（剪輯）</div>
       <div class="tool-tag">🎨 Canva（封面圖）</div>
-      <div class="tool-tag">📝 免費Google表單（接單）</div>
-      <div class="tool-tag">🗺 Google商家（地圖）</div>
-      <div class="tool-tag">💬 LINE官方帳號（接洽）</div>
+      <div class="tool-tag">🗺 Google商家（評價）</div>
       <div class="tool-tag">📸 IG Reels（曝光）</div>
+      <div class="tool-tag">💬 LINE官方帳號（客服）</div>
+      <div class="tool-tag">📝 Google表單（訂房詢問）</div>
     </div>
-    <p style="margin-top:16px;font-size:13px;color:var(--mid);">這六個工具，加起來費用是零，但組合起來就是一個完整的「讓人找到你、信任你、聯繫你、下單」的流程。</p>
   </div>
 </div>
 
-<!-- SECTION 4：品牌潛力 -->
+<!-- SECTION 4 -->
 <div class="section">
   <div class="section-header">
     <div class="section-icon icon-gold">🌟</div>
@@ -616,25 +582,29 @@
 
   <div class="card card-gold">
     <h3>🧬 你的品牌DNA</h3>
-    <p>你的核心不是「賣旅遊服務」，而是<strong>「讓外地人在宜蘭感受到被照顧的溫暖」</strong>。這個出發點，比景點攻略有溫度得多。</p>
-    <p>25年的教學和陪伴經驗讓你天生就懂得怎麼讀懂別人的需要、怎麼讓人放鬆、怎麼創造舒適的環境——這正是旅遊管家最稀缺的能力。</p>
+    <p>你的核心不是「提供住宿」，而是<strong>「讓來宜蘭的人，感覺有人在等他、有人照顧他」</strong>。這種溫度，是連鎖民宿和OTA平台永遠無法複製的。</p>
+    <p>25年教學與陪伴的經驗，讓你天生就知道怎麼讀懂人、怎麼讓人感到安心、怎麼在細節裡表達關心——這正是頂級民宿體驗的本質。</p>
   </div>
 
   <div class="card">
-    <h3>🚀 長期最有潛力的方向</h3>
-    <p><strong>① 主題式旅遊包套</strong>——不只是帶路，而是設計有主題的宜蘭體驗（療癒系、親子系、慢活系），讓客人一眼找到適合自己的方案，也讓你的定價更有說服力</p>
-    <p style="margin-top:10px;"><strong>② 回頭客生態圈</strong>——每個來過的客人，都可以是下一批客人的推薦來源。設計一個「帶朋友來有優惠」的小機制，就能讓口碑自動滾動</p>
-    <p style="margin-top:10px;"><strong>③ 異地合作</strong>——和台北、台中的親子社群、慢活社群建立連結，讓你的服務對接到有旅遊需求的外縣市客群</p>
+    <h3>🚀 長期最有潛力的三個方向</h3>
+    <p><strong>① 主題住宿體驗包套</strong>——設計「宜蘭慢活兩天一夜」「親子宜蘭初體驗」等主題方案，含住宿＋在地推薦路線，讓客人一次買到完整體驗，你的定價也更有說服力</p>
+    <p style="margin-top:10px;"><strong>② 回頭客維繫系統</strong>——住過的客人是你最寶貴的資產。建立一個簡單的「老客人優惠」機制，每逢節日傳一則溫暖訊息，讓他們記得你、願意再來</p>
+    <p style="margin-top:10px;"><strong>③ 成為宜蘭生活風格的代言人</strong>——不只分享民宿，也分享宜蘭的四季、食材、生活節奏，讓追蹤你的人愛上宜蘭、因為愛上宜蘭而想住你這裡</p>
   </div>
 
-  <div class="position-hero" style="background: linear-gradient(135deg, var(--clay), #7A4030);">
+  <div class="review-box">
+    民宿經營的終極護城河是「評價」。當你有50則真誠的Google評價，陌生客人看到你就會自動信任你——那時候你不需要再費力行銷，口碑自己滾動。現在每一則評價的累積，都是在建造這道護城河。
+  </div>
+
+  <div class="position-hero" style="background: linear-gradient(135deg, #5A3A2A, var(--terracotta));">
     <div class="label">你的品牌一句話</div>
-    <div class="statement">「我在宜蘭等你——這裡的一切，我替你找好了。」</div>
-    <div class="sub">這句話可以直接用來介紹自己、寫在IG簡介、放在名片上</div>
+    <div class="statement">「宜蘭有我在——<br>你來，就像回家。」</div>
+    <div class="sub">這句話可以直接用在IG簡介、名片、自我介紹</div>
   </div>
 </div>
 
-<!-- SECTION 5：行動清單 -->
+<!-- SECTION 5 -->
 <div class="section">
   <div class="section-header">
     <div class="section-icon icon-purple">📋</div>
@@ -645,93 +615,89 @@
   </div>
 
   <div class="action-grid">
-    <!-- 本週 -->
     <div class="action-card">
       <div class="action-label label-now">🔥 本週就做｜今天可以開始</div>
       <div class="action-item">
         <div class="action-num num-red">1</div>
         <div class="action-text">
-          <strong>打開Google地圖，把「商家資訊」填完整</strong>
-          <span>加上你的服務說明（三行就夠）、營業時間、聯絡方式，再上傳至少3張你空間或宜蘭美景的照片。這是陌生人找到你的第一道門，不花一毛錢但影響力最大。</span>
+          <strong>打開Google地圖，把商家資訊填完整</strong>
+          <span>上傳至少10張民宿照片（房間、公共空間、窗景、早餐），填好服務說明和聯絡方式。這是零成本、效果最大的第一步，很多潛在客人搜尋宜蘭民宿時，第一個看到的就是這裡。</span>
         </div>
       </div>
       <div class="action-item">
         <div class="action-num num-red">2</div>
         <div class="action-text">
-          <strong>寫一篇「我是誰」發在FB</strong>
-          <span>不用長，200字就夠。說你住哪、做什麼、為什麼做、最希望幫客人解決什麼問題。真實比精緻重要，發出去就是你品牌的第一塊基石。</span>
+          <strong>聯絡3位住過的熟識客人，請他們留Google評價</strong>
+          <span>傳一則訊息：「你好，最近在整理民宿的網路形象，如果你當時住得開心，能不能幫我在Google上留個評價？對我真的很有幫助。」附上評價連結。三則真實評價，比任何廣告都有說服力。</span>
         </div>
       </div>
       <div class="action-item">
         <div class="action-num num-red">3</div>
         <div class="action-text">
-          <strong>拍一張你空間的照片，發到IG並加上5個標籤</strong>
-          <span>標籤建議：#宜蘭旅遊 #宜蘭管家 #宜蘭推薦 #宜蘭在地人 #宜蘭景點推薦。讓第一批陌生人找到你的機會從這裡開始。</span>
+          <strong>拍一張民宿最美角落，發到IG</strong>
+          <span>不用完美，真實就好。加上標籤：#宜蘭民宿 #宜蘭住宿推薦 #宜蘭旅遊 #宜蘭 #民宿推薦。讓第一批陌生人有機會找到你。</span>
         </div>
       </div>
     </div>
 
-    <!-- 這個月 -->
     <div class="action-card">
       <div class="action-label label-month">✅ 這個月完成｜有明確產出</div>
       <div class="action-item">
         <div class="action-num num-green">1</div>
         <div class="action-text">
-          <strong>拍出第一支60秒的IG Reels自我介紹影片</strong>
-          <span>用上面的腳本架構，手機拍、CapCut剪，不需要完美。發出去之後，你就從「沒有素材」變成「有影音的真實管家」，信任感直接翻倍。</span>
+          <strong>拍出第一支民宿介紹Reels</strong>
+          <span>用上面的腳本，手機拍、CapCut剪，60秒以內。主人現身說話是最關鍵的一個鏡頭——讓陌生人看到真實的你，信任感立刻不同。發出去就是你影音品牌的起點。</span>
         </div>
       </div>
       <div class="action-item">
         <div class="action-num num-green">2</div>
         <div class="action-text">
-          <strong>建立一個簡單的「接單流程」</strong>
-          <span>用Google表單做一個詢問單（旅遊日期、人數、預算、偏好），放連結在IG簡介和FB頁面。讓有興趣的客人可以自助填單，你就能快速回應、建立正式感。</span>
+          <strong>建立退房後的「評價請求」標準流程</strong>
+          <span>每次客人退房，固定傳一則感謝訊息＋Google評價連結。這個習慣養成後，評價數量會穩定增加，半年後你的地圖頁面就會完全不一樣。</span>
         </div>
       </div>
       <div class="action-item">
         <div class="action-num num-green">3</div>
         <div class="action-text">
-          <strong>累積4篇「宜蘭在地知識」的IG貼文或Reels</strong>
-          <span>主題例如：「宜蘭人才知道的3個秘境」「去宜蘭前一定要知道的停車技巧」「平日vs假日去宜蘭，哪個划算？」這些內容會讓人想追蹤你、也會讓人覺得你真的懂宜蘭。</span>
+          <strong>累積4篇IG貼文，建立基本內容形象</strong>
+          <span>主題參考：空間介紹、宜蘭在地推薦、主人故事、客人回饋。讓陌生人點進你的IG頁面時，看到的不是空空的，而是一個有溫度、有內容的民宿。</span>
         </div>
       </div>
     </div>
 
-    <!-- 有餘力 -->
     <div class="action-card">
       <div class="action-label label-later">💡 有餘力再做｜重要但不緊急</div>
       <div class="action-item">
         <div class="action-num num-blue">1</div>
         <div class="action-text">
-          <strong>申請LINE官方帳號，設定自動回覆</strong>
-          <span>當客人私訊你，第一時間收到自動回覆「謝謝你的詢問，我會在24小時內回覆你」，就已經比大多數同業專業了。LINE OA免費方案每月可發500則。</span>
+          <strong>設計第一個主題住宿方案</strong>
+          <span>例如「宜蘭慢活兩天一夜」，定好價格、包含項目、適合族群。放到IG和FB上，讓客人可以直接詢問這個方案，減少每次都要重新溝通的時間。</span>
         </div>
       </div>
       <div class="action-item">
         <div class="action-num num-blue">2</div>
         <div class="action-text">
-          <strong>設計第一個「主題行程套裝」</strong>
-          <span>例如「宜蘭親子慢遊一日」「宜蘭療癒小旅行」，定好價格和包含項目，讓客人可以直接選、直接下單，不用每次都重新溝通。</span>
+          <strong>申請LINE官方帳號，設定歡迎訊息</strong>
+          <span>當客人私訊你，第一時間收到自動歡迎訊息，感覺立刻比一般民宿主人專業。也可以設定常見問題的快速回覆，省去重複說明的時間。</span>
         </div>
       </div>
       <div class="action-item">
         <div class="action-num num-blue">3</div>
         <div class="action-text">
-          <strong>建立「已服務客人回饋」的收集習慣</strong>
-          <span>每次服務結束，傳一則訊息給客人：「謝謝你這次的信任，如果方便的話，留一句心得給我，我很珍惜每一個故事。」累積的評價，就是你最有說服力的品牌資產。</span>
+          <strong>建立老客人專屬優惠機制</strong>
+          <span>設計一個簡單的「第二次來享優惠」方案，退房時告訴客人。這一個小動作，可以大幅提升回頭客比例——而回頭客是你最穩定、最省力、最有價值的客源。</span>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="highlight" style="margin-top:24px;">你已經有最重要的東西了：在地知識、一個真實的空間、願意露臉的勇氣、想照顧客人的心。現在只差一件事——<strong>讓更多人知道你在這裡。</strong>從今天開始，一步一步來，你做得到。</div>
+  <div class="highlight" style="margin-top:24px;">你已經有最重要的東西了：一個真實的民宿空間、宜蘭在地的生活智慧、願意露臉的勇氣、想讓客人舒適的心。現在只差一件事——<strong>讓更多人看見你。</strong>從今天的Google地圖開始，一步一步來，你做得到。🏡</div>
 </div>
 
-<!-- FOOTER -->
 <div class="footer">
   <strong>幸福天使品牌顧問｜HSC 天使幸福智慧名片系統</strong>
   本報告由幸福天使品牌顧問系統產出，專為「愛在幸福621」量身診斷<br>
-  如有任何問題，歡迎隨時提問，我們一起把你的宜蘭故事說給全世界聽 🌿
+  如有任何問題，歡迎隨時提問，我們一起把你的宜蘭故事說給全世界聽 🌊
 </div>
 
 </body>
