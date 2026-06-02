@@ -1051,11 +1051,30 @@ function calcQuantityAddon(qty, config) {
     const card = state.runtime.updateCard;
     const plan = card?.plan || getSelectedPlan() || "premium";
     const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.premium;
+
+    // 實際已載入的最高照片索引（含 ext 表 photo11~30）
+    let actualMaxPhoto = 0;
+    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) {
+      if (state.photoRealUrls[`photo${i}`]) actualMaxPhoto = i;
+    }
+
+    const fromLimit  = Number(card?.photo_limit || 0);
+    const wallPhotos = Math.max(fromLimit, actualMaxPhoto, base.wallPhotos);
+
+    // CTA 同樣防禦：取 cta_limit 與實際有值的最高索引中較大者
+    let actualMaxCta = 0;
+    for (let i = 1; i <= CONFIG.MAX_CTAS; i++) {
+      const t = state.draftValues[`cta_text_${i}`] || document.getElementById(`cta_text_${i}`)?.value || "";
+      const l = state.draftValues[`cta_link_${i}`] || document.getElementById(`cta_link_${i}`)?.value || "";
+      if (t || l) actualMaxCta = i;
+    }
+    const ctas = Math.max(Number(card?.cta_limit || 0), actualMaxCta, base.ctas);
+
     return {
       plan, planLabel: base.label, planPrice: base.price,
-      baseWallPhotos: Number(card?.photo_limit || base.wallPhotos),
-      wallPhotos:     Number(card?.photo_limit || base.wallPhotos),
-      ctas:           Number(card?.cta_limit   || base.ctas),
+      baseWallPhotos: wallPhotos,
+      wallPhotos,
+      ctas,
       extraWallPhotos: 0, extraCtas: 0
     };
   }
