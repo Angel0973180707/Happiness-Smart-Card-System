@@ -1923,6 +1923,14 @@
 
 // ── 主流程 ──
     function bootLiff() {
+      // update / renew 模式已有 token 識別身分，不需要 LIFF 驗證
+      // 避免 liff.login() 整頁跳轉後 mode 參數遺失，造成顯示申請表單
+      var _urlMode = (new URLSearchParams(location.search)).get("mode") || "";
+      if (_urlMode === "update" || _urlMode === "renew") {
+        unlockSubmit();
+        return;
+      }
+
       lockSubmit("正在驗證 LINE 身分…");
 
       if (typeof liff === "undefined") {
