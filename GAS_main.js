@@ -569,7 +569,9 @@ const ACTIONS = [
   "adminSaveBatchMaster",
   "adminListBatchMasters",
   "adminGetBatchMaster",
-  "adminDeleteBatchMaster"
+  "adminDeleteBatchMaster",
+  "adminGrantUnlimitedUpdate",
+  "adminRepairCardLimits"
 ];
 const ADMIN_PROTECTED_ACTIONS = [
   "getTrackingSummary",
@@ -693,7 +695,9 @@ const ADMIN_PROTECTED_ACTIONS = [
   "adminSaveBatchMaster",
   "adminListBatchMasters",
   "adminGetBatchMaster",
-  "adminDeleteBatchMaster"
+  "adminDeleteBatchMaster",
+  "adminGrantUnlimitedUpdate",
+  "adminRepairCardLimits"
 ];
 // ============================================================
 // 主題欄位驗證與標準化 (清洗用)
@@ -16911,7 +16915,7 @@ function assignPaymentToCard_(req) {
 // 原檔:
 //   const HSC_VERSION = "v7.12.2-payment-type-routing";
 // 改為:
-const HSC_VERSION = "v462";
+const HSC_VERSION = "v463";
 
 /* ============================================================
  * ======= [ADD] LIFF URL 轉換工具(v7.15 LINE 整合)==========
