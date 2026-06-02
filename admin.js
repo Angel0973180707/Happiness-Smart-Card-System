@@ -1723,7 +1723,8 @@ syncDeliveryControlPanel(card);
       normalize_card_theme: { action: "adminNormalizeCardThemeFields", msg: "正規化卡片主題？" },
       audit_card_theme: { action: "adminAuditCardThemeFields", msg: "稽核卡片主題？" },
       install_system_triggers: { action: "installSystemTriggers", msg: "安裝系統排程？" },
-      install_commercial_triggers: { action: "installCommercialTriggers", msg: "安裝商業排程？" }
+      install_commercial_triggers: { action: "installCommercialTriggers", msg: "安裝商業排程？" },
+      repair_card_limits: { action: "adminRepairCardLimits", msg: "掃描並修復所有卡片的 cta_limit / photo_limit？\n（偏低的上限會自動補正，不影響現有資料）" }
     };
     const config = actions[actionName];
     if (!config) return toast("未知操作");
@@ -1853,6 +1854,7 @@ syncDeliveryControlPanel(card);
     on("#btnAuditCardTheme", "click", () => runRepairAction("audit_card_theme"));
     on("#btnInstallSystemTriggers", "click", () => runRepairAction("install_system_triggers"));
     on("#btnInstallCommercialTriggers", "click", () => runRepairAction("install_commercial_triggers"));
+    on("#btnRepairCardLimits", "click", () => runRepairAction("repair_card_limits"));
     on("#btnAssignInviteToRequest", "click", assignInviteToRequestAligned);
     on("#btnRefreshRequests", "click", loadRequests);
     on("#btnLoadDelivery", "click", async () => {
