@@ -15800,6 +15800,7 @@ function normalizeUpdateCardReqFields_(req) {
     "avatar_key","logo_key","photo1_key","photo2_key","photo3_key","photo4_key","photo5_key",
     "photo6_key","photo7_key","photo8_key","photo9_key","photo10_key",
     "cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3",
+    "cta_limit","photo_limit",
     "features_json","color","style","paper","plan"
   ];
   fields.forEach(function(f) {
@@ -16881,7 +16882,7 @@ function assignPaymentToCard_(req) {
 // 原檔:
 //   const HSC_VERSION = "v7.12.2-payment-type-routing";
 // 改為:
-const HSC_VERSION = "v460";
+const HSC_VERSION = "v461";
 
 /* ============================================================
  * ======= [ADD] LIFF URL 轉換工具(v7.15 LINE 整合)==========
