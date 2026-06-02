@@ -1904,24 +1904,35 @@ function syncRenewQuote() {
     const shared = buildSharedCardData();
     const card = state.runtime.updateCard || {};
     const limits = getLimitsUpdate();
+
+    // 以卡片原始上限為基底，防止 limit 計算偏低時意外刪除 ext 資料
+    const safeCtas   = Math.max(limits.ctas,       Number(card.cta_limit   || 0));
+    const safePhotos = Math.max(limits.wallPhotos,  Number(card.photo_limit || 0));
+
     const payload = {
       ...shared,
-      plan:  card.plan  || "",   // 鎖死讀原卡，不可改
+      plan:  card.plan  || "",
       color: getThemeSelection().color || card.color || "",
       style: getThemeSelection().style || card.style || "",
       paper: getThemeSelection().paper || card.paper || "",
       marquee_text: card.marquee_enabled ? valueOf("marquee_text") : (card.marquee_text || ""),
       marquee_enabled: card.marquee_enabled || "",
-      photo_limit: limits.wallPhotos,
-      cta_limit: limits.ctas
+      photo_limit: safePhotos,
+      cta_limit:   safeCtas
     };
-    for (let i = 1; i <= limits.ctas; i++) {
-      payload[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
-      payload[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
+
+    // CTA：DOM 有渲染的槽位用 DOM 值（允許清空）；未渲染的用 draftValues（防誤刪）
+    for (let i = 1; i <= safeCtas; i++) {
+      const domText = document.getElementById(`cta_text_${i}`);
+      const domLink = document.getElementById(`cta_link_${i}`);
+      payload[`cta_text_${i}`] = domText ? (domText.value || "") : (state.draftValues[`cta_text_${i}`] || "");
+      payload[`cta_link_${i}`] = domLink ? (domLink.value || "") : (state.draftValues[`cta_link_${i}`] || "");
     }
+
+    // 照片：同樣以 safePhotos 為準，未上傳的槽位保留原始 URL（防誤刪 ext 照片）
     payload.avatar_url = state.photoRealUrls.avatar || "";
     payload.logo_url = state.photoRealUrls.logo || "";
-    for (let i = 1; i <= limits.wallPhotos; i++) {
+    for (let i = 1; i <= safePhotos; i++) {
       payload[`photo${i}_url`] = state.photoRealUrls[`photo${i}`] || "";
     }
     payload.features_json = {
