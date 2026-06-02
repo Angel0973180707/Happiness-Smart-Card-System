@@ -10,7 +10,7 @@
  * - HTML / version.json 走網路優先
  * ========================================= */
 
-const SW_VERSION = "v1.6.0";
+const SW_VERSION = "v1.7.0";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
 const CORE_ASSETS = [
@@ -92,6 +92,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // 靜態 JSON（卡片資料）：stale-while-revalidate（先快取後背景更新）
+  if (isCardJsonRequest(url)) {
+    event.respondWith(staleWhileRevalidate(req));
+    return;
+  }
+
   // 其他靜態資源：快取優先
   event.respondWith(cacheFirst(req));
 });
@@ -112,6 +118,10 @@ function isVersionJsonRequest(url) {
     url.pathname.endsWith("/version.json") ||
     url.pathname.endsWith("version.json")
   );
+}
+
+function isCardJsonRequest(url) {
+  return url.pathname.startsWith("/api/cards/") && url.pathname.endsWith(".json");
 }
 
 async function networkFirst(req) {
@@ -140,6 +150,19 @@ async function cacheFirst(req) {
     cache.put(req, fresh.clone());
   }
   return fresh;
+}
+
+// stale-while-revalidate：立即回傳快取，背景更新
+async function staleWhileRevalidate(req) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(req);
+
+  const fetchPromise = fetch(req).then(fresh => {
+    if (fresh && fresh.ok) cache.put(req, fresh.clone());
+    return fresh;
+  }).catch(() => null);
+
+  return cached || fetchPromise;
 }
 
 function addCacheBust(url) {
