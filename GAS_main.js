@@ -3028,6 +3028,17 @@ function getCardForUpdate_(req) {
   var trackingContext = buildTrackingContextForCard_(displayCard, req);
   mergeExtCtas_(displayCard.card_id, displayCard);
   mergeExtPhotos_(displayCard.card_id, displayCard);
+  // 以實際 ext 資料上修 cta_limit / photo_limit（防 card_db 舊值偏低）
+  var _uctaMax = 0;
+  for (var _ui = 1; _ui <= 50; _ui++) {
+    if (sanitizeText_(displayCard["cta_text_" + _ui]) || sanitizeText_(displayCard["cta_link_" + _ui])) _uctaMax = _ui;
+  }
+  if (_uctaMax > Number(displayCard.cta_limit || 0)) displayCard.cta_limit = String(_uctaMax);
+  var _uphMax = 0;
+  for (var _uj = 11; _uj <= 30; _uj++) {
+    if (sanitizeText_(displayCard["photo" + _uj + "_url"])) _uphMax = _uj;
+  }
+  if (_uphMax > Number(displayCard.photo_limit || 0)) displayCard.photo_limit = String(_uphMax);
   return {
     ok: true,
     version: HSC_VERSION,
@@ -13514,6 +13525,24 @@ function getCardForRenewal_(req) {
   var eligibility = isCardEligibleForRenewal_(card);
   var renewAccess = ensureRenewalTokenRecordForCard_(card, renewal);
 
+  // ★ v461 補強：合併 ext 表並修正 cta_limit / photo_limit
+  var renewCardId = sanitizeText_(card.id) || sanitizeText_(card.card_id);
+  card.photo_limit = String(getEffectivePhotoLimit_(card));
+  card.cta_limit   = String(getEffectiveCtaLimit_(card));
+  mergeExtCtas_(renewCardId, card);
+  mergeExtPhotos_(renewCardId, card);
+  // 以實際 ext 資料為準，若 ext 有更多則上修 limit
+  var actualCtaMax = 0;
+  for (var _ci = 1; _ci <= 50; _ci++) {
+    if (sanitizeText_(card["cta_text_" + _ci]) || sanitizeText_(card["cta_link_" + _ci])) actualCtaMax = _ci;
+  }
+  if (actualCtaMax > Number(card.cta_limit || 0)) card.cta_limit = String(actualCtaMax);
+  var actualPhotoMax = 0;
+  for (var _pi = 11; _pi <= 30; _pi++) {
+    if (sanitizeText_(card["photo" + _pi + "_url"])) actualPhotoMax = _pi;
+  }
+  if (actualPhotoMax > Number(card.photo_limit || 0)) card.photo_limit = String(actualPhotoMax);
+
   return {
     ok: true,
     version: HSC_VERSION,
@@ -16882,7 +16911,7 @@ function assignPaymentToCard_(req) {
 // 原檔:
 //   const HSC_VERSION = "v7.12.2-payment-type-routing";
 // 改為:
-const HSC_VERSION = "v461";
+const HSC_VERSION = "v462";
 
 /* ============================================================
  * ======= [ADD] LIFF URL 轉換工具(v7.15 LINE 整合)==========
@@ -19749,6 +19778,7 @@ function routeAction_(e, method) {
       case "getRenewalDetail": result = adminGetRenewalDetail_(req); break;
       case "adminGrantAddon": result = adminGrantAddon_(req); break;
       case "adminGrantUnlimitedUpdate": result = adminGrantUnlimitedUpdate_(req); break;
+      case "adminRepairCardLimits": result = adminRepairCardLimits_(req); break;
       case "adminReassignServiceAgent": result = adminReassignServiceAgent_(req); break;  
       case "adminBuildBindUrl": result = adminBuildBindUrl_(req); break;
       case "adminListTestCards": result = adminListTestCards_(req); break;
@@ -22338,5 +22368,68 @@ function adminGrantUnlimitedUpdate_(req) {
     card_id: cardId,
     update_unlimited_enabled: true,
     update_unlimited_expires_at: expiresAt
+  };
+}
+
+// ─── 修復所有卡片的 cta_limit / photo_limit（v461）───────────────────
+// 掃描 card_cta_ext 和 card_photo_ext，把偏低的 limit 補正到實際數量
+function adminRepairCardLimits_(req) {
+  requireAdminKey_(req);
+
+  var ctaRows = [];
+  var photoRows = [];
+  try { ctaRows   = getSheetRowsByName_("card_cta_ext"); }   catch(e) {}
+  try { photoRows = getSheetRowsByName_("card_photo_ext"); } catch(e) {}
+
+  // 統計每張卡的實際最大 CTA seq 和 photo seq
+  var ctaMaxMap   = {};
+  var photoMaxMap = {};
+  ctaRows.forEach(function(row) {
+    var id  = sanitizeText_(row.id || "").toUpperCase();
+    var seq = Number(row.seq || 0);
+    if (id && seq > (ctaMaxMap[id] || 0)) ctaMaxMap[id] = seq;
+  });
+  photoRows.forEach(function(row) {
+    var id  = sanitizeText_(row.id || "").toUpperCase();
+    var seq = Number(row.seq || 0);
+    if (id && seq > (photoMaxMap[id] || 0)) photoMaxMap[id] = seq;
+  });
+
+  var cards = getSheetRowsByName_("card_db");
+  var fixed = 0;
+  var nowStr = nowIso_();
+
+  cards.forEach(function(card) {
+    var id = sanitizeText_(card.id || "").toUpperCase();
+    if (!id) return;
+    var changed = false;
+    var updated = shallowClone_(card);
+
+    var actualCta   = ctaMaxMap[id]   || 0;
+    var actualPhoto = photoMaxMap[id] || 0;
+
+    if (actualCta > Number(card.cta_limit || 0)) {
+      updated.cta_limit = String(actualCta);
+      changed = true;
+    }
+    if (actualPhoto > Number(card.photo_limit || 0)) {
+      updated.photo_limit = String(actualPhoto);
+      changed = true;
+    }
+    if (changed) {
+      updated.updated_at = nowStr;
+      updateRowByName_("card_db", card.__rowNum, updated);
+      invalidateCardPublicCache_(id);
+      fixed++;
+    }
+  });
+
+  clearSheetRowCache_("card_db");
+  return {
+    ok: true,
+    version: HSC_VERSION,
+    action: "adminRepairCardLimits",
+    fixed_count: fixed,
+    message: "已修復 " + fixed + " 張卡片的 cta_limit / photo_limit"
   };
 }
