@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>林宏榮 的品牌診斷報告｜幸福天使</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #b8860b;
+    --gold-light: #d4a017;
+    --gold-pale: #f0d98a;
+    --brown-deep: #2a1a06;
+    --brown-mid: #5c3d1e;
+    --cream: #fdfaf3;
+    --cream-dark: #f5edd8;
+    --green-organic: #4a6741;
+    --green-light: #7a9e76;
+    --text-main: #2a1a06;
+    --text-soft: #6b4c2a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #f0e8d0;
+    font-family: 'Noto Sans TC', sans-serif;
+    color: var(--text-main);
+    min-height: 100vh;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      radial-gradient(ellipse at 20% 20%, rgba(184,134,11,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(74,103,65,0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    max-width: 580px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── HERO HEADER ── */
+  .hero {
+    background: linear-gradient(160deg, var(--brown-deep) 0%, #3d2510 60%, #1a3a18 100%);
+    padding: 48px 28px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(184,134,11,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--gold), var(--green-light), var(--gold), transparent);
+  }
+
+  .brand-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(184,134,11,0.15);
+    border: 1px solid rgba(184,134,11,0.4);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 11px;
+    color: var(--gold-pale);
+    letter-spacing: 1.5px;
+    margin-bottom: 20px;
+  }
+
+  .hero-sun {
+    font-size: 13px;
+  }
+
+  .hero h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+
+  .hero h1 span {
+    color: var(--gold-pale);
+  }
+
+  .hero-sub {
+    font-size: 13px;
+    color: rgba(253,250,243,0.6);
+    letter-spacing: 0.5px;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 16px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+
+  .meta-chip {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 11.5px;
+    color: rgba(253,250,243,0.75);
+  }
+
+  .meta-chip strong {
+    color: var(--gold-pale);
+    font-weight: 500;
+  }
+
+  /* ── SECTION BLOCKS ── */
+  .section {
+    margin: 0;
+    padding: 32px 24px;
+    border-bottom: 1px solid rgba(184,134,11,0.15);
+    background: var(--cream);
+  }
+
+  .section:nth-child(even) {
+    background: #faf5e8;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .section-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .icon-red { background: rgba(180,60,40,0.1); }
+  .icon-gold { background: rgba(184,134,11,0.12); }
+  .icon-green { background: rgba(74,103,65,0.12); }
+  .icon-blue { background: rgba(60,100,160,0.1); }
+
+  .section-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--brown-deep);
+  }
+
+  .section-num {
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 14px;
+    border-left: 3px solid var(--gold);
+    box-shadow: 0 2px 12px rgba(42,26,6,0.06);
+  }
+
+  .card.green-border { border-left-color: var(--green-organic); }
+  .card.brown-border { border-left-color: var(--brown-mid); }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .card-title.green { color: var(--green-organic); }
+
+  .card p {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text-soft);
+  }
+
+  .card p strong {
+    color: var(--brown-deep);
+  }
+
+  /* ── HIGHLIGHT BOX ── */
+  .highlight-box {
+    background: linear-gradient(135deg, rgba(184,134,11,0.08), rgba(74,103,65,0.06));
+    border: 1px solid rgba(184,134,11,0.25);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+
+  .highlight-box .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+
+  .highlight-box p {
+    font-size: 14.5px;
+    line-height: 1.8;
+    color: var(--brown-deep);
+    font-family: 'Noto Serif TC', serif;
+  }
+
+  /* ── VALUE PROPS ── */
+  .value-prop {
+    background: white;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    box-shadow: 0 2px 8px rgba(42,26,6,0.05);
+    border: 1px solid rgba(184,134,11,0.12);
+  }
+
+  .vp-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    background: var(--gold);
+    border-radius: 6px;
+    padding: 3px 9px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+
+  .vp-badge.green { background: var(--green-organic); }
+  .vp-badge.brown { background: var(--brown-mid); }
+
+  .vp-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-soft);
+  }
+
+  .vp-text strong {
+    color: var(--brown-deep);
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  /* ── ACTION LIST ── */
+  .action-week {
+    margin-bottom: 22px;
+  }
+
+  .week-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .week-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+    flex-shrink: 0;
+  }
+
+  .week-dot.green { background: var(--green-organic); }
+  .week-dot.brown { background: var(--brown-mid); }
+
+  .week-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--brown-deep);
+    letter-spacing: 0.3px;
+  }
+
+  .action-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 10px 14px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(184,134,11,0.1);
+  }
+
+  .action-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .action-num.green { background: var(--green-organic); }
+  .action-num.brown { background: var(--brown-mid); }
+
+  .action-text {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text-soft);
+  }
+
+  .action-text strong {
+    color: var(--brown-deep);
+    display: block;
+  }
+
+  /* ── SCRIPT BLOCK ── */
+  .script-block {
+    background: var(--brown-deep);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+
+  .script-time {
+    font-size: 11px;
+    color: var(--gold-pale);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  .script-text {
+    font-size: 14px;
+    color: rgba(253,250,243,0.85);
+    line-height: 1.7;
+  }
+
+  .script-hook {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 16px;
+    color: var(--gold-pale);
+    font-weight: 600;
+  }
+
+  /* ── PLATFORM ROW ── */
+  .platform-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .platform-card {
+    flex: 1;
+    background: white;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    border: 1px solid rgba(184,134,11,0.15);
+    box-shadow: 0 2px 8px rgba(42,26,6,0.04);
+  }
+
+  .platform-icon {
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+
+  .platform-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--brown-deep);
+    margin-bottom: 4px;
+  }
+
+  .platform-role {
+    font-size: 11px;
+    color: var(--text-soft);
+    line-height: 1.5;
+  }
+
+  /* ── HOOK PILLS ── */
+  .hook-group {
+    margin-bottom: 16px;
+  }
+
+  .hook-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .hook-label.green { color: var(--green-organic); }
+  .hook-label.brown { color: var(--brown-mid); }
+
+  .hook-pill {
+    background: white;
+    border: 1px solid rgba(184,134,11,0.2);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--text-soft);
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+
+  /* ── LINE MESSAGE ── */
+  .line-bubble {
+    background: white;
+    border-radius: 16px 16px 16px 4px;
+    padding: 18px 20px;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 12px rgba(42,26,6,0.08);
+    border: 1px solid rgba(184,134,11,0.1);
+    font-size: 14px;
+    line-height: 1.9;
+    color: var(--text-soft);
+    white-space: pre-line;
+  }
+
+  .line-bubble strong {
+    color: var(--brown-deep);
+  }
+
+  /* ── CTA FOOTER ── */
+  .cta-footer {
+    background: linear-gradient(160deg, var(--brown-deep) 0%, #1a3a18 100%);
+    padding: 40px 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-footer::before {
+    content: '';
+    position: absolute;
+    top: -60px; left: 50%; transform: translateX(-50%);
+    width: 300px; height: 120px;
+    background: radial-gradient(ellipse, rgba(184,134,11,0.2) 0%, transparent 70%);
+  }
+
+  .cta-footer h3 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 19px;
+    color: var(--cream);
+    font-weight: 600;
+    margin-bottom: 10px;
+    position: relative;
+  }
+
+  .cta-footer p {
+    font-size: 13px;
+    color: rgba(253,250,243,0.6);
+    margin-bottom: 24px;
+    position: relative;
+  }
+
+  .cta-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+    color: var(--brown-deep);
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 32px;
+    border-radius: 50px;
+    text-decoration: none;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 20px rgba(184,134,11,0.4);
+    position: relative;
+    transition: transform 0.2s;
+  }
+
+  .cta-btn:active { transform: scale(0.97); }
+
+  .footer-brand {
+    margin-top: 28px;
+    font-size: 11px;
+    color: rgba(253,250,243,0.35);
+    letter-spacing: 1px;
+  }
+
+  /* ── DIVIDER ── */
+  .gold-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 20px 0;
+    opacity: 0.4;
+  }
+
+  /* ── QUOTE ── */
+  .core-quote {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 15px;
+    color: var(--brown-deep);
+    font-weight: 600;
+    line-height: 1.8;
+    text-align: center;
+    padding: 16px 8px;
+    border-top: 2px solid rgba(74,103,65,0.3);
+    border-bottom: 2px solid rgba(74,103,65,0.3);
+    margin: 18px 0;
+  }
+
+  .core-quote::before { content: '❝ '; color: var(--green-organic); }
+  .core-quote::after { content: ' ❞'; color: var(--green-organic); }
+
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="brand-badge">
+      <span class="hero-sun">☀️</span>
+      幸福天使品牌顧問
+    </div>
+    <h1>林宏榮 的<br><span>品牌診斷報告</span></h1>
+    <p class="hero-sub">有機農業 × 直售品牌 × 影音策略</p>
+    <div class="hero-meta">
+      <span class="meta-chip"><strong>行業</strong> 有機農作物</span>
+      <span class="meta-chip"><strong>平台</strong> FB・LINE OA</span>
+      <span class="meta-chip"><strong>類型</strong> 農民直售 B2C</span>
+    </div>
+  </div>
+
+  <!-- SECTION 1: 卡點分析 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-icon icon-red">🔍</div>
+      <div>
+        <span class="section-num">SECTION 01</span>
+        <div class="section-title">品牌卡點深度分析</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">根本原因</div>
+      <p>健康食品市場最殘酷的真相是：<strong>光說「有機」已經不夠了</strong>。消費者聽過太多「天然」「無毒」「安心」，這些詞對他們來說早就是背景音。你的卡點不是產品不好，而是你還沒有讓人「看到你是誰」——農民的臉、土地的樣子、種植的哲學，這些才是別人偷不走的差異。</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">不解決的代價</div>
+      <p>再過3個月，超市通路繼續擔心保存期限跟你談不成，FB貼文有讚沒有詢問，LINE好友名單沒有成長。你的農產品可能已經是當地最好的，但沒有人知道你跟超市裡那排進口有機商品有什麼不同。最可惜的是：<strong>你有土地、有故事、有臉，這些都在閒置</strong>。</p>
+    </div>
+
+    <div class="card green-border">
+      <div class="card-title green">最快的突破口</div>
+      <p>立刻做一件事：<strong>拍一支在田裡說話的30秒影片</strong>。不需要腳本，就說「我是林宏榮，我在這塊土地種了____，我為什麼這樣種」。農民臉孔＋土地背景，這在消費者眼中就是最強的信任憑證。1個月內可以看到：有人開始主動問「可以怎麼買到你的產品」。</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">資源盤點</div>
+      <p>你有<strong>個人照、有實體土地、有25年的種植經驗哲學</strong>——「讓植物按照基因的記憶去成長」，這句話本身就是無法複製的品牌核心。競爭對手沒有農民的臉，沒有土地的故事，沒有這個哲學。2週內把這些轉化成FB封面圖＋LINE OA歡迎訊息，品牌感立刻不同。</p>
+    </div>
+  </div>
+
+  <!-- SECTION 2: 品牌定位 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-icon icon-gold">🎯</div>
+      <div>
+        <span class="section-num">SECTION 02</span>
+        <div class="section-title">品牌定位建議</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">差異化定位</div>
+      <p>競爭對手說：「嚴選食材、有機認證、安心天然」——這是通路商的話術。<strong>你的話應該是農民說的話</strong>：土地在哪裡、用什麼方式種、為什麼這樣種。「讓植物按照基因的記憶去成長」這句話，把你跟所有代理商、品牌商徹底區隔。你不是賣有機食品，你是賣一種種植的誠意。</p>
+    </div>
+
+    <div class="core-quote">讓植物按照基因的記憶去成長<br>這是農民的承諾，不是品牌的口號</div>
+
+    <div class="highlight-box">
+      <div class="label">▸ 版本1 溫暖型（推薦）</div>
+      <p>「我不是賣有機食品的，我是一個農民，把我在土地上花的每一個小時，直接送到你手上。」</p>
+    </div>
+    <div class="highlight-box">
+      <div class="label">▸ 版本2 專業型</div>
+      <p>「遵循植物基因記憶耕作，零催熟、零妥協——從土地到餐桌，每一步都是我親眼看著長大的。」</p>
+    </div>
+    <div class="highlight-box">
+      <div class="label">▸ 版本3 行動型</div>
+      <p>「超市裡的有機是別人說的，我的有機是你可以來看的——歡迎直接來田裡。」</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">推薦版本1，原因如下</div>
+      <p>活潑有趣的品牌風格需要「說人話」，溫暖版最容易被轉發分享，也最適合FB和LINE OA的熟人信任社群。農民身份加上直接感，就是最強的社群傳播力。</p>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <div class="week-header">
+        <div class="week-dot"></div>
+        <div class="week-title">理想客戶畫像 × 3</div>
+      </div>
+
+      <div class="value-prop">
+        <div class="vp-badge">①</div>
+        <div class="vp-text">
+          <strong>35-50歲 關心全家飲食的主婦</strong>
+          煩惱：超市有機蔬菜不知道誰種的、保存期限太短。會因為「看到農民的臉」而建立信任，願意固定訂購。
+        </div>
+      </div>
+
+      <div class="value-prop">
+        <div class="vp-badge green">②</div>
+        <div class="vp-text">
+          <strong>28-45歲 健康意識覺醒的上班族</strong>
+          煩惱：想買有機但不知道哪個真哪個假。在FB短影音或朋友推薦裡找靈感，看到農民直接說話就信了。
+        </div>
+      </div>
+
+      <div class="value-prop">
+        <div class="vp-badge brown">③</div>
+        <div class="vp-text">
+          <strong>超市採購 / 社區團購主</strong>
+          煩惱：找穩定有故事的在地供應商。「農民直送」這個定位讓他們有差異化賣點，願意長期合作。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: 智慧名片 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-icon icon-gold">📱</div>
+      <div>
+        <span class="section-num">SECTION 03</span>
+        <div class="section-title">智慧名片解決方案</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">名片如何解決三大卡點</div>
+      <p><strong>缺曝光</strong> → 每次分享名片就是一次有機農業品牌曝光，農民臉孔＋土地故事，在LINE群組裡一轉發就有記憶點。<br><br><strong>缺成交</strong> → CTA按鈕直接連到「立即預約取貨 / 訂購」，消費者不用找聯絡方式，一鍵搞定。<br><br><strong>沒有品牌感</strong> → 統一視覺風格、農場照片、核心故事，讓第一次看到名片的人立刻感受到「這是一個真實的農民」。</p>
+    </div>
+
+    <div style="margin-top: 6px;">
+      <div class="value-prop">
+        <div class="vp-badge">功能1</div>
+        <div class="vp-text">
+          <strong>農場故事封面頁</strong>
+          農民照片＋田地背景＋一句品牌主張。讓人一打開就知道：這不是通路商，這是農民本人。
+        </div>
+      </div>
+
+      <div class="value-prop">
+        <div class="vp-badge green">功能2</div>
+        <div class="vp-text">
+          <strong>一鍵訂購 / 取貨預約 CTA</strong>
+          按鈕文字：「我要預約這週的蔬菜箱 →」，直接連LINE OA，縮短從好奇到下單的距離。
+        </div>
+      </div>
+
+      <div class="value-prop">
+        <div class="vp-badge brown">功能3</div>
+        <div class="vp-text">
+          <strong>健康體質評估工具（轉介利器）</strong>
+          5題快測「你適合哪一種有機農法的食材」，測完顯示推薦產品，底部有「分享給朋友測測看」按鈕，啟動自然轉介循環。
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top: 16px;">
+      <div class="label">☀️ 分享工具預告</div>
+      <p>我會幫你把「健康體質評估」放在名片第3個CTA。客戶測完之後會想傳給朋友：「我剛測出我適合吃____，你也來測測看！」這個工具讓你的客戶主動介紹朋友，你不需要花錢買廣告。</p>
+    </div>
+  </div>
+
+  <!-- SECTION 4: 影音策略 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-icon icon-green">🎬</div>
+      <div>
+        <span class="section-num">SECTION 04</span>
+        <div class="section-title">影音策略</div>
+      </div>
+    </div>
+
+    <div class="card green-border">
+      <div class="card-title green">天生優勢</div>
+      <p>① <strong>農場本身就是最好的攝影棚</strong>——土地、植物、自然光，不需要任何佈景。<br>② <strong>農民說話自帶可信度</strong>——任何消費者相信農民說的話，遠超過品牌文案。<br>③ <strong>「植物基因記憶」是極強的視覺化概念</strong>——可以拍植物生長、土壤剖面、採收現場，每一幕都是內容。</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">現實挑戰 × 解法</div>
+      <p>① 每週只有1-2小時 → 一次拍攝3-4支素材，剪成不同長度分批發布。<br>② 不知道說什麼 → 本報告提供完整腳本庫，直接念稿出發。<br>③ 預算3000以下 → 手機拍攝＋免費剪輯APP（CapCut），字幕自動生成，不需請攝影師。</p>
+    </div>
+
+    <div class="gold-divider"></div>
+
+    <div class="week-header" style="margin-bottom: 14px;">
+      <div class="week-dot green"></div>
+      <div class="week-title">平台策略</div>
+    </div>
+
+    <div class="platform-row">
+      <div class="platform-card">
+        <div class="platform-icon">📘</div>
+        <div class="platform-name">Facebook</div>
+        <div class="platform-role">主力平台<br>農業族群集中<br>30-55歲覆蓋強</div>
+      </div>
+      <div class="platform-card">
+        <div class="platform-icon">💬</div>
+        <div class="platform-name">LINE OA</div>
+        <div class="platform-role">成交收單平台<br>老客戶維繫<br>訂購通知</div>
+      </div>
+    </div>
+
+    <div class="gold-divider"></div>
+
+    <div class="week-header" style="margin-top: 16px; margin-bottom: 14px;">
+      <div class="week-dot"></div>
+      <div class="week-title">內容主題方向 × 3</div>
+    </div>
+
+    <div class="card green-border">
+      <div class="card-title green">主題1「農民的一天」</div>
+      <p>定位：真實感＋信任感。拍攝日常種植過程，讓消費者「看到你的手和土地」。<br>前3支：① 「我為什麼不用農藥」② 「今天採收了什麼」③ 「一顆番茄從發芽到你手上要幾天」</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">主題2「植物說話了」</div>
+      <p>定位：品牌哲學視覺化。把「基因記憶」概念用植物特寫＋旁白呈現，有記憶點。<br>前3支：① 「這株植物告訴我它想怎麼長」② 「催熟和自然熟，差在哪裡」③ 「我農場的土和一般農場的土差在哪」</p>
+    </div>
+
+    <div class="card brown-border">
+      <div class="card-title">主題3「農民直播帶貨」</div>
+      <p>定位：直接成交。每週一次5-10分鐘FB直播，展示本週收成＋直接接受預購。<br>前3支（前3次直播主題）：① 「本週蔬菜箱開箱」② 「直接在田裡採給你看」③ 「和我一起選今週的菜」</p>
+    </div>
+
+    <div class="gold-divider"></div>
+
+    <div class="week-header" style="margin-top: 16px; margin-bottom: 14px;">
+      <div class="week-dot"></div>
+      <div class="week-title">Hook句庫 × 9</div>
+    </div>
+
+    <div class="hook-group">
+      <div class="hook-label">痛點型</div>
+      <div class="hook-pill">① 「超市的有機標章，你知道是誰貼的嗎？」</div>
+      <div class="hook-pill">② 「買了有機蔬菜，回家2天就爛了——這不正常」</div>
+      <div class="hook-pill">③ 「你有沒有想過：這顆菜是誰種的，他用了什麼？」</div>
+    </div>
+
+    <div class="hook-group">
+      <div class="hook-label green">反差型</div>
+      <div class="hook-pill">① 「別人的農場用機器，我的農場用耳朵聽植物說話」</div>
+      <div class="hook-pill">② 「我的蔬菜比超市貴一點，但我可以告訴你每一天它長在哪裡」</div>
+      <div class="hook-pill">③ 「農民不應該是最窮的——但我選擇不妥協種法」</div>
+    </div>
+
+    <div class="hook-group">
+      <div class="hook-label brown">好奇型</div>
+      <div class="hook-pill">① 「植物其實記得自己應該怎麼長，只是沒有人讓它這樣做」</div>
+      <div class="hook-pill">② 「我在田裡發現一件事，改變了我種植20年的方式」</div>
+      <div class="hook-pill">③ 「如果你能看到我每天在農場做的事，你會不會改變買菜的習慣？」</div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: 第一支影音腳本 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-icon icon-green">🎥</div>
+      <div>
+        <span class="section-num">SECTION 05</span>
+        <div class="section-title">第一支影音完整腳本</div>
+      </div>
+    </div>
+
+    <div class="card green-border">
+      <div class="card-title green">標題（SEO版）</div>
+      <p>「有機農民告訴你：為什麼超市的有機蔬菜保存不了3天｜林宏榮農場」<br>類型：個人出鏡短影音｜片長：60秒</p>
+    </div>
+
+    <div class="script-block">
+      <div class="script-time">[0:00–0:04] HOOK</div>
+      <div class="script-text script-hook">「超市的有機蔬菜，為什麼買回去兩天就爛了？」</div>
+      <div style="margin-top: 8px; font-size: 12px; color: rgba(253,250,243,0.5);">畫面：手拿一把剛採收的蔬菜，站在田裡</div>
+    </div>
+
+    <div class="script-block">
+      <div class="script-time">[0:04–0:18] 問題引入</div>
+      <div class="script-text">「我是林宏榮，我在這塊土地種有機農作物超過20年。我要告訴你一個大多數農民不會說的秘密——很多有機蔬菜在送到超市之前，已經被催熟過了。」</div>
+      <div style="margin-top: 8px; font-size: 12px; color: rgba(253,250,243,0.5);">畫面：在田間走動，植物特寫</div>
+    </div>
+
+    <div class="script-block">
+      <div class="script-time">[0:18–0:45] 主體</div>
+      <div class="script-text">「植物其實記得自己應該怎麼長。每一種作物都有它基因裡的節奏——需要多少陽光、多少水、在什麼溫度成熟。我的農場只做一件事：讓它照自己的記憶長大。不催熟、不妥協。所以我的菜比較難保存？不——是因為它是真的熟了才來找你。」</div>
+      <div style="margin-top: 8px; font-size: 12px; color: rgba(253,250,243,0.5);">畫面：植物生長特寫、土壤、採收動作</div>
+    </div>
+
+    <div class="script-block">
+      <div class="script-time">[0:45–1:00] CTA</div>
+      <div class="script-text script-hook">「如果你想知道你吃的東西是怎麼種出來的，加我LINE，這週的蔬菜箱還有名額。」</div>
+      <div style="margin-top: 8px; font-size: 12px; color: rgba(253,250,243,0.5);">畫面：對著鏡頭說話，結尾出現名片QR Code</div>
+    </div>
+  </div>
+
+  <!-- SECTION 6: 30天計劃 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-icon icon-gold">📅</div>
+      <div>
+        <span class="section-num">SECTION 06</span>
+        <div class="section-title">30天啟動計劃</div>
+      </div>
+    </div>
+
+    <div class="action-week">
+      <div class="week-header">
+        <div class="week-dot"></div>
+        <div class="week-title">第1週｜準備（你做）</div>
+      </div>
+      <div class="action-item">
+        <div class="action-num">1</div>
+        <div class="action-text"><strong>拍攝第一支60秒農場影片</strong>用上方腳本，手機拍，自然光就夠。不需要完美，只需要真實。</div>
+      </div>
+      <div class="action-item">
+        <div class="action-num">2</div>
+        <div class="action-text"><strong>更新FB封面圖</strong>個人照＋「讓植物按照基因的記憶去成長」一句話，米白底＋綠色字。</div>
+      </div>
+      <div class="action-item">
+        <div class="action-num">3</div>
+        <div class="action-text"><strong>設定LINE OA歡迎訊息</strong>「我是農民林宏榮，這是我的農場故事……」加上本週蔬菜箱預購連結。</div>
+      </div>
+    </div>
+
+    <div class="action-week">
+      <div class="week-header">
+        <div class="week-dot green"></div>
+        <div class="week-title">第2週｜發布</div>
+      </div>
+      <div class="action-item">
+        <div class="action-num green">1</div>
+        <div class="action-text"><strong>發布第一支影片到FB</strong>加上Hook文案，觀察留言和分享數，截圖留存做對比基準。</div>
+      </div>
+      <div class="action-item">
+        <div class="action-num green">2</div>
+        <div class="action-text"><strong>拍攝第二支「今日採收」短片</strong>30秒，邊採收邊說今天有什麼、為什麼值得買。</div>
+      </div>
+      <div class="action-item">
+        <div class="action-num green">3</div>
+        <div class="action-text"><strong>第一次FB小直播（10分鐘）</strong>在田裡，展示本週收成，現場接受預購詢問。</div>
+      </div>
+    </div>
+
+    <div class="action-week">
+      <div class="week-header">
+        <div class="week-dot brown"></div>
+        <div class="week-title">第3-4週｜優化</div>
+      </div>
+      <div class="action-item">
+        <div class="action-num brown">1</div>
+        <div class="action-text"><strong>確認哪支影片反應最好</strong>複製成功格式，第二個月用同樣結構繼續產內容。</div>
+      </div>
+      <div class="action-item">
+        <div class="action-num brown">2</div>
+        <div class="action-text"><strong>把名片分享連結放進影片留言</strong>每支影片留言置頂：「想訂購或了解更多，點這裡 →」連到智慧名片。</div>
+      </div>
+      <div class="action-item">
+        <div class="action-num brown">3</div>
+        <div class="action-text"><strong>邀請前10位訂購客戶測健康體質評估</strong>請他們分享給1個朋友，啟動轉介循環。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 7: LINE摘要 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-icon icon-blue">💬</div>
+      <div>
+        <span class="section-num">SECTION 07</span>
+        <div class="section-title">LINE 診斷摘要（可直接傳給客戶）</div>
+      </div>
+    </div>
+
+    <div class="line-bubble">林宏榮 您好 ☀️
+
+您花了這麼多年讓植物照自己的節奏長大——這是您最珍貴的事，只是還沒有更多人看見。
+
+☀️ 您的品牌卡點
+超市擔心保存、消費者不知道「有機」背後是誰在種——根本原因是：您的農民身份還沒有被看見。光靠產品照和文字說明，跟任何一個通路商都長得一樣。
+
+💪 您已有的優勢
+① 您的農場、您的臉、您種植的哲學，是任何品牌買不到的差異化
+② 「讓植物按照基因的記憶去成長」這句話，本身就是記憶點極強的品牌核心
+
+🎯 現在最優先的一件事
+今天拿起手機，走到田裡，對著鏡頭說一句話：「我是農民林宏榮，這是我的土地，我這樣種……」就這樣，第一支影片完成了。
+
+🎬 您的影音方向
+主力平台 FB，每週1支農場短影音（30-60秒）＋每月1-2次直播帶貨，用手機拍就夠，不需要攝影師，預算幾乎是零。
+
+🌐 您的專屬分享工具
+我會幫您製作「健康體質評估」放在名片裡
+讓您的客戶主動分享：「我剛測出我適合吃____，你也來測測看！」
+
+📋 本週行動清單
+① 拍一支60秒農場影片（腳本我已幫您準備好）
+② 更新FB封面圖，放上農民照＋一句品牌主張
+③ 設定LINE OA歡迎訊息，加上本週蔬菜箱預購連結
+
+您有土地、有故事、有20年的誠意——這些都是別人無法複製的。現在只需要讓更多人看見您。我們一起來。 🌱</div>
+  </div>
+
+  <!-- CTA FOOTER -->
+  <div class="cta-footer">
+    <h3>填寫品牌素材<br>取得完整方案</h3>
+    <p>讓幸福天使為您打造農民直售品牌的完整系統</p>
+    <a class="cta-btn" href="https://angel-namecard.letssyncus.com/">
+      填寫品牌素材，取得完整方案 →
+    </a>
+    <div class="footer-brand">幸福天使 HAPPINESS ANGEL · 品牌診斷報告</div>
+  </div>
+
+</div>
+</body>
+</html>
