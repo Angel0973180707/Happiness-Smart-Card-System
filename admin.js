@@ -288,13 +288,7 @@ function buildInviteReplyText(request) {
   async function apiGet(action, params = {}) {
     const key = getAdminKey();
     if (!key) { toast("⚠️ 請先設定 Admin Key"); throw new Error("Admin Key 未設定"); }
-    const url = new URL(CONFIG.GAS_BASE_URL);
-    url.searchParams.set("action", action);
-    url.searchParams.set("admin_key", key);
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && String(v).trim() !== "") url.searchParams.set(k, v);
-    });
-    return _apiCall("GET", url.toString(), null, action);
+    return _apiCall("POST", CONFIG.GAS_BASE_URL, JSON.stringify({ action, admin_key: key, ...params }), action);
   }
   async function apiPost(action, params = {}) {
     const key = getAdminKey();
