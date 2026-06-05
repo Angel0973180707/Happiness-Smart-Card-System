@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蔡一信健康陪跑品牌企劃</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --forest: #1E4D3A;
+    --moss: #2E6B50;
+    --sage: #5A8C72;
+    --mist: #A8C5B5;
+    --cream: #F7F3EE;
+    --warm: #EDE8E0;
+    --gold: #C8A96E;
+    --amber: #E8C87A;
+    --bark: #6B4F3A;
+    --ink: #2C2A27;
+    --soft: #7A7068;
+    --white: #FEFCF9;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.8;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+    background: rgba(30,77,58,0.97);
+    backdrop-filter: blur(12px);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 58px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+  }
+  nav .logo {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900; font-size: 1rem;
+    color: var(--amber); letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  nav ul {
+    display: flex; gap: 0; list-style: none; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  nav ul::-webkit-scrollbar { display: none; }
+  nav ul li a {
+    display: block; padding: 0 0.75rem; height: 58px;
+    line-height: 58px; font-size: 0.78rem; color: var(--mist);
+    text-decoration: none; white-space: nowrap;
+    transition: color 0.2s, background 0.2s;
+    letter-spacing: 0.03em;
+  }
+  nav ul li a:hover { color: var(--amber); background: rgba(255,255,255,0.05); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    background: linear-gradient(160deg, var(--forest) 0%, #0E2D1F 60%, #162B1E 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 6rem 2rem 4rem;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(90,140,114,0.15) 0%, transparent 70%);
+  }
+  .hero-tag {
+    display: inline-block;
+    background: rgba(200,169,110,0.2);
+    border: 1px solid rgba(200,169,110,0.4);
+    color: var(--amber);
+    padding: 0.4rem 1.2rem; border-radius: 99px;
+    font-size: 0.8rem; letter-spacing: 0.15em;
+    margin-bottom: 2rem;
+    animation: fadeUp 0.8s ease both;
+  }
+  .hero h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    font-weight: 900; color: var(--white);
+    line-height: 1.25; margin-bottom: 1rem;
+    animation: fadeUp 0.8s 0.15s ease both;
+    position: relative; z-index: 1;
+  }
+  .hero h1 span { color: var(--amber); }
+  .hero p {
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    color: var(--mist); max-width: 560px;
+    animation: fadeUp 0.8s 0.3s ease both;
+    position: relative; z-index: 1;
+    margin-bottom: 2.5rem;
+  }
+  .hero-btns {
+    display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+    animation: fadeUp 0.8s 0.45s ease both;
+    position: relative; z-index: 1;
+  }
+  .btn-primary {
+    background: var(--gold);
+    color: var(--forest);
+    padding: 0.75rem 2rem; border-radius: 8px;
+    font-weight: 700; font-size: 0.9rem;
+    text-decoration: none; letter-spacing: 0.05em;
+    transition: all 0.25s;
+  }
+  .btn-primary:hover { background: var(--amber); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(200,169,110,0.35); }
+  .btn-outline {
+    border: 1.5px solid rgba(168,197,181,0.5);
+    color: var(--mist); padding: 0.75rem 2rem; border-radius: 8px;
+    font-size: 0.9rem; text-decoration: none; letter-spacing: 0.05em;
+    transition: all 0.25s;
+  }
+  .btn-outline:hover { border-color: var(--mist); color: var(--white); background: rgba(255,255,255,0.05); }
+
+  .hero-funnel {
+    position: relative; z-index: 1;
+    margin-top: 4rem;
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 0; align-items: center;
+  }
+  .funnel-step {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(168,197,181,0.2);
+    border-radius: 8px; padding: 0.5rem 1rem;
+    font-size: 0.75rem; color: var(--mist);
+    white-space: nowrap;
+    animation: fadeUp 0.6s ease both;
+  }
+  .funnel-arrow {
+    color: var(--sage); font-size: 0.9rem; padding: 0 0.3rem;
+  }
+
+  /* ── SECTION BASE ── */
+  section { padding: 5rem 2rem; }
+  .container { max-width: 960px; margin: 0 auto; }
+  .section-label {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    color: var(--sage); font-size: 0.78rem; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .section-label::before {
+    content: ''; width: 24px; height: 2px; background: var(--sage);
+  }
+  h2 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    font-weight: 900; color: var(--forest);
+    margin-bottom: 1rem; line-height: 1.3;
+  }
+  .lead {
+    font-size: 1.05rem; color: var(--soft);
+    max-width: 600px; margin-bottom: 3rem;
+  }
+
+  /* ── POSITIONING ── */
+  .positioning { background: var(--white); }
+  .pos-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem; margin-top: 2rem;
+  }
+  .pos-card {
+    background: var(--cream);
+    border-left: 3px solid var(--sage);
+    padding: 1.5rem; border-radius: 0 8px 8px 0;
+  }
+  .pos-card h3 {
+    font-size: 0.85rem; font-weight: 700; color: var(--moss);
+    letter-spacing: 0.1em; margin-bottom: 0.75rem;
+  }
+  .pos-card p, .pos-card ul { font-size: 0.9rem; color: var(--soft); }
+  .pos-card ul { padding-left: 1.1rem; }
+  .pos-card ul li { margin-bottom: 0.35rem; }
+
+  .diff-table {
+    width: 100%; border-collapse: collapse; margin-top: 2rem;
+    font-size: 0.9rem;
+  }
+  .diff-table th {
+    background: var(--forest); color: var(--mist);
+    padding: 0.75rem 1.25rem; text-align: left;
+    font-size: 0.8rem; letter-spacing: 0.08em;
+  }
+  .diff-table td {
+    padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--warm);
+  }
+  .diff-table tr:nth-child(even) td { background: var(--cream); }
+  .diff-table td:last-child { color: var(--moss); font-weight: 500; }
+
+  /* ── STORY ── */
+  .story { background: var(--forest); color: var(--white); }
+  .story h2 { color: var(--amber); }
+  .story .lead { color: var(--mist); }
+  .story-quote {
+    background: rgba(255,255,255,0.06);
+    border-left: 4px solid var(--gold);
+    padding: 2rem 2.5rem; border-radius: 0 12px 12px 0;
+    font-size: 1rem; color: var(--mist);
+    line-height: 2.2; font-style: italic;
+    position: relative;
+    font-family: 'Noto Serif TC', serif;
+  }
+  .story-quote::before {
+    content: '❝';
+    position: absolute; top: -0.5rem; left: 1.5rem;
+    font-size: 3rem; color: var(--gold); opacity: 0.4;
+    font-style: normal;
+  }
+
+  /* ── SLOGANS ── */
+  .slogans { background: var(--warm); }
+  .slogan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem; margin-top: 2rem;
+  }
+  .slogan-item {
+    background: var(--white); border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid rgba(0,0,0,0.06);
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .slogan-item:hover {
+    border-color: var(--sage);
+    box-shadow: 0 4px 16px rgba(46,107,80,0.1);
+    transform: translateY(-2px);
+  }
+  .slogan-num {
+    font-size: 0.7rem; font-weight: 700; color: var(--mist);
+    min-width: 22px; margin-top: 0.15rem;
+  }
+  .slogan-text { font-size: 0.92rem; color: var(--ink); font-weight: 500; }
+  .slogan-cat {
+    font-size: 0.7rem; color: var(--sage);
+    background: rgba(90,140,114,0.12);
+    padding: 0.15rem 0.5rem; border-radius: 4px;
+    margin-bottom: 0.4rem; display: inline-block;
+  }
+
+  /* ── NAMECARD ── */
+  .namecard { background: var(--white); }
+  .cta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem; margin-top: 2rem;
+  }
+  .cta-card {
+    border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--warm);
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    transition: all 0.25s;
+  }
+  .cta-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.1); }
+  .cta-header {
+    padding: 1.5rem; color: var(--white);
+    font-family: 'Noto Serif TC', serif;
+  }
+  .cta-header.c1 { background: linear-gradient(135deg, var(--forest), var(--moss)); }
+  .cta-header.c2 { background: linear-gradient(135deg, #3B6E4A, #5A8C72); }
+  .cta-header.c3 { background: linear-gradient(135deg, var(--bark), #8B6A4A); }
+  .cta-header .cta-tag {
+    font-size: 0.7rem; letter-spacing: 0.2em;
+    opacity: 0.8; margin-bottom: 0.5rem;
+  }
+  .cta-header h3 { font-size: 1.2rem; font-weight: 900; }
+  .cta-header .cta-btn {
+    display: inline-block; margin-top: 0.75rem;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.35);
+    padding: 0.4rem 1rem; border-radius: 6px;
+    font-size: 0.82rem; color: var(--white);
+    cursor: pointer;
+  }
+  .cta-body { padding: 1.5rem; }
+  .cta-body h4 {
+    font-size: 0.85rem; font-weight: 700; color: var(--moss);
+    margin-bottom: 0.75rem; letter-spacing: 0.05em;
+  }
+  .cta-block {
+    background: var(--cream); border-radius: 8px;
+    padding: 1rem; margin-bottom: 0.75rem;
+    font-size: 0.85rem; color: var(--soft);
+    border-left: 3px solid var(--mist);
+  }
+  .cta-block strong { color: var(--ink); display: block; margin-bottom: 0.25rem; }
+  .cta-action {
+    display: block; text-align: center;
+    background: var(--forest); color: var(--white);
+    padding: 0.65rem; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 600;
+    margin-top: 1rem; text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: background 0.2s;
+  }
+  .cta-action:hover { background: var(--moss); }
+
+  /* ── PWA GAME ── */
+  .pwa-game { background: linear-gradient(160deg, #0E2D1F 0%, var(--forest) 100%); color: var(--white); }
+  .pwa-game h2 { color: var(--amber); }
+  .pwa-game .lead { color: var(--mist); }
+  .levels-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem; margin-top: 2rem;
+  }
+  .level-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(168,197,181,0.2);
+    border-radius: 12px; padding: 1.5rem;
+    transition: all 0.25s;
+    position: relative; overflow: hidden;
+  }
+  .level-card::before {
+    content: '';
+    position: absolute; top: -40px; right: -40px;
+    width: 100px; height: 100px;
+    background: radial-gradient(circle, rgba(200,169,110,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .level-card:hover { border-color: var(--gold); transform: translateY(-3px); }
+  .level-num {
+    font-size: 0.7rem; font-weight: 700; color: var(--amber);
+    letter-spacing: 0.2em; margin-bottom: 0.5rem;
+  }
+  .level-card h3 { font-size: 1.05rem; color: var(--white); margin-bottom: 0.75rem; }
+  .level-card ul { padding-left: 1.1rem; font-size: 0.85rem; color: var(--mist); }
+  .level-card li { margin-bottom: 0.3rem; }
+
+  .result-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem; margin-top: 2rem;
+  }
+  .result-card {
+    border-radius: 10px; padding: 1.25rem; text-align: center;
+  }
+  .result-card.r1 { background: rgba(90,140,114,0.2); border: 1px solid var(--sage); }
+  .result-card.r2 { background: rgba(200,169,110,0.15); border: 1px solid var(--gold); }
+  .result-card.r3 { background: rgba(232,200,122,0.15); border: 1px solid var(--amber); }
+  .result-card.r4 { background: rgba(200,100,100,0.15); border: 1px solid #c87878; }
+  .result-score { font-size: 1.5rem; font-weight: 900; margin-bottom: 0.25rem; }
+  .result-card.r1 .result-score { color: var(--sage); }
+  .result-card.r2 .result-score { color: var(--gold); }
+  .result-card.r3 .result-score { color: var(--amber); }
+  .result-card.r4 .result-score { color: #e87878; }
+  .result-label { font-size: 0.95rem; color: var(--white); font-weight: 700; margin-bottom: 0.4rem; }
+  .result-sub { font-size: 0.8rem; color: var(--mist); }
+
+  /* ── LINE COMMUNITY ── */
+  .community { background: var(--warm); }
+  .week-table {
+    width: 100%; border-collapse: collapse; margin-top: 1.5rem;
+    font-size: 0.88rem;
+  }
+  .week-table th {
+    background: var(--moss); color: var(--white);
+    padding: 0.65rem 1rem; text-align: left;
+    font-size: 0.78rem; letter-spacing: 0.08em;
+  }
+  .week-table td { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(0,0,0,0.06); }
+  .week-table tr:nth-child(even) td { background: rgba(255,255,255,0.5); }
+  .week-table td:first-child { font-weight: 600; color: var(--moss); white-space: nowrap; }
+
+  .referral-steps {
+    display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem;
+  }
+  .ref-step {
+    background: var(--white); border-radius: 8px;
+    padding: 1rem 1.25rem; display: flex;
+    align-items: center; gap: 1rem;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .ref-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--forest); color: var(--amber);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 0.9rem; flex-shrink: 0;
+  }
+  .ref-step p { font-size: 0.88rem; color: var(--ink); }
+  .ref-step p strong { color: var(--moss); }
+
+  /* ── PLANS ── */
+  .plans { background: var(--white); }
+  .plan-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem; margin-top: 2rem;
+  }
+  .plan-card {
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    transition: all 0.25s;
+  }
+  .plan-card:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(0,0,0,0.12); }
+  .plan-header {
+    padding: 2rem; color: var(--white);
+  }
+  .plan-header.p30 { background: linear-gradient(135deg, var(--moss), var(--forest)); }
+  .plan-header.p90 { background: linear-gradient(135deg, var(--bark), #3A2010); }
+  .plan-tag {
+    font-size: 0.7rem; letter-spacing: 0.2em; opacity: 0.8; margin-bottom: 0.5rem;
+  }
+  .plan-header h3 { font-family: 'Noto Serif TC', serif; font-size: 1.4rem; font-weight: 900; }
+  .plan-price {
+    margin-top: 1rem; font-size: 2rem; font-weight: 900;
+    color: var(--amber);
+  }
+  .plan-price span { font-size: 0.9rem; color: var(--mist); font-weight: 400; }
+  .plan-body { padding: 1.75rem; background: var(--cream); }
+  .plan-body ul { list-style: none; }
+  .plan-body ul li {
+    padding: 0.5rem 0; border-bottom: 1px solid rgba(0,0,0,0.06);
+    font-size: 0.88rem; color: var(--soft);
+    display: flex; gap: 0.5rem; align-items: flex-start;
+  }
+  .plan-body ul li::before { content: '✓'; color: var(--sage); font-weight: 700; flex-shrink: 0; }
+  .plan-body ul li:last-child { border-bottom: none; }
+  .plan-phases { margin-top: 1.5rem; }
+  .phase {
+    padding: 0.75rem 1rem; border-radius: 8px;
+    margin-bottom: 0.75rem; font-size: 0.85rem;
+  }
+  .phase.ph1 { background: rgba(46,107,80,0.1); border-left: 3px solid var(--moss); }
+  .phase.ph2 { background: rgba(200,169,110,0.1); border-left: 3px solid var(--gold); }
+  .phase.ph3 { background: rgba(107,79,58,0.1); border-left: 3px solid var(--bark); }
+  .phase strong { color: var(--ink); display: block; margin-bottom: 0.2rem; }
+  .phase p { color: var(--soft); }
+
+  /* ── FUNNEL ── */
+  .funnel-section { background: var(--forest); color: var(--white); }
+  .funnel-section h2 { color: var(--amber); }
+  .funnel-section .lead { color: var(--mist); }
+  .funnel-list {
+    display: flex; flex-direction: column; gap: 0; margin-top: 2rem;
+    max-width: 640px; margin-left: auto; margin-right: auto;
+  }
+  .funnel-item {
+    display: flex; gap: 1.5rem; align-items: flex-start;
+    padding: 1.25rem 1.5rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(168,197,181,0.15);
+    border-radius: 12px; margin-bottom: 0.5rem;
+    position: relative;
+    transition: all 0.2s;
+  }
+  .funnel-item:hover { background: rgba(255,255,255,0.08); border-color: var(--sage); }
+  .funnel-item::after {
+    content: '↓';
+    position: absolute; bottom: -14px; left: 50%;
+    transform: translateX(-50%);
+    color: var(--sage); font-size: 1rem; z-index: 2;
+  }
+  .funnel-item:last-child::after { display: none; }
+  .funnel-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(200,169,110,0.2);
+    border: 1px solid rgba(200,169,110,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+  }
+  .funnel-content h4 { font-size: 0.95rem; color: var(--white); margin-bottom: 0.3rem; }
+  .funnel-content p { font-size: 0.82rem; color: var(--mist); }
+
+  /* ── CONTENT TOPICS ── */
+  .topics { background: var(--warm); }
+  .tab-bar {
+    display: flex; gap: 0.5rem; margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    padding: 0.5rem 1.25rem; border-radius: 99px;
+    border: 1.5px solid var(--sage); background: transparent;
+    color: var(--moss); font-size: 0.82rem; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: all 0.2s;
+  }
+  .tab-btn.active, .tab-btn:hover {
+    background: var(--forest); border-color: var(--forest);
+    color: var(--white);
+  }
+  .topic-panel { display: none; }
+  .topic-panel.active { display: block; }
+  .topic-cols {
+    columns: 2; column-gap: 1.5rem;
+  }
+  @media (max-width: 600px) { .topic-cols { columns: 1; } }
+  .topic-item {
+    break-inside: avoid; padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    font-size: 0.85rem; color: var(--soft);
+    display: flex; gap: 0.5rem; align-items: flex-start;
+    line-height: 1.5;
+  }
+  .topic-item .tn {
+    font-size: 0.7rem; color: var(--mist); min-width: 24px;
+    font-weight: 700; margin-top: 0.1rem;
+  }
+
+  /* ── MVP ── */
+  .mvp { background: var(--white); }
+  .mvp-timeline {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem; margin-top: 2rem;
+  }
+  .mvp-block {
+    border-radius: 12px; padding: 1.75rem;
+    border: 2px solid transparent; transition: all 0.2s;
+  }
+  .mvp-block.m7 { background: rgba(46,107,80,0.07); border-color: var(--moss); }
+  .mvp-block.m30 { background: rgba(200,169,110,0.07); border-color: var(--gold); }
+  .mvp-block.m90 { background: rgba(107,79,58,0.07); border-color: var(--bark); }
+  .mvp-block:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+  .mvp-label {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.2em;
+    margin-bottom: 0.5rem;
+  }
+  .mvp-block.m7 .mvp-label { color: var(--moss); }
+  .mvp-block.m30 .mvp-label { color: #b8922a; }
+  .mvp-block.m90 .mvp-label { color: var(--bark); }
+  .mvp-block h3 { font-size: 1.1rem; color: var(--ink); margin-bottom: 1rem; }
+  .mvp-block ul { list-style: none; }
+  .mvp-block ul li {
+    font-size: 0.85rem; color: var(--soft);
+    padding: 0.35rem 0; border-bottom: 1px solid rgba(0,0,0,0.05);
+    display: flex; gap: 0.5rem;
+  }
+  .mvp-block ul li::before { content: '→'; color: var(--sage); font-weight: 700; flex-shrink: 0; }
+  .mvp-block ul li:last-child { border-bottom: none; }
+
+  .revenue-box {
+    background: var(--forest); color: var(--white);
+    border-radius: 12px; padding: 2rem;
+    text-align: center; margin-top: 2rem;
+  }
+  .revenue-box h3 { color: var(--amber); font-size: 1.1rem; margin-bottom: 1rem; }
+  .revenue-nums {
+    display: flex; justify-content: center; gap: 3rem; flex-wrap: wrap;
+  }
+  .rev-item { text-align: center; }
+  .rev-num { font-size: 2rem; font-weight: 900; color: var(--amber); }
+  .rev-label { font-size: 0.78rem; color: var(--mist); margin-top: 0.2rem; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: #0A1F14; color: var(--mist);
+    text-align: center; padding: 2.5rem;
+    font-size: 0.82rem; line-height: 2;
+  }
+  footer strong { color: var(--amber); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--cream); }
+  ::-webkit-scrollbar-thumb { background: var(--sage); border-radius: 3px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 640px) {
+    nav ul li a { padding: 0 0.5rem; font-size: 0.72rem; }
+    .topic-cols { columns: 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">蔡一信 健康陪跑</div>
+  <ul>
+    <li><a href="#positioning">品牌定位</a></li>
+    <li><a href="#story">品牌故事</a></li>
+    <li><a href="#slogans">品牌標語</a></li>
+    <li><a href="#namecard">智慧名片</a></li>
+    <li><a href="#pwa">健康島</a></li>
+    <li><a href="#community">LINE社群</a></li>
+    <li><a href="#plans">陪跑方案</a></li>
+    <li><a href="#funnel">成交漏斗</a></li>
+    <li><a href="#topics">內容主題</a></li>
+    <li><a href="#mvp">MVP</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">蔡一信健康陪跑品牌企劃 · 完整策略規劃</div>
+  <h1>你不是一個人<br>在<span>找回健康</span>。</h1>
+  <p>從三高親身經歷到健康陪跑系統，陪伴40歲以上的人，一點一滴找回活力與希望。</p>
+  <div class="hero-btns">
+    <a href="#plans" class="btn-primary">查看陪跑方案</a>
+    <a href="#story" class="btn-outline">聽創辦人故事</a>
+  </div>
+  <div class="hero-funnel">
+    <div class="funnel-step">短影音</div>
+    <div class="funnel-arrow">→</div>
+    <div class="funnel-step">健康故事</div>
+    <div class="funnel-arrow">→</div>
+    <div class="funnel-step">健康島闖關</div>
+    <div class="funnel-arrow">→</div>
+    <div class="funnel-step">智慧名片</div>
+    <div class="funnel-arrow">→</div>
+    <div class="funnel-step">LINE社群</div>
+    <div class="funnel-arrow">→</div>
+    <div class="funnel-step">健康陪跑</div>
+    <div class="funnel-arrow">→</div>
+    <div class="funnel-step">轉介紹</div>
+  </div>
+</section>
+
+<!-- ① POSITIONING -->
+<section class="positioning" id="positioning">
+  <div class="container">
+    <div class="section-label">① 品牌定位</div>
+    <h2>陪你走過健康轉變的同行者</h2>
+    <p class="lead">不是專家居高臨下，而是走過相同路的人，拉你一把。</p>
+
+    <div class="pos-grid">
+      <div class="pos-card">
+        <h3>品牌定位</h3>
+        <p>健康生活管理陪伴者。透過自身經歷與實踐，陪伴更多人找回健康與希望。</p>
+      </div>
+      <div class="pos-card">
+        <h3>品牌價值</h3>
+        <ul>
+          <li><strong>真實</strong>：用自己身體當教材</li>
+          <li><strong>陪伴</strong>：持續同行，不是衛教</li>
+          <li><strong>希望</strong>：展示「改變是可能的」</li>
+          <li><strong>落地</strong>：日常可執行的小動作</li>
+        </ul>
+      </div>
+      <div class="pos-card">
+        <h3>品牌特色</h3>
+        <ul>
+          <li>創辦人本人是最佳案例</li>
+          <li>以生活管理切入</li>
+          <li>數位工具規模化陪伴</li>
+          <li>溫度優先，技術輔助</li>
+        </ul>
+      </div>
+    </div>
+
+    <table class="diff-table" style="margin-top:2.5rem">
+      <thead>
+        <tr>
+          <th>傳統健康服務</th>
+          <th>蔡一信健康陪跑</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>醫生/營養師說教</td><td>同行者分享</td></tr>
+        <tr><td>一次性諮詢</td><td>持續30/90天陪跑</td></tr>
+        <tr><td>專業冷硬</td><td>溫暖有人味</td></tr>
+        <tr><td>治療導向</td><td>習慣養成導向</td></tr>
+        <tr><td>線下限制</td><td>LINE數位閉環</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ② STORY -->
+<section class="story" id="story">
+  <div class="container">
+    <div class="section-label" style="color:var(--sage)">② 品牌故事</div>
+    <h2>走過之後，才懂得陪伴</h2>
+    <p class="lead">溫暖、真實、有信任感——這是蔡一信品牌故事的核心。</p>
+
+    <div class="story-quote">
+      有一年，蔡一信在健康檢查報告上看到滿滿的紅字。<br><br>
+      血壓高、血糖高、血脂高，醫生說心臟也需要注意。他坐在診間外的走廊，手上握著那張報告，第一次感覺到——身體在跟他發出警告。那一年他還不到50歲。<br><br>
+      他沒有選擇忽略，也沒有走向焦慮。他開始一件一件做：早餐少吃一碗飯、睡前把手機放遠一點、下午去公園走20分鐘。不是一夕改變，而是一點一點，把健康找回來。<br><br>
+      幾年後，他的指數回穩了。但比數字更珍貴的，是他學會了「如何照顧自己」。<br><br>
+      他想把這件事分享給更多人——特別是那些看著紅字報告、不知道從哪裡開始的人。<br><br>
+      <strong style="color:var(--amber);font-style:normal">蔡一信健康陪跑，就這樣誕生了。</strong>
+    </div>
+  </div>
+</section>
+
+<!-- ③ SLOGANS -->
+<section class="slogans" id="slogans">
+  <div class="container">
+    <div class="section-label">③ 品牌標語</div>
+    <h2>30組品牌標語</h2>
+    <p class="lead">溫暖・可信任・有希望・容易記憶</p>
+
+    <div class="slogan-grid">
+      <!-- 溫暖系 -->
+      <div class="slogan-item"><span class="slogan-num">01</span><div><div class="slogan-cat">溫暖</div><div class="slogan-text">健康不急，但要開始。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">02</span><div><div class="slogan-cat">溫暖</div><div class="slogan-text">陪你，從今天走起。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">03</span><div><div class="slogan-cat">溫暖</div><div class="slogan-text">你不是一個人在找回健康。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">04</span><div><div class="slogan-cat">溫暖</div><div class="slogan-text">慢慢來，但不要停。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">05</span><div><div class="slogan-cat">溫暖</div><div class="slogan-text">每一個小改變，都算數。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">06</span><div><div class="slogan-cat">溫暖</div><div class="slogan-text">走過才知道，健康是找回來的。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">07</span><div><div class="slogan-cat">溫暖</div><div class="slogan-text">不完美的開始，比完美的等待更有力量。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">08</span><div><div class="slogan-cat">溫暖</div><div class="slogan-text">身體在等你，回來照顧它。</div></div></div>
+      <!-- 信任系 -->
+      <div class="slogan-item"><span class="slogan-num">09</span><div><div class="slogan-cat">信任</div><div class="slogan-text">我走過這條路，我陪你走。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">10</span><div><div class="slogan-cat">信任</div><div class="slogan-text">不是理論，是親身經歷。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">11</span><div><div class="slogan-cat">信任</div><div class="slogan-text">三高曾經找上我，現在我來幫你。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">12</span><div><div class="slogan-cat">信任</div><div class="slogan-text">用自己的身體告訴你，改變是真的可能。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">13</span><div><div class="slogan-cat">信任</div><div class="slogan-text">沒有保證，只有陪伴與方法。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">14</span><div><div class="slogan-cat">信任</div><div class="slogan-text">我不賣藥，我賣的是習慣。</div></div></div>
+      <!-- 希望系 -->
+      <div class="slogan-item"><span class="slogan-num">15</span><div><div class="slogan-cat">希望</div><div class="slogan-text">健康的人生，值得重來。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">16</span><div><div class="slogan-cat">希望</div><div class="slogan-text">紅字報告不是終點，是轉捩點。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">17</span><div><div class="slogan-cat">希望</div><div class="slogan-text">40歲之後，才是照顧自己的開始。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">18</span><div><div class="slogan-cat">希望</div><div class="slogan-text">你的身體比你想的更有韌性。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">19</span><div><div class="slogan-cat">希望</div><div class="slogan-text">昨天的不健康，不代表明天。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">20</span><div><div class="slogan-cat">希望</div><div class="slogan-text">改變不需要完美，只需要持續。</div></div></div>
+      <!-- 記憶系 -->
+      <div class="slogan-item"><span class="slogan-num">21</span><div><div class="slogan-cat">記憶</div><div class="slogan-text">一信陪跑，健康同行。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">22</span><div><div class="slogan-cat">記憶</div><div class="slogan-text">健康陪跑，從一步開始。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">23</span><div><div class="slogan-cat">記憶</div><div class="slogan-text">找回健康，一起慢慢來。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">24</span><div><div class="slogan-cat">記憶</div><div class="slogan-text">一信一步，健康到位。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">25</span><div><div class="slogan-cat">記憶</div><div class="slogan-text">不孤單的健康路。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">26</span><div><div class="slogan-cat">記憶</div><div class="slogan-text">你的健康教練，也是同路人。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">27</span><div><div class="slogan-cat">記憶</div><div class="slogan-text">陪跑不催跑，健康不焦慮。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">28</span><div><div class="slogan-cat">記憶</div><div class="slogan-text">40+健康，一信在。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">29</span><div><div class="slogan-cat">記憶</div><div class="slogan-text">習慣改變，人生就變了。</div></div></div>
+      <div class="slogan-item"><span class="slogan-num">30</span><div><div class="slogan-cat">記憶</div><div class="slogan-text">三高找上門，陪你找出路。</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ④ NAMECARD -->
+<section class="namecard" id="namecard">
+  <div class="container">
+    <div class="section-label">④ 智慧名片規劃</div>
+    <h2>三個 CTA，完整閉環</h2>
+    <p class="lead">故事建立情感 → 評估建立需求 → 諮詢建立行動</p>
+
+    <div class="cta-grid">
+      <div class="cta-card">
+        <div class="cta-header c1">
+          <div class="cta-tag">CTA 1</div>
+          <h3>📖 健康故事</h3>
+          <div class="cta-btn">聽我說健康故事</div>
+        </div>
+        <div class="cta-body">
+          <h4>頁面結構</h4>
+          <div class="cta-block"><strong>標題</strong>一個差點被三高打倒的人，如何找回健康</div>
+          <div class="cta-block"><strong>故事段落</strong>紅字報告那天 → 改變過程 → 數字回來了 → 為何分享</div>
+          <div class="cta-block"><strong>結尾行動</strong>你也有類似困擾嗎？</div>
+          <a class="cta-action" href="#">→ 免費健康評估</a>
+        </div>
+      </div>
+
+      <div class="cta-card">
+        <div class="cta-header c2">
+          <div class="cta-tag">CTA 2</div>
+          <h3>🏝️ 健康檢測</h3>
+          <div class="cta-btn">免費健康島闖關</div>
+        </div>
+        <div class="cta-body">
+          <h4>頁面結構</h4>
+          <div class="cta-block"><strong>說明</strong>5分鐘 · 5個關卡 · 立即獲得個人化建議</div>
+          <div class="cta-block"><strong>關卡預覽</strong>飲食／睡眠／壓力／運動／健康管理</div>
+          <div class="cta-block"><strong>底部說明</strong>完全免費 · 不需登入 · 1分鐘出結果</div>
+          <a class="cta-action" href="#">→ 立即開始闖關</a>
+        </div>
+      </div>
+
+      <div class="cta-card">
+        <div class="cta-header c3">
+          <div class="cta-tag">CTA 3</div>
+          <h3>🤝 陪跑諮詢</h3>
+          <div class="cta-btn">預約免費諮詢</div>
+        </div>
+        <div class="cta-body">
+          <h4>頁面結構</h4>
+          <div class="cta-block"><strong>說明</strong>30分鐘，陪你想清楚健康怎麼開始</div>
+          <div class="cta-block"><strong>適合你如果</strong>報告有紅字 / 多次失敗 / 缺乏動力 / 40歲以上</div>
+          <div class="cta-block"><strong>信任背書</strong>完全免費 · 親自陪談 · 每週限額5位</div>
+          <a class="cta-action" href="#">→ 加LINE預約諮詢</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑤ PWA GAME -->
+<section class="pwa-game" id="pwa">
+  <div class="container">
+    <div class="section-label" style="color:var(--sage)">⑤ 健康島闖關PWA</div>
+    <h2>五關闖關・找出健康弱點</h2>
+    <p class="lead">遊戲化設計，降低抵抗感，提升完成率與名單收集</p>
+
+    <div class="levels-grid">
+      <div class="level-card">
+        <div class="level-num">第一關</div>
+        <h3>🍱 飲食習慣島</h3>
+        <ul>
+          <li>你每天吃早餐嗎？</li>
+          <li>一天喝水量大概多少？</li>
+          <li>你吃飯的速度如何？</li>
+          <li>每週外食幾次？</li>
+          <li>睡前兩小時還吃東西嗎？</li>
+        </ul>
+      </div>
+      <div class="level-card">
+        <div class="level-num">第二關</div>
+        <h3>🌙 睡眠習慣島</h3>
+        <ul>
+          <li>平均幾點睡覺？</li>
+          <li>平均睡幾小時？</li>
+          <li>睡前你會滑手機嗎？</li>
+          <li>早上起床精神好嗎？</li>
+          <li>有睡眠中斷問題嗎？</li>
+        </ul>
+      </div>
+      <div class="level-card">
+        <div class="level-num">第三關</div>
+        <h3>😤 壓力狀態島</h3>
+        <ul>
+          <li>最近一個月情緒緊繃嗎？</li>
+          <li>你有紓壓的方式嗎？</li>
+          <li>你覺得生活有意義感嗎？</li>
+          <li>工作壓力讓你失眠嗎？</li>
+          <li>感到莫名疲憊嗎？</li>
+        </ul>
+      </div>
+      <div class="level-card">
+        <div class="level-num">第四關</div>
+        <h3>🏃 運動習慣島</h3>
+        <ul>
+          <li>每週運動幾次？</li>
+          <li>每次運動多久？</li>
+          <li>你走路上下班嗎？</li>
+          <li>有做伸展訓練嗎？</li>
+          <li>運動後你感覺如何？</li>
+        </ul>
+      </div>
+      <div class="level-card">
+        <div class="level-num">第五關</div>
+        <h3>📋 健康管理島</h3>
+        <ul>
+          <li>多久做一次健康檢查？</li>
+          <li>你知道自己的血壓血糖嗎？</li>
+          <li>有固定服藥或保健品嗎？</li>
+          <li>對自己健康狀態滿意嗎？</li>
+          <li>最大的健康管理障礙？</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="color:var(--amber);margin:2.5rem 0 0.5rem;font-family:'Noto Serif TC',serif">結果分析 · 四種體質</h3>
+    <div class="result-grid">
+      <div class="result-card r1">
+        <div class="result-score">85-100</div>
+        <div class="result-label">🏝️ 健康島民</div>
+        <div class="result-sub">健康自律型<br>維持並精進</div>
+      </div>
+      <div class="result-card r2">
+        <div class="result-score">65-84</div>
+        <div class="result-label">🔍 亞健康探索者</div>
+        <div class="result-sub">有意識但不穩定<br>30天方案適合你</div>
+      </div>
+      <div class="result-card r3">
+        <div class="result-score">40-64</div>
+        <div class="result-label">⚠️ 健康警戒區</div>
+        <div class="result-sub">警訊已出現<br>建議免費諮詢</div>
+      </div>
+      <div class="result-card r4">
+        <div class="result-score">0-39</div>
+        <div class="result-label">🆘 健康求救信號</div>
+        <div class="result-sub">需要立即關注<br>強烈建議一對一陪跑</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑥ COMMUNITY -->
+<section class="community" id="community">
+  <div class="container">
+    <div class="section-label">⑥ LINE社群規劃</div>
+    <h2>一信健康加油站 🌱</h2>
+    <p class="lead">不是健康資訊轟炸群，而是互相打氣、分享真實生活的健康同行社群。</p>
+
+    <table class="week-table">
+      <thead>
+        <tr><th>星期</th><th>主題</th><th>範例內容</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>週一</td><td>週間啟動</td><td>「這週你設一個健康小目標，說出來！」</td></tr>
+        <tr><td>週二</td><td>飲食小知識</td><td>「今天分享一個外食時可以做的小改變」</td></tr>
+        <tr><td>週三</td><td>運動打卡日</td><td>「今天動了嗎？分享你的運動紀錄 🏃」</td></tr>
+        <tr><td>週四</td><td>睡眠/情緒</td><td>「昨晚睡得好嗎？分享你的睡眠秘技」</td></tr>
+        <tr><td>週五</td><td>健康故事日</td><td>「一信分享本週一個親身健康故事」</td></tr>
+        <tr><td>週六</td><td>輕鬆話題</td><td>「週末吃什麼？健康又美味推薦」</td></tr>
+        <tr><td>週日</td><td>週回顧打氣</td><td>「這週你做到了什麼？給自己拍拍手 👏」</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:2.5rem;margin-bottom:1rem;color:var(--forest);font-family:'Noto Serif TC',serif">轉介紹機制</h3>
+    <div class="referral-steps">
+      <div class="ref-step">
+        <div class="ref-icon">×1</div>
+        <p><strong>邀請1位朋友加入</strong>→ 獲得一信親自回覆一個健康問題資格</p>
+      </div>
+      <div class="ref-step">
+        <div class="ref-icon">×3</div>
+        <p><strong>邀請3位朋友加入</strong>→ 免費參加下次群內小講座</p>
+      </div>
+      <div class="ref-step">
+        <div class="ref-icon">×5</div>
+        <p><strong>邀請5位朋友加入</strong>→ 獲得30分鐘免費一對一諮詢</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑦⑧ PLANS -->
+<section class="plans" id="plans">
+  <div class="container">
+    <div class="section-label">⑦⑧ 陪跑方案</div>
+    <h2>選擇適合你的陪跑計畫</h2>
+    <p class="lead">從建立習慣到深度重建，每個階段都有蔡一信陪你同行。</p>
+
+    <div class="plan-grid">
+      <!-- 30天 -->
+      <div class="plan-card">
+        <div class="plan-header p30">
+          <div class="plan-tag">⑦ 入門方案</div>
+          <h3>健康起步30天</h3>
+          <div class="plan-price">NT$3,800 <span>/ 早鳥 NT$2,800</span></div>
+        </div>
+        <div class="plan-body">
+          <ul>
+            <li>入會健康評估 + 30分鐘線上諮詢</li>
+            <li>每日LINE推送健康小任務</li>
+            <li>每週一次追蹤（語音/文字）</li>
+            <li>每週主題健康知識包</li>
+            <li>第30天個人習慣養成報告</li>
+            <li>全期免費進入LINE健康社群</li>
+          </ul>
+          <h4 style="margin-top:1.25rem;margin-bottom:0.75rem;color:var(--moss);font-size:0.85rem">四週任務主軸</h4>
+          <div class="phase ph1"><strong>Week 1 飲食啟動</strong><p>記錄飲食 → 喝水量 → 吃飯速度 → 早餐 → 睡前禁食</p></div>
+          <div class="phase ph2"><strong>Week 2 運動建立</strong><p>每天10分鐘走路 → 拉伸 → 爬樓梯 → 打卡記錄</p></div>
+          <div class="phase ph1"><strong>Week 3 睡眠優化</strong><p>固定就寢 → 睡前手機 → 睡眠環境 → 起床儀式</p></div>
+          <div class="phase ph2"><strong>Week 4 情緒與整合</strong><p>壓力記錄 → 深呼吸 → 本月回顧 → 下月計畫</p></div>
+        </div>
+      </div>
+
+      <!-- 90天 -->
+      <div class="plan-card">
+        <div class="plan-header p90">
+          <div class="plan-tag">⑧ 深度方案</div>
+          <h3>90天健康重建計畫</h3>
+          <div class="plan-price">NT$9,800 <span>/ 早鳥 NT$7,800</span></div>
+        </div>
+        <div class="plan-body">
+          <ul>
+            <li>完整健康評估 + 個人化計畫書</li>
+            <li>每週一次視訊/語音陪談</li>
+            <li>每日文字追蹤與任務推送</li>
+            <li>中期健康評估報告（第45天）</li>
+            <li>90天健康成果報告</li>
+            <li>未來半年自主計畫建議</li>
+          </ul>
+          <h4 style="margin-top:1.25rem;margin-bottom:0.75rem;color:var(--bark);font-size:0.85rem">三階段目標</h4>
+          <div class="phase ph1"><strong>第一個月｜覺察期</strong><p>找到健康弱點，建立三個核心習慣</p></div>
+          <div class="phase ph2"><strong>第二個月｜穩定期</strong><p>習慣穩固，根據數據做微調深化</p></div>
+          <div class="phase ph3"><strong>第三個月｜自主期</strong><p>不靠外力也能自我管理，鞏固成果</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑨ FUNNEL -->
+<section class="funnel-section" id="funnel">
+  <div class="container">
+    <div class="section-label" style="color:var(--sage)">⑨ 成交漏斗</div>
+    <h2>十個環節，完整閉環</h2>
+    <p class="lead">每個環節都有明確目的，從陌生到付費，從付費到轉介紹。</p>
+
+    <div class="funnel-list">
+      <div class="funnel-item">
+        <div class="funnel-icon">📱</div>
+        <div class="funnel-content">
+          <h4>流量來源</h4>
+          <p>Facebook / Instagram / YouTube / LINE / 轉介紹｜建立第一印象</p>
+        </div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-icon">🎬</div>
+        <div class="funnel-content">
+          <h4>健康短影音</h4>
+          <p>引發共鳴，讓目標客群認出自己「這說的就是我！」</p>
+        </div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-icon">🏝️</div>
+        <div class="funnel-content">
+          <h4>健康島闖關PWA</h4>
+          <p>讓潛在客戶自我揭示痛點，收集名單，完成後給有價值報告</p>
+        </div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-icon">📇</div>
+        <div class="funnel-content">
+          <h4>智慧名片（HSC）</h4>
+          <p>完整呈現品牌、故事、服務，CTA三連建立信任與行動意願</p>
+        </div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-icon">💬</div>
+        <div class="funnel-content">
+          <h4>加入LINE社群</h4>
+          <p>長期溫養、持續接觸，讓陌生人變成熟人</p>
+        </div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-icon">🤝</div>
+        <div class="funnel-content">
+          <h4>免費陪跑諮詢</h4>
+          <p>一對一建立連結，了解個人狀況，讓對方自己說「我想繼續」</p>
+        </div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-icon">🌱</div>
+        <div class="funnel-content">
+          <h4>30天陪跑方案</h4>
+          <p>低門檻成交，讓客戶體驗服務價值，超出期待產生口碑</p>
+        </div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-icon">🌳</div>
+        <div class="funnel-content">
+          <h4>90天陪跑方案</h4>
+          <p>第30天結束時升級最佳時機，深度服務創造真實改變與高客單</p>
+        </div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-icon">⭐</div>
+        <div class="funnel-content">
+          <h4>成功案例收集</h4>
+          <p>過程記錄比結果更有說服力，社會證明降低新客戶疑慮</p>
+        </div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-icon">🔁</div>
+        <div class="funnel-content">
+          <h4>轉介紹機制啟動</h4>
+          <p>設計讓客戶「有理由」介紹朋友的機制，低成本獲取高品質新客</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑩⑪⑫ TOPICS -->
+<section class="topics" id="topics">
+  <div class="container">
+    <div class="section-label">⑩⑪⑫ 內容主題庫</div>
+    <h2>短影音 · 健康故事 · Q&A</h2>
+    <p class="lead">300個內容主題，足夠一整年持續產出，建立品牌影響力。</p>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="showTab('video')">🎬 短影音 100題</button>
+      <button class="tab-btn" onclick="showTab('story')">📖 健康故事 100題</button>
+      <button class="tab-btn" onclick="showTab('qa')">❓ 健康Q&A 100題</button>
+    </div>
+
+    <!-- 短影音 -->
+    <div class="topic-panel active" id="tab-video">
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+        <span style="font-size:0.8rem;color:var(--soft)">故事型 25題 ｜ 共鳴型 25題 ｜ 教育型 25題 ｜ 觀念型 25題</span>
+      </div>
+      <div class="topic-cols">
+        <div class="topic-item"><span class="tn">01</span>那天我拿到健康報告，手在抖</div>
+        <div class="topic-item"><span class="tn">02</span>我第一次量血壓，數字嚇到我</div>
+        <div class="topic-item"><span class="tn">03</span>醫生說「你要注意了」，我腦袋空白了5秒</div>
+        <div class="topic-item"><span class="tn">04</span>太太哭著說「你要好好照顧自己」</div>
+        <div class="topic-item"><span class="tn">05</span>第一次嘗試不吃消夜，失敗三次的故事</div>
+        <div class="topic-item"><span class="tn">06</span>第一次跑步，只跑了200公尺就停下來</div>
+        <div class="topic-item"><span class="tn">07</span>有天早上起床，感覺身體輕了一點點</div>
+        <div class="topic-item"><span class="tn">08</span>三個月後，醫生說數字下來了</div>
+        <div class="topic-item"><span class="tn">09</span>我的飲食改變，從戒掉一件事開始</div>
+        <div class="topic-item"><span class="tn">10</span>朋友說「你看起來不一樣了」，那天很感動</div>
+        <div class="topic-item"><span class="tn">11</span>我以為改變健康要很多時間，但其實只需要這些</div>
+        <div class="topic-item"><span class="tn">12</span>最黑暗的那段日子，每天都很疲憊</div>
+        <div class="topic-item"><span class="tn">13</span>第一次連續走路30分鐘，我哭了</div>
+        <div class="topic-item"><span class="tn">14</span>家人的一句話，讓我決定改變</div>
+        <div class="topic-item"><span class="tn">15</span>睡眠改善後，我的人生真的不一樣了</div>
+        <div class="topic-item"><span class="tn">16</span>我曾經認為「健康是以後的事」</div>
+        <div class="topic-item"><span class="tn">17</span>50歲的我，比40歲時更有精神</div>
+        <div class="topic-item"><span class="tn">18</span>那一年我同時面對三個健康警訊</div>
+        <div class="topic-item"><span class="tn">19</span>如何說服自己戒掉宵夜</div>
+        <div class="topic-item"><span class="tn">20</span>第一次健康紅字變少，我存了那張報告</div>
+        <div class="topic-item"><span class="tn">21</span>我的運動習慣，從每天5分鐘開始</div>
+        <div class="topic-item"><span class="tn">22</span>那個我以為不可能做到的事，我做到了</div>
+        <div class="topic-item"><span class="tn">23</span>朋友問我吃什麼保健品，我說沒有</div>
+        <div class="topic-item"><span class="tn">24</span>改變飲食的第一週，有多痛苦</div>
+        <div class="topic-item"><span class="tn">25</span>現在的我和三年前的我，有哪些不同的選擇</div>
+        <div class="topic-item"><span class="tn">26</span>你有沒有明明很累，卻睡不著的夜晚？</div>
+        <div class="topic-item"><span class="tn">27</span>健康報告紅字，你是馬上改變還是繼續擺著？</div>
+        <div class="topic-item"><span class="tn">28</span>外食族，你知道每天吃進多少鈉嗎？</div>
+        <div class="topic-item"><span class="tn">29</span>你上次運動是什麼時候？</div>
+        <div class="topic-item"><span class="tn">30</span>你有沒有「從明天開始」說了三年？</div>
+        <div class="topic-item"><span class="tn">31</span>40歲後開始注重健康，會不會太晚？</div>
+        <div class="topic-item"><span class="tn">32</span>你最擔心自己哪個健康問題？</div>
+        <div class="topic-item"><span class="tn">33</span>有沒有人懂那種：很想改變，但就是動不起來</div>
+        <div class="topic-item"><span class="tn">34</span>你最後一次好好睡覺，是什麼時候？</div>
+        <div class="topic-item"><span class="tn">35</span>「等忙完這陣子再說」這句話，你說了幾年了？</div>
+        <div class="topic-item"><span class="tn">36</span>你是否曾因身體狀況，對家人感到愧疚？</div>
+        <div class="topic-item"><span class="tn">37</span>每次量血壓前，你是不是也會有點緊張？</div>
+        <div class="topic-item"><span class="tn">38</span>明明想早睡，滑了2小時手機才發現</div>
+        <div class="topic-item"><span class="tn">39</span>外食讓你覺得健康很難嗎？</div>
+        <div class="topic-item"><span class="tn">40</span>有沒有哪一刻，你突然想認真對待自己的身體？</div>
+        <div class="topic-item"><span class="tn">41</span>你最近一次感覺「真的很有精神」是什麼時候？</div>
+        <div class="topic-item"><span class="tn">42</span>「我知道要改變，但不知從哪開始」</div>
+        <div class="topic-item"><span class="tn">43</span>保健品買了一堆，但習慣沒有改變半個</div>
+        <div class="topic-item"><span class="tn">44</span>你有沒有因為健康問題，少陪了家人？</div>
+        <div class="topic-item"><span class="tn">45</span>運動這件事，你失敗過幾次了？</div>
+        <div class="topic-item"><span class="tn">46</span>亞健康：看起來沒病，但什麼都不對勁</div>
+        <div class="topic-item"><span class="tn">47</span>你是哪種外食族？（跟著說）</div>
+        <div class="topic-item"><span class="tn">48</span>「這個年紀有點三高很正常」你也這樣說過嗎？</div>
+        <div class="topic-item"><span class="tn">49</span>看到別人充滿活力，你有沒有羨慕過？</div>
+        <div class="topic-item"><span class="tn">50</span>如果給身體打分數，你給幾分？</div>
+        <div class="topic-item"><span class="tn">51</span>三高是什麼？一分鐘搞懂</div>
+        <div class="topic-item"><span class="tn">52</span>為什麼吃飯太快，會讓血糖飆升？</div>
+        <div class="topic-item"><span class="tn">53</span>喝水喝對了嗎？這五個時機最重要</div>
+        <div class="topic-item"><span class="tn">54</span>走路減重有效嗎？關鍵在這裡</div>
+        <div class="topic-item"><span class="tn">55</span>睡前滑手機對睡眠傷害有多大？</div>
+        <div class="topic-item"><span class="tn">56</span>外食三個地雷，你踩了幾個？</div>
+        <div class="topic-item"><span class="tn">57</span>壓力如何影響血壓？</div>
+        <div class="topic-item"><span class="tn">58</span>為什麼運動後反而更累？</div>
+        <div class="topic-item"><span class="tn">59</span>情緒和健康的關係，比你想的更直接</div>
+        <div class="topic-item"><span class="tn">60</span>什麼是「亞健康」？你中了嗎？</div>
+        <div class="topic-item"><span class="tn">61</span>早餐對血糖的影響，比晚餐更重要</div>
+        <div class="topic-item"><span class="tn">62</span>為什麼減重總是失敗？不是意志力的問題</div>
+        <div class="topic-item"><span class="tn">63</span>睡眠不足對心臟的傷害</div>
+        <div class="topic-item"><span class="tn">64</span>怎麼吃白飯才不會讓血糖太高？</div>
+        <div class="topic-item"><span class="tn">65</span>走路30分鐘等於什麼？</div>
+        <div class="topic-item"><span class="tn">66</span>正念呼吸可以降血壓嗎？</div>
+        <div class="topic-item"><span class="tn">67</span>慢性疲勞的五個早期訊號</div>
+        <div class="topic-item"><span class="tn">68</span>為什麼40歲後要特別注意代謝？</div>
+        <div class="topic-item"><span class="tn">69</span>膳食纖維怎麼吃才有效？</div>
+        <div class="topic-item"><span class="tn">70</span>肌肉量與血糖的關係</div>
+        <div class="topic-item"><span class="tn">71</span>睡覺磨牙代表什麼？</div>
+        <div class="topic-item"><span class="tn">72</span>腸道健康為什麼影響情緒？</div>
+        <div class="topic-item"><span class="tn">73</span>一天坐超過8小時，身體發生了什麼？</div>
+        <div class="topic-item"><span class="tn">74</span>深呼吸，比你想的更有力量</div>
+        <div class="topic-item"><span class="tn">75</span>什麼時候運動效果最好？</div>
+        <div class="topic-item"><span class="tn">76</span>健康不是目的，是讓你做更多事的基礎</div>
+        <div class="topic-item"><span class="tn">77</span>改變不需要完美，需要持續</div>
+        <div class="topic-item"><span class="tn">78</span>你買的不是健康，而是習慣</div>
+        <div class="topic-item"><span class="tn">79</span>最好的保健品，叫做睡眠</div>
+        <div class="topic-item"><span class="tn">80</span>健康是存款，你每天在存還是在提？</div>
+        <div class="topic-item"><span class="tn">81</span>不要等病了才開始，這件事我有資格說</div>
+        <div class="topic-item"><span class="tn">82</span>一個人的健康，影響的是整個家庭</div>
+        <div class="topic-item"><span class="tn">83</span>恐嚇不是動力，希望才是</div>
+        <div class="topic-item"><span class="tn">84</span>為什麼你需要一個健康陪跑的人？</div>
+        <div class="topic-item"><span class="tn">85</span>醫生治病，你來管理生活</div>
+        <div class="topic-item"><span class="tn">86</span>改變習慣，最難的是第一週</div>
+        <div class="topic-item"><span class="tn">87</span>健康的人生不是沒有病，是知道如何照顧自己</div>
+        <div class="topic-item"><span class="tn">88</span>你的身體記得你怎麼對它</div>
+        <div class="topic-item"><span class="tn">89</span>不要跟別人比，跟昨天的自己比</div>
+        <div class="topic-item"><span class="tn">90</span>小改變累積成大轉變</div>
+        <div class="topic-item"><span class="tn">91</span>年紀不是藉口，是提醒</div>
+        <div class="topic-item"><span class="tn">92</span>你值得一個更有活力的自己</div>
+        <div class="topic-item"><span class="tn">93</span>運動不是懲罰，是給身體的禮物</div>
+        <div class="topic-item"><span class="tn">94</span>知道和做到之間，差的是這個</div>
+        <div class="topic-item"><span class="tn">95</span>健康管理不是自律，是愛自己的方式</div>
+        <div class="topic-item"><span class="tn">96</span>最好的時機是昨天，其次是今天</div>
+        <div class="topic-item"><span class="tn">97</span>三高不可怕，可怕的是不知道</div>
+        <div class="topic-item"><span class="tn">98</span>照顧好自己，才能照顧好家人</div>
+        <div class="topic-item"><span class="tn">99</span>為什麼我不賣神奇方法，只賣陪伴？</div>
+        <div class="topic-item"><span class="tn">100</span>我是你的健康陪跑夥伴，不是你的醫生</div>
+      </div>
+    </div>
+
+    <!-- 健康故事 -->
+    <div class="topic-panel" id="tab-story">
+      <div style="margin-bottom:1rem;font-size:0.8rem;color:var(--soft)">真實經歷 34題 ｜ 轉變過程 33題 ｜ 心理歷程 33題</div>
+      <div class="topic-cols">
+        <div class="topic-item"><span class="tn">01</span>第一次量血壓170，我當下的感受</div>
+        <div class="topic-item"><span class="tn">02</span>連續加班三個月後，身體給了我什麼警告</div>
+        <div class="topic-item"><span class="tn">03</span>那年冬天，我的心臟第一次讓我害怕</div>
+        <div class="topic-item"><span class="tn">04</span>健檢報告上四個紅字，每一個都有故事</div>
+        <div class="topic-item"><span class="tn">05</span>我嘗試過的第一個健康改變，失敗了</div>
+        <div class="topic-item"><span class="tn">06</span>家人第一次認真叫我去看醫生</div>
+        <div class="topic-item"><span class="tn">07</span>第一次被朋友說「你臉色很差」</div>
+        <div class="topic-item"><span class="tn">08</span>連走樓梯都喘的那一年</div>
+        <div class="topic-item"><span class="tn">09</span>開始記錄飲食的第一週，我嚇到自己</div>
+        <div class="topic-item"><span class="tn">10</span>第一次成功戒掉手搖杯</div>
+        <div class="topic-item"><span class="tn">11</span>學會早睡的那個月，發生了什麼事</div>
+        <div class="topic-item"><span class="tn">12</span>如何從不喜歡運動，到開始期待運動</div>
+        <div class="topic-item"><span class="tn">13</span>減少外食的第一個月</div>
+        <div class="topic-item"><span class="tn">14</span>我的情緒管理第一課</div>
+        <div class="topic-item"><span class="tn">15</span>第一次三個月複診，醫生說數字改善了</div>
+        <div class="topic-item"><span class="tn">16</span>家人說「你跟以前不一樣了」</div>
+        <div class="topic-item"><span class="tn">17</span>健康改變後，工作效率居然提升了</div>
+        <div class="topic-item"><span class="tn">18</span>如何在旅行時也維持健康習慣</div>
+        <div class="topic-item"><span class="tn">19</span>過年期間，我的健康挑戰</div>
+        <div class="topic-item"><span class="tn">20</span>朋友聚餐，如何兼顧健康和社交</div>
+        <div class="topic-item"><span class="tn">21</span>生日那天我給自己的禮物：一個健康習慣</div>
+        <div class="topic-item"><span class="tn">22</span>第一次看到體重機數字掉下來的感受</div>
+        <div class="topic-item"><span class="tn">23</span>失眠好轉後，白天的我像換了一個人</div>
+        <div class="topic-item"><span class="tn">24</span>我如何面對「放棄」的念頭</div>
+        <div class="topic-item"><span class="tn">25</span>連續30天打卡的那個月</div>
+        <div class="topic-item"><span class="tn">26</span>第一次跟別人分享我的健康改變歷程</div>
+        <div class="topic-item"><span class="tn">27</span>被懷疑「這樣真的有效嗎」的那段日子</div>
+        <div class="topic-item"><span class="tn">28</span>我最感謝自己的那個決定</div>
+        <div class="topic-item"><span class="tn">29</span>健康改變讓我意外收穫的事</div>
+        <div class="topic-item"><span class="tn">30</span>如果可以早十年開始，我希望是哪件事</div>
+        <div class="topic-item"><span class="tn">31</span>年底健檢，這次我不緊張了</div>
+        <div class="topic-item"><span class="tn">32</span>我曾嘗試過的錯誤健康方法</div>
+        <div class="topic-item"><span class="tn">33</span>睡前習慣改變後，早上的感受</div>
+        <div class="topic-item"><span class="tn">34</span>那次差一點放棄的瞬間</div>
+        <div class="topic-item"><span class="tn">35</span>改變的起點：那一天我做了一個小決定</div>
+        <div class="topic-item"><span class="tn">36</span>從「明天開始」到「現在開始」的轉折</div>
+        <div class="topic-item"><span class="tn">37</span>第一個堅持下來的習慣是什麼</div>
+        <div class="topic-item"><span class="tn">38</span>三個月和三年，改變有什麼不同</div>
+        <div class="topic-item"><span class="tn">39</span>我的健康改變時間軸</div>
+        <div class="topic-item"><span class="tn">40</span>哪一件事，幫助我最快看到效果</div>
+        <div class="topic-item"><span class="tn">41</span>我放棄過最多次的健康習慣</div>
+        <div class="topic-item"><span class="tn">42</span>陪跑的力量：一個人和有人陪的差別</div>
+        <div class="topic-item"><span class="tn">43</span>如何讓改變不那麼痛苦？</div>
+        <div class="topic-item"><span class="tn">44</span>我的100天健康紀錄</div>
+        <div class="topic-item"><span class="tn">45</span>從討厭蔬菜到愛上蔬菜的過程</div>
+        <div class="topic-item"><span class="tn">46</span>開始運動後，我的心情怎麼變了</div>
+        <div class="topic-item"><span class="tn">47</span>改變睡眠習慣，比我想的難多了</div>
+        <div class="topic-item"><span class="tn">48</span>為什麼我第三次才成功戒宵夜？</div>
+        <div class="topic-item"><span class="tn">49</span>血壓開始下降的那個月，我做了什麼</div>
+        <div class="topic-item"><span class="tn">50</span>慢慢來的威力：小習慣如何改變大結果</div>
+        <div class="topic-item"><span class="tn">51</span>失敗三次後，我學到的事</div>
+        <div class="topic-item"><span class="tn">52</span>同時改變太多，為什麼反而退步？</div>
+        <div class="topic-item"><span class="tn">53</span>我如何找到適合自己的運動方式</div>
+        <div class="topic-item"><span class="tn">54</span>外食族轉型記：我怎麼慢慢做到的</div>
+        <div class="topic-item"><span class="tn">55</span>有一段時間，我覺得完全沒有進步</div>
+        <div class="topic-item"><span class="tn">56</span>改變飲食後，胃口改變了</div>
+        <div class="topic-item"><span class="tn">57</span>壓力最大的那段時間，我怎麼維持習慣</div>
+        <div class="topic-item"><span class="tn">58</span>家人從反對到支持，中間發生了什麼</div>
+        <div class="topic-item"><span class="tn">59</span>健康改變影響了我的人際關係</div>
+        <div class="topic-item"><span class="tn">60</span>我的健康日記：一年後翻回去看</div>
+        <div class="topic-item"><span class="tn">61</span>那次生病，讓我更珍惜平時的管理</div>
+        <div class="topic-item"><span class="tn">62</span>走路+記錄+陪伴：我的三件法寶</div>
+        <div class="topic-item"><span class="tn">63</span>如何讓家人一起加入健康改變？</div>
+        <div class="topic-item"><span class="tn">64</span>我的健康改變，沒有秘密只有堅持</div>
+        <div class="topic-item"><span class="tn">65</span>真正改變的不只是身體，還有心態</div>
+        <div class="topic-item"><span class="tn">66</span>改變以後，家人有什麼反應</div>
+        <div class="topic-item"><span class="tn">67</span>這三件事，我願意做一輩子</div>
+        <div class="topic-item"><span class="tn">68</span>知道要改變，但就是不想動——我懂</div>
+        <div class="topic-item"><span class="tn">69</span>那種「反正也改變不了」的無力感</div>
+        <div class="topic-item"><span class="tn">70</span>恐懼和希望，哪個是更好的動力？</div>
+        <div class="topic-item"><span class="tn">71</span>我如何說服自己值得被好好對待</div>
+        <div class="topic-item"><span class="tn">72</span>健康管理路上的孤獨感</div>
+        <div class="topic-item"><span class="tn">73</span>「這樣夠了嗎」——永遠達不到的完美陷阱</div>
+        <div class="topic-item"><span class="tn">74</span>當別人說「你是不是太誇張了」</div>
+        <div class="topic-item"><span class="tn">75</span>為什麼我不靠意志力，靠設計環境</div>
+        <div class="topic-item"><span class="tn">76</span>健康焦慮和真正照顧自己，有什麼不同？</div>
+        <div class="topic-item"><span class="tn">77</span>接受現在的身體狀態，才能開始改變</div>
+        <div class="topic-item"><span class="tn">78</span>我如何面對「不想堅持」的日子</div>
+        <div class="topic-item"><span class="tn">79</span>改變的第一步：承認「我需要幫助」</div>
+        <div class="topic-item"><span class="tn">80</span>給自己一個寬容，再給自己一個方向</div>
+        <div class="topic-item"><span class="tn">81</span>為自己改變，比為別人改變更持久</div>
+        <div class="topic-item"><span class="tn">82</span>我曾經用健康問題懲罰自己</div>
+        <div class="topic-item"><span class="tn">83</span>那種「終於開始照顧自己」的感動</div>
+        <div class="topic-item"><span class="tn">84</span>健康不是競賽，是自己跟自己的對話</div>
+        <div class="topic-item"><span class="tn">85</span>我為什麼不再恐懼健康報告？</div>
+        <div class="topic-item"><span class="tn">86</span>習慣養成的心理：為什麼剛開始最難？</div>
+        <div class="topic-item"><span class="tn">87</span>當我學會「好一點就是進步」</div>
+        <div class="topic-item"><span class="tn">88</span>自我批評和自我關懷，哪個更有效？</div>
+        <div class="topic-item"><span class="tn">89</span>改變前我最大的心理阻礙是什麼</div>
+        <div class="topic-item"><span class="tn">90</span>有一段時間，我覺得自己在假裝健康</div>
+        <div class="topic-item"><span class="tn">91</span>如何在家人不支持時，繼續走下去？</div>
+        <div class="topic-item"><span class="tn">92</span>那種「終於對自己誠實」的釋放感</div>
+        <div class="topic-item"><span class="tn">93</span>健康改變讓我更愛自己了</div>
+        <div class="topic-item"><span class="tn">94</span>不再「等有空才照顧自己」的覺悟</div>
+        <div class="topic-item"><span class="tn">95</span>我第一次感覺到「身體是我的朋友」</div>
+        <div class="topic-item"><span class="tn">96</span>帶著不完美也能前進</div>
+        <div class="topic-item"><span class="tn">97</span>給那個覺得太晚了的人</div>
+        <div class="topic-item"><span class="tn">98</span>給那個想改變但怕失敗的人</div>
+        <div class="topic-item"><span class="tn">99</span>給那個一個人撐著的人</div>
+        <div class="topic-item"><span class="tn">100</span>走過之後的光——我想把這個分享給你</div>
+      </div>
+    </div>
+
+    <!-- Q&A -->
+    <div class="topic-panel" id="tab-qa">
+      <div style="margin-bottom:1rem;font-size:0.8rem;color:var(--soft)">飲食 25題 ｜ 運動 20題 ｜ 睡眠/情緒 20題 ｜ 健康管理 15題 ｜ 觀念 20題</div>
+      <div class="topic-cols">
+        <div class="topic-item"><span class="tn">01</span>三高的人不能吃白飯嗎？</div>
+        <div class="topic-item"><span class="tn">02</span>外食族怎麼吃才健康？</div>
+        <div class="topic-item"><span class="tn">03</span>一天要喝多少水才夠？</div>
+        <div class="topic-item"><span class="tn">04</span>吃宵夜真的會胖嗎？</div>
+        <div class="topic-item"><span class="tn">05</span>保健品有必要吃嗎？</div>
+        <div class="topic-item"><span class="tn">06</span>吃飯順序真的有影響嗎？</div>
+        <div class="topic-item"><span class="tn">07</span>減鹽飲食要怎麼開始？</div>
+        <div class="topic-item"><span class="tn">08</span>素食比較健康嗎？</div>
+        <div class="topic-item"><span class="tn">09</span>「低GI飲食」是什麼？我需要嗎？</div>
+        <div class="topic-item"><span class="tn">10</span>蔬菜一天要吃多少份？</div>
+        <div class="topic-item"><span class="tn">11</span>喝咖啡對血壓好還是壞？</div>
+        <div class="topic-item"><span class="tn">12</span>水果很甜，三高的人能吃嗎？</div>
+        <div class="topic-item"><span class="tn">13</span>吃太快為什麼容易胖？</div>
+        <div class="topic-item"><span class="tn">14</span>間歇性斷食適合三高的人嗎？</div>
+        <div class="topic-item"><span class="tn">15</span>外食點什麼最危險？</div>
+        <div class="topic-item"><span class="tn">16</span>豆製品對三高有幫助嗎？</div>
+        <div class="topic-item"><span class="tn">17</span>喝酒對血壓血糖影響多大？</div>
+        <div class="topic-item"><span class="tn">18</span>健康便當怎麼選？</div>
+        <div class="topic-item"><span class="tn">19</span>吃全穀類真的比白米好嗎？</div>
+        <div class="topic-item"><span class="tn">20</span>油脂要減少還是選擇？</div>
+        <div class="topic-item"><span class="tn">21</span>晚餐幾點吃最好？</div>
+        <div class="topic-item"><span class="tn">22</span>蛋每天可以吃幾顆？</div>
+        <div class="topic-item"><span class="tn">23</span>鹽和醬油哪個比較健康？</div>
+        <div class="topic-item"><span class="tn">24</span>什麼食物幫助睡眠？</div>
+        <div class="topic-item"><span class="tn">25</span>喝湯要注意什麼？</div>
+        <div class="topic-item"><span class="tn">26</span>三高的人適合做什麼運動？</div>
+        <div class="topic-item"><span class="tn">27</span>走路有沒有運動效果？</div>
+        <div class="topic-item"><span class="tn">28</span>運動前後要不要吃東西？</div>
+        <div class="topic-item"><span class="tn">29</span>我年紀大了，還能改變嗎？</div>
+        <div class="topic-item"><span class="tn">30</span>運動後為什麼更累？</div>
+        <div class="topic-item"><span class="tn">31</span>每天運動比較好，還是隔天？</div>
+        <div class="topic-item"><span class="tn">32</span>重訓對三高有幫助嗎？</div>
+        <div class="topic-item"><span class="tn">33</span>爬樓梯算運動嗎？</div>
+        <div class="topic-item"><span class="tn">34</span>天氣熱或冷，運動要注意什麼？</div>
+        <div class="topic-item"><span class="tn">35</span>有沒有在家可以做的簡單運動？</div>
+        <div class="topic-item"><span class="tn">36</span>運動多久才有效果？</div>
+        <div class="topic-item"><span class="tn">37</span>我膝蓋不好，可以做什麼運動？</div>
+        <div class="topic-item"><span class="tn">38</span>有氧和無氧，哪個更適合我？</div>
+        <div class="topic-item"><span class="tn">39</span>運動和飲食，哪個對三高影響更大？</div>
+        <div class="topic-item"><span class="tn">40</span>如何讓自己對運動持續有動力？</div>
+        <div class="topic-item"><span class="tn">41</span>上班族怎麼安排運動時間？</div>
+        <div class="topic-item"><span class="tn">42</span>運動會讓血壓升高嗎？安全嗎？</div>
+        <div class="topic-item"><span class="tn">43</span>早上和晚上運動，哪個好？</div>
+        <div class="topic-item"><span class="tn">44</span>游泳對三高有效嗎？</div>
+        <div class="topic-item"><span class="tn">45</span>每天走幾步才夠？</div>
+        <div class="topic-item"><span class="tn">46</span>睡不好對血壓的影響有多大？</div>
+        <div class="topic-item"><span class="tn">47</span>如何縮短入睡時間？</div>
+        <div class="topic-item"><span class="tn">48</span>睡前滑手機到底多傷？</div>
+        <div class="topic-item"><span class="tn">49</span>怎麼樣算睡得好？</div>
+        <div class="topic-item"><span class="tn">50</span>午睡有沒有幫助？</div>
+        <div class="topic-item"><span class="tn">51</span>失眠可以怎麼改善？</div>
+        <div class="topic-item"><span class="tn">52</span>壓力和血糖有關嗎？</div>
+        <div class="topic-item"><span class="tn">53</span>情緒容易緊張的人，健康怎麼管理？</div>
+        <div class="topic-item"><span class="tn">54</span>深呼吸真的有效嗎？</div>
+        <div class="topic-item"><span class="tn">55</span>冥想適合沒時間的人嗎？</div>
+        <div class="topic-item"><span class="tn">56</span>睡覺磨牙是什麼原因？</div>
+        <div class="topic-item"><span class="tn">57</span>夢很多是睡眠品質差嗎？</div>
+        <div class="topic-item"><span class="tn">58</span>上班族如何減少壓力傷害？</div>
+        <div class="topic-item"><span class="tn">59</span>睡覺打呼要注意什麼？</div>
+        <div class="topic-item"><span class="tn">60</span>睡前喝牛奶真的幫助睡眠嗎？</div>
+        <div class="topic-item"><span class="tn">61</span>退休後反而睡更差，為什麼？</div>
+        <div class="topic-item"><span class="tn">62</span>睡眠呼吸中止症是什麼？</div>
+        <div class="topic-item"><span class="tn">63</span>心情和免疫力有關嗎？</div>
+        <div class="topic-item"><span class="tn">64</span>如何建立固定睡眠時間？</div>
+        <div class="topic-item"><span class="tn">65</span>工作壓力很大，運動還是睡覺優先？</div>
+        <div class="topic-item"><span class="tn">66</span>多久做一次健康檢查比較好？</div>
+        <div class="topic-item"><span class="tn">67</span>在家量血壓，怎麼量才準確？</div>
+        <div class="topic-item"><span class="tn">68</span>三高一定要吃藥嗎？</div>
+        <div class="topic-item"><span class="tn">69</span>健康管理和看醫生，哪個更重要？</div>
+        <div class="topic-item"><span class="tn">70</span>健康陪跑是什麼服務？</div>
+        <div class="topic-item"><span class="tn">71</span>亞健康是什麼？怎麼判斷？</div>
+        <div class="topic-item"><span class="tn">72</span>家族史有三高，我一定會得嗎？</div>
+        <div class="topic-item"><span class="tn">73</span>健康管理要花很多錢嗎？</div>
+        <div class="topic-item"><span class="tn">74</span>如何說服家人一起注重健康？</div>
+        <div class="topic-item"><span class="tn">75</span>保健品可以代替均衡飲食嗎？</div>
+        <div class="topic-item"><span class="tn">76</span>如何記錄自己的健康狀況？</div>
+        <div class="topic-item"><span class="tn">77</span>健康目標要怎麼設才不會放棄？</div>
+        <div class="topic-item"><span class="tn">78</span>有沒有適合手機使用的健康管理工具？</div>
+        <div class="topic-item"><span class="tn">79</span>如何找到適合自己的健康方法？</div>
+        <div class="topic-item"><span class="tn">80</span>一個人改變習慣，有可能持續嗎？</div>
+        <div class="topic-item"><span class="tn">81</span>四十歲後開始注重健康，會不會太晚？</div>
+        <div class="topic-item"><span class="tn">82</span>健康管理vs.生病治療，有什麼差別？</div>
+        <div class="topic-item"><span class="tn">83</span>「我這樣多年都沒事」真的沒問題嗎？</div>
+        <div class="topic-item"><span class="tn">84</span>養生和健康管理，哪個更重要？</div>
+        <div class="topic-item"><span class="tn">85</span>健康是天生的還是後天的？</div>
+        <div class="topic-item"><span class="tn">86</span>為什麼很多人知道要改變，卻做不到？</div>
+        <div class="topic-item"><span class="tn">87</span>「有空再說」這個心態為什麼危險？</div>
+        <div class="topic-item"><span class="tn">88</span>為什麼改變習慣需要陪伴？</div>
+        <div class="topic-item"><span class="tn">89</span>三高和生活方式的關係有多大？</div>
+        <div class="topic-item"><span class="tn">90</span>健康焦慮和積極管理，有什麼不同？</div>
+        <div class="topic-item"><span class="tn">91</span>身體是最誠實的，它在告訴你什麼？</div>
+        <div class="topic-item"><span class="tn">92</span>改變飲食，最難的第一步是什麼？</div>
+        <div class="topic-item"><span class="tn">93</span>為什麼健康目標設太大容易失敗？</div>
+        <div class="topic-item"><span class="tn">94</span>健康是一輩子的事，如何不覺得累？</div>
+        <div class="topic-item"><span class="tn">95</span>三高患者最常見的錯誤觀念是什麼？</div>
+        <div class="topic-item"><span class="tn">96</span>健康不是自律，是什麼？</div>
+        <div class="topic-item"><span class="tn">97</span>為什麼有人改變成功，有人一直失敗？</div>
+        <div class="topic-item"><span class="tn">98</span>家庭支持對健康管理有多重要？</div>
+        <div class="topic-item"><span class="tn">99</span>健康改變後，人生真的會不同嗎？</div>
+        <div class="topic-item"><span class="tn">100</span>如果只能做一件事改善健康，你建議什麼？</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑬ MVP -->
+<section class="mvp" id="mvp">
+  <div class="container">
+    <div class="section-label">⑬ MVP最小可行方案</div>
+    <h2>7天上線・30天成交・90天複製</h2>
+    <p class="lead">不需要完美，只需要開始。最小成本驗證商業模式，再逐步擴大。</p>
+
+    <div class="mvp-timeline">
+      <div class="mvp-block m7">
+        <div class="mvp-label">第一階段</div>
+        <h3>🚀 7天內上線</h3>
+        <ul>
+          <li>LINE帳號設為商業用途</li>
+          <li>建立Google表單健康評估問卷</li>
+          <li>準備3則短影音腳本</li>
+          <li>啟用HSC智慧名片</li>
+          <li>完成CTA1/CTA2/CTA3頁面</li>
+          <li>建立LINE社群並邀請20位</li>
+          <li>發布第一則個人健康故事</li>
+        </ul>
+      </div>
+      <div class="mvp-block m30">
+        <div class="mvp-label">第二階段</div>
+        <h3>💰 30天內成交</h3>
+        <ul>
+          <li>每天1則短影音/故事貼文</li>
+          <li>開放免費健康評估問卷</li>
+          <li>社群發起健康週挑戰</li>
+          <li>建立互動與信任感</li>
+          <li>進行5-10次免費陪跑諮詢</li>
+          <li>轉化第一批30天學員</li>
+          <li>目標：3-5位付費客戶</li>
+        </ul>
+      </div>
+      <div class="mvp-block m90">
+        <div class="mvp-label">第三階段</div>
+        <h3>🔁 90天內複製</h3>
+        <ul>
+          <li>完成第一批30天陪跑服務</li>
+          <li>收集1-3個真實見證故事</li>
+          <li>建立標準化日任務素材庫</li>
+          <li>推出90天深度方案</li>
+          <li>健康島PWA自動收集名單</li>
+          <li>第一批轉介紹機制啟動</li>
+          <li>建立SOP文件為擴張準備</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="revenue-box">
+      <h3>📊 月營業額目標試算</h3>
+      <div class="revenue-nums">
+        <div class="rev-item">
+          <div class="rev-num">$11,400</div>
+          <div class="rev-label">第1個月<br>3人×30天方案</div>
+        </div>
+        <div class="rev-item">
+          <div class="rev-num">$30,000+</div>
+          <div class="rev-label">第2個月<br>口碑+90天方案</div>
+        </div>
+        <div class="rev-item">
+          <div class="rev-num">$50,000~80,000</div>
+          <div class="rev-label">第3個月<br>閉環穩定運作</div>
+        </div>
+      </div>
+      <p style="margin-top:1.25rem;font-size:0.82rem;color:var(--mist)">
+        成交不靠廣告費，靠故事＋陪伴＋轉介紹<br>
+        每個服務的標準化程度，決定未來能走多遠
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <strong>蔡一信健康陪跑品牌企劃</strong><br>
+  定位：健康生活管理 · 健康知識分享 · 健康習慣養成 · 健康陪伴服務<br>
+  本規劃不涉及醫療宣稱，所有內容以健康生活管理與習慣陪伴為定位<br><br>
+  整合幸福天使智慧名片系統（HSC）· 形成可持續成長的商業閉環
+</footer>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.topic-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.opacity = '1';
+      e.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.pos-card, .cta-card, .level-card, .plan-card, .mvp-block, .slogan-item, .funnel-item').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(20px)';
+  el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+  observer.observe(el);
+});
+</script>
+</body>
+</html>
