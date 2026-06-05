@@ -1,6 +1,12 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v8.3.6-cta-ext-fetch-fix
+   v8.3.8-speed
+
+   v8.3.8 更新:
+   - renderPersonalCard_：移除無效的 -shell.json 靜態嘗試，直接走 GAS（省 520-1040ms）
+
+   v8.3.7 更新（基於 v8.3.6）：
+   - GAS_BASE_URL 改為代理網址
 
    v8.3.6 更新（基於 v8.3.5）：
    - renderPersonalCard_：lite fetch 改 GAS 優先（含 card_cta_ext 資料）
@@ -22,11 +28,11 @@
 ============================================================ */
 
 const CONFIG = {
-  GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+  GAS: "https://angel-namecard.letssyncus.com/gas-proxy/exec",
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v8.3.5-perf-optimized",
+  VERSION: "v8.3.8-speed",
   FETCH_TIMEOUT_MS: 7000,
   RETRY: 1,
   HUB_URL: "https://angel-namecard.letssyncus.com/",
@@ -989,8 +995,7 @@ async function renderPersonalCard_(cardId){
   // shell fetch 與 announcements 並行發起（不互相等待）
   const shellFetchPromise = cachedShell
     ? Promise.resolve(cachedShell)
-:fetchJsonRobust_(buildStaticCardUrl_(cardId).replace('.json', '-shell.json'), { cacheMode: "default" })
-  .catch(() => fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" }))
+    : fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" })
         .then(p => {
           const r = extractCardRow_(p);
           if(r && Object.keys(r).length) writeCardCache_("shell", cardId, r);
@@ -1038,13 +1043,17 @@ async function renderPersonalCard_(cardId){
   currentAvatarSourceKeyCache = avatarInfo.key || "";
   renderShellUiFriendly_(normalizedShell, root);
 
-  // ── ★ lite & full 並行發起，不再串行等待 ──
-  // 靜態 JSON 優先（快，~100ms），GAS 背景更新快取（含 ext 資料）
+  // Shell 已有完整文字資料，立即渲染服務/經歷（不等 full fetch）
+  const blockService = root.querySelector("#block-service") || qs("block-service");
+  const blockExp = root.querySelector("#block-exp") || qs("block-exp");
+  renderExpandableInfoBlock_(blockService, "服務項目", pick(normalizedShell, ["services","服務項目","service"]), 2);
+  renderExpandableInfoBlock_(blockExp, "經歷 / 品牌故事", pick(normalizedShell, ["experience","經歷","exp"]), 3);
+
+  // ── ★ lite：靜態 JSON 先到快速渲染，GAS 到了補渲染 ext 照片/CTA ──
   const cachedLite = readCardCache_("lite", cardId, CONFIG.CACHE_LITE_MS);
   const liteFetchPromise = cachedLite
     ? Promise.resolve(cachedLite)
     : (async () => {
-        // 同時發起靜態 JSON 和 GAS，靜態 JSON 通常更快
         const staticP = fetchWithTimeout_(buildStaticCardUrl_(cardId), 3000, "default")
           .then(p => { const r = extractCardRow_(p); return (r && Object.keys(r).length) ? r : null; })
           .catch(() => null);
@@ -1052,23 +1061,27 @@ async function renderPersonalCard_(cardId){
           .then(p => { const r = extractCardRow_(p); return (r && Object.keys(r).length) ? r : null; })
           .catch(() => null);
 
-        // 用先到的有效資料渲染
         const first = await Promise.race([staticP, gasP.then(r => r || new Promise(() => {}))]);
         const result = first || await gasP;
         if (result && Object.keys(result).length) writeCardCache_("lite", cardId, result);
-        // GAS 還沒到的話背景更新快取（確保下次有 ext 資料）
-        if (first) gasP.then(r => { if (r && Object.keys(r).length) writeCardCache_("lite", cardId, r); }).catch(() => {});
+
+        // 靜態 JSON 先到 → GAS 補渲染（含 ext 照片 11+、CTA 4+）
+        if (first) gasP.then(r => {
+          if (!r || !Object.keys(r).length) return;
+          writeCardCache_("lite", cardId, r);
+          const mg = normalizeForRenderer_({ ...shell, ...r, card_url: shareUrl, share_url: shareUrl, preview_url: shareUrl });
+          if (typeof rendererApi.mergeCardData === "function") {
+            rendererApi.mergeCardData(mg, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
+          }
+          const ng = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(mg)));
+          currentRow = ng; facadeCurrentRow = ng; window.__CARD_DATA__ = ng; window.cardData = ng;
+          renderPostRendererUi_(ng, root);
+          renderExpandableInfoBlock_(blockService, "服務項目", pick(ng, ["services","服務項目","service"]), 2);
+          renderExpandableInfoBlock_(blockExp, "經歷 / 品牌故事", pick(ng, ["experience","經歷","exp"]), 3);
+        }).catch(() => {});
+
         return result;
       })();
-
-  // full 在 lite 之後 60ms 發起，錯開 GAS 並發
-  const fullFetchPromise = new Promise(resolve => {
-    setTimeout(() => {
-      loadCardById_(cardId, { useTracked: false })
-        .then(resolve)
-        .catch(() => resolve(null));
-    }, 60);
-  });
 
   // lite 完成後更新 UI
   liteFetchPromise.then(lite => {
@@ -1080,33 +1093,12 @@ async function renderPersonalCard_(cardId){
       rendererApi.renderCard(merged, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
     }
     const normalizedMerged = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(merged)));
-    currentRow = normalizedMerged;
-    facadeCurrentRow = normalizedMerged;
-    window.__CARD_DATA__ = normalizedMerged;
-    window.cardData = normalizedMerged;
+    currentRow = normalizedMerged; facadeCurrentRow = normalizedMerged;
+    window.__CARD_DATA__ = normalizedMerged; window.cardData = normalizedMerged;
     renderPostRendererUi_(normalizedMerged, root);
+    renderExpandableInfoBlock_(blockService, "服務項目", pick(normalizedMerged, ["services","服務項目","service"]), 2);
+    renderExpandableInfoBlock_(blockExp, "經歷 / 品牌故事", pick(normalizedMerged, ["experience","經歷","exp"]), 3);
   }).catch(err => { console.warn("[HSC card] lite load failed:", err); });
-
-  // full 完成後補填詳細欄位
-  fullFetchPromise.then(fullRow => {
-    if(!fullRow) return;
-    const liteMerged = { ...shell, ...fullRow, card_url: shareUrl, share_url: shareUrl, preview_url: shareUrl };
-    const mergedFull = normalizeForRenderer_(liteMerged);
-    if(typeof rendererApi.mergeCardData === "function"){
-      rendererApi.mergeCardData(mergedFull, { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:shareUrl, shareUrl:shareUrl, previewUrl:shareUrl });
-    }
-    const normalizedFull = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(mergedFull)));
-    currentRow = normalizedFull;
-    facadeCurrentRow = normalizedFull;
-    window.__CARD_DATA__ = normalizedFull;
-    window.cardData = normalizedFull;
-    renderPostRendererUi_(normalizedFull, root);
-
-    const blockService = root.querySelector("#block-service") || qs("block-service");
-    const blockExp = root.querySelector("#block-exp") || qs("block-exp");
-    renderExpandableInfoBlock_(blockService, "服務項目", pick(normalizedFull, ["services","服務項目","service"]), 2);
-    renderExpandableInfoBlock_(blockExp, "經歷 / 品牌故事", pick(normalizedFull, ["experience","經歷","exp"]), 3);
-  });
 }
 
 /* ============================================================
@@ -2042,7 +2034,7 @@ __hscCopyrightObserver.observe(
   "use strict";
 
   // ── 配置(跟 app.js 用同一個 GAS) ──
-  const MAINT_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+  const MAINT_GAS_URL = "https://angel-namecard.letssyncus.com/gas-proxy/exec";
   const MAINT_CHECK_INTERVAL_MS = 60000; // 每 60 秒背景檢查一次
   const MAINT_CACHE_KEY = "HSC_MAINT_STATUS";
 
