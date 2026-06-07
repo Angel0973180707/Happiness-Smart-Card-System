@@ -1,1 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蔡一信・未來健康生活館・完整提案</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --forest:#1E4D3A;--moss:#2E6B50;--sage:#5A8C72;--mist:#A8C5B5;
+  --gold:#C8943A;--amber:#E8A83A;--cream:#FBF8F3;--warm:#F5EFE6;
+  --ink:#2C2A27;--soft:#7A7068;--border:#E8E0D5;--dark:#0E2D1F;
+  --red:#C0392B;--white:#FFFFFF;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--ink);line-height:1.8;}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:999;background:rgba(14,45,31,0.97);backdrop-filter:blur(12px);height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;box-shadow:0 2px 20px rgba(0,0,0,0.2);}
+.nav-logo{font-family:'Noto Serif TC',serif;font-weight:900;font-size:0.88rem;color:var(--amber);}
+.nav-links{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;}
+.nav-links::-webkit-scrollbar{display:none;}
+.nav-link{padding:0 0.65rem;height:54px;line-height:54px;font-size:0.72rem;color:var(--mist);text-decoration:none;white-space:nowrap;transition:color 0.2s;}
+.nav-link:hover{color:var(--amber);}
+
+/* HERO */
+.hero{min-height:100vh;background:linear-gradient(160deg,var(--dark) 0%,var(--forest) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6rem 2rem 4rem;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(90,140,114,0.15) 0%,transparent 70%);}
+.hero-tag{display:inline-block;background:rgba(200,148,58,0.2);border:1px solid rgba(200,148,58,0.4);color:var(--amber);padding:0.4rem 1.2rem;border-radius:99px;font-size:0.78rem;letter-spacing:0.15em;margin-bottom:2rem;position:relative;z-index:1;}
+.hero h1{font-family:'Noto Serif TC',serif;font-size:clamp(2rem,5vw,3.5rem);font-weight:900;color:var(--white);line-height:1.25;margin-bottom:1rem;position:relative;z-index:1;}
+.hero h1 em{color:var(--amber);font-style:normal;}
+.hero-sub{color:var(--mist);font-size:1rem;max-width:500px;margin:0 auto 2.5rem;position:relative;z-index:1;}
+.hero-badges{display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:center;position:relative;z-index:1;}
+.hero-badge{background:rgba(255,255,255,0.06);border:1px solid rgba(168,197,181,0.25);border-radius:8px;padding:0.5rem 1rem;font-size:0.82rem;color:var(--mist);}
+.hero-badge strong{color:var(--amber);}
+
+/* SECTIONS */
+.section{padding:4rem 1.5rem;}
+.s-dark{background:linear-gradient(160deg,var(--dark),var(--forest));color:var(--white);}
+.s-dark h2{color:var(--amber);}
+.s-dark .section-tag{color:var(--sage);}
+.s-dark .section-tag::before{background:var(--sage);}
+.s-dark .lead{color:var(--mist);}
+.s-warm{background:var(--warm);}
+.s-white{background:var(--white);}
+.s-cream{background:var(--cream);}
+.container{max-width:900px;margin:0 auto;}
+.section-tag{display:inline-flex;align-items:center;gap:0.5rem;color:var(--sage);font-size:0.72rem;font-weight:700;letter-spacing:0.2em;margin-bottom:0.75rem;}
+.section-tag::before{content:'';width:20px;height:2px;background:var(--sage);}
+h2{font-family:'Noto Serif TC',serif;font-size:clamp(1.5rem,3vw,2.1rem);font-weight:900;color:var(--forest);margin-bottom:0.75rem;line-height:1.3;}
+.lead{font-size:0.95rem;color:var(--soft);margin-bottom:2rem;}
+.divider{height:1px;background:var(--border);}
+
+/* CARDS */
+.card{background:var(--white);border-radius:12px;padding:1.5rem;border:1px solid var(--border);box-shadow:0 2px 16px rgba(0,0,0,0.05);}
+.card-head{background:var(--forest);border-radius:8px;padding:0.6rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:var(--white);font-weight:700;}
+.card-head.gold{background:var(--gold);}
+.card-head.sage{background:var(--sage);}
+.card-head.moss{background:var(--moss);}
+.card-head.red{background:var(--red);}
+
+/* GRIDS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+@media(max-width:700px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
+@media(max-width:900px){.grid-3{grid-template-columns:1fr 1fr;}.grid-4{grid-template-columns:1fr 1fr;}}
+
+/* FLOW */
+.flow{display:flex;flex-direction:column;gap:0;}
+.flow-item{display:flex;gap:1rem;align-items:flex-start;padding:1rem 1.25rem;background:var(--white);border-radius:10px;margin-bottom:0.5rem;border-left:3px solid var(--sage);position:relative;}
+.flow-item.highlight{border-left-color:var(--gold);}
+.flow-icon{font-size:1.3rem;min-width:32px;text-align:center;}
+.flow-item h4{font-size:0.9rem;font-weight:700;color:var(--ink);margin-bottom:0.2rem;}
+.flow-item p{font-size:0.82rem;color:var(--soft);}
+
+/* CTA CARDS */
+.cta-card{border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);transition:transform 0.2s;}
+.cta-card:hover{transform:translateY(-4px);}
+.cta-top{padding:1.25rem;color:var(--white);}
+.cta-top.c1{background:linear-gradient(135deg,var(--forest),var(--moss));}
+.cta-top.c2{background:linear-gradient(135deg,var(--moss),var(--sage));}
+.cta-top.c3{background:linear-gradient(135deg,var(--gold),#b8832a);}
+.cta-num{font-size:0.7rem;letter-spacing:0.2em;opacity:0.8;margin-bottom:0.3rem;}
+.cta-name{font-family:'Noto Serif TC',serif;font-size:1.1rem;font-weight:700;}
+.cta-purpose{font-size:0.78rem;opacity:0.85;margin-top:0.3rem;}
+.cta-body{background:var(--white);padding:1.25rem;}
+.cta-body ul{list-style:none;}
+.cta-body ul li{font-size:0.85rem;color:var(--soft);padding:0.3rem 0;border-bottom:1px solid var(--border);display:flex;gap:0.4rem;}
+.cta-body ul li::before{content:'✓';color:var(--sage);font-weight:700;flex-shrink:0;}
+.cta-body ul li:last-child{border-bottom:none;}
+.cta-link{background:var(--warm);border-radius:6px;padding:0.65rem 0.85rem;font-size:0.78rem;color:var(--soft);margin-top:0.85rem;}
+.cta-link strong{color:var(--gold);display:block;margin-bottom:0.2rem;}
+
+/* STEP BOX */
+.step-box{background:var(--cream);border-radius:10px;padding:1.25rem;border-left:4px solid var(--sage);}
+.step-box.gold{border-left-color:var(--gold);}
+.step-box.red{border-left-color:var(--red);}
+.step-num{font-size:0.7rem;font-weight:700;color:var(--sage);letter-spacing:0.15em;margin-bottom:0.3rem;}
+.step-box.gold .step-num{color:var(--gold);}
+.step-box.red .step-num{color:var(--red);}
+.step-box h4{font-size:0.92rem;font-weight:700;color:var(--ink);margin-bottom:0.35rem;}
+.step-box p{font-size:0.83rem;color:var(--soft);}
+
+/* INFO ROW */
+.info-row{display:flex;gap:0.75rem;padding:0.6rem 0;border-bottom:1px solid var(--border);}
+.info-row:last-child{border-bottom:none;}
+.info-key{font-size:0.8rem;font-weight:700;color:var(--sage);min-width:80px;flex-shrink:0;}
+.info-val{font-size:0.88rem;color:var(--ink);}
+
+/* HIGHLIGHT BOX */
+.highlight-box{background:var(--forest);border-radius:12px;padding:1.5rem;color:var(--white);text-align:center;}
+.highlight-box h3{font-family:'Noto Serif TC',serif;color:var(--amber);font-size:1.1rem;margin-bottom:0.5rem;}
+.highlight-box p{font-size:0.88rem;color:var(--mist);line-height:1.9;}
+.highlight-box strong{color:var(--amber);}
+
+/* TODO */
+.todo-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+@media(max-width:600px){.todo-grid{grid-template-columns:1fr;}}
+.todo-item{background:var(--dark);border-radius:10px;padding:1.25rem;display:flex;gap:1rem;border:1px solid rgba(168,197,181,0.15);}
+.todo-num{width:36px;height:36px;border-radius:50%;background:var(--amber);color:var(--forest);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.88rem;flex-shrink:0;}
+.todo-item h4{font-size:0.92rem;color:var(--white);margin-bottom:0.25rem;}
+.todo-item p{font-size:0.8rem;color:var(--mist);}
+.todo-done{color:var(--sage);font-size:0.75rem;font-weight:700;margin-top:0.25rem;}
+
+/* VIDEO TOPICS */
+.topic-tabs{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem;}
+.topic-tab{padding:0.45rem 1rem;border-radius:99px;border:1.5px solid var(--sage);background:transparent;color:var(--moss);font-size:0.8rem;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s;}
+.topic-tab.active,.topic-tab:hover{background:var(--forest);border-color:var(--forest);color:var(--white);}
+.topic-panel{display:none;}
+.topic-panel.active{display:block;}
+.topic-cols{columns:2;column-gap:1.5rem;}
+@media(max-width:500px){.topic-cols{columns:1;}}
+.topic-item{break-inside:avoid;padding:0.45rem 0;border-bottom:1px solid var(--border);font-size:0.83rem;color:var(--soft);display:flex;gap:0.5rem;line-height:1.5;}
+.topic-n{font-size:0.68rem;color:var(--mist);min-width:22px;font-weight:700;margin-top:0.1rem;}
+
+/* PASSWORD */
+.pwd-demo{background:var(--dark);border-radius:12px;padding:1.5rem;text-align:center;color:var(--white);}
+.pwd-demo h4{color:var(--amber);font-family:'Noto Serif TC',serif;margin-bottom:1rem;}
+.pwd-input-demo{background:rgba(255,255,255,0.08);border:1px solid rgba(168,197,181,0.3);border-radius:8px;padding:0.75rem;width:100%;max-width:200px;color:var(--white);font-size:1.1rem;text-align:center;font-family:monospace;margin-bottom:0.75rem;}
+.pwd-btn-demo{background:var(--gold);color:var(--forest);border:none;border-radius:8px;padding:0.65rem 2rem;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
+.pwd-hint{font-size:0.78rem;color:var(--mist);margin-top:0.75rem;}
+
+/* PHOTO WALL */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;}
+.photo-slot{aspect-ratio:1;background:var(--warm);border-radius:10px;border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0.75rem;}
+.photo-slot .icon{font-size:1.8rem;margin-bottom:0.4rem;}
+.photo-slot p{font-size:0.72rem;color:var(--soft);}
+.photo-slot.must{border-color:var(--gold);}
+.photo-slot.must p{color:var(--gold);}
+
+/* MARQUEE BOX */
+.marquee-box{background:var(--warm);border-radius:8px;padding:1rem;font-size:0.82rem;color:var(--soft);line-height:2;word-break:break-all;}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.fade{opacity:0;transform:translateY(16px);transition:opacity 0.5s ease,transform 0.5s ease;}
+.fade.in{opacity:1;transform:translateY(0);}
+
+/* ACTION BTN */
+.action-btn{display:inline-flex;align-items:center;gap:0.5rem;background:var(--gold);color:var(--forest);padding:0.7rem 1.5rem;border-radius:8px;font-weight:700;font-size:0.88rem;text-decoration:none;transition:all 0.2s;margin-top:1rem;}
+.action-btn:hover{background:var(--amber);transform:translateY(-2px);}
+.action-btn.outline{background:transparent;border:1.5px solid var(--mist);color:var(--mist);}
+.action-btn.outline:hover{border-color:var(--amber);color:var(--amber);}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">蔡一信・未來健康生活館・完整提案</div>
+  <div class="nav-links">
+    <a class="nav-link" href="#brand">品牌定位</a>
+    <a class="nav-link" href="#activity">週三活動</a>
+    <a class="nav-link" href="#namecard">智慧名片</a>
+    <a class="nav-link" href="#cta">CTA製作</a>
+    <a class="nav-link" href="#google">Google地圖</a>
+    <a class="nav-link" href="#video">短影音</a>
+    <a class="nav-link" href="#todo">待確認</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">幸福天使智慧名片系統・完整提案</div>
+  <h1><em>蔡一信</em><br>未來健康生活館<br>品牌經營完整方案</h1>
+  <p class="hero-sub">我花了很多學費，只希望別人少走一些冤枉路。</p>
+  <div class="hero-badges">
+    <div class="hero-badge"><strong>健康生活陪伴者</strong></div>
+    <div class="hero-badge">高雄市三民區覺民路531巷13號</div>
+    <div class="hero-badge"><strong>0981-378242</strong></div>
+    <div class="hero-badge">11:30～21:00</div>
+  </div>
+</section>
+
+<!-- ① 品牌定位 -->
+<section class="section s-warm" id="brand">
+  <div class="container">
+    <div class="section-tag">① 品牌定位</div>
+    <h2>陪你走過健康轉變的同行者</h2>
+    <p class="lead">不是專家居高臨下，而是走過相同路的人，拉你一把。</p>
+    <div class="grid-3 fade">
+      <div class="card"><div class="card-head">品牌定位</div><p style="font-size:0.88rem;color:var(--soft)">健康生活管理陪伴者。透過自身經歷與實踐，陪伴更多人找回健康與希望。不是醫生、不是醫療機構、不是治療疾病。</p></div>
+      <div class="card"><div class="card-head gold">核心價值</div>
+        <div class="info-row"><span class="info-key">真實</span><span class="info-val">用自己身體當教材</span></div>
+        <div class="info-row"><span class="info-key">陪伴</span><span class="info-val">持續同行，不是衛教</span></div>
+        <div class="info-row"><span class="info-key">希望</span><span class="info-val">展示「改變是可能的」</span></div>
+        <div class="info-row"><span class="info-key">落地</span><span class="info-val">日常可執行的小動作</span></div>
+      </div>
+      <div class="card"><div class="card-head sage">目標客群</div>
+        <p style="font-size:0.82rem;color:var(--soft);margin-bottom:0.5rem">40歲以上，有以下困擾：</p>
+        <ul style="padding-left:1rem;font-size:0.82rem;color:var(--soft)">
+          <li>高血糖／高血壓／高血脂</li><li>慢性疲勞、睡眠品質差</li>
+          <li>體重難以控制</li><li>健康焦慮、亞健康族群</li>
+        </ul>
+      </div>
+    </div>
+    <div class="highlight-box" style="margin-top:1.5rem">
+      <h3>一句話理念（14字以內，請選一個）</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:center;margin-top:1rem">
+        <div style="background:rgba(200,148,58,0.2);border:1px solid var(--amber);border-radius:8px;padding:0.5rem 1rem;font-size:0.9rem;color:var(--amber);font-weight:700">① 我走過，所以我懂得陪你走。</div>
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(168,197,181,0.2);border-radius:8px;padding:0.5rem 1rem;font-size:0.9rem;color:var(--mist)">② 花過學費，只想你少走冤枉路。</div>
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(168,197,181,0.2);border-radius:8px;padding:0.5rem 1rem;font-size:0.9rem;color:var(--mist)">③ 健康沒捷徑，但有人陪你走。</div>
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(168,197,181,0.2);border-radius:8px;padding:0.5rem 1rem;font-size:0.9rem;color:var(--mist)">④ 真正能陪你的，是走過的人。</div>
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(168,197,181,0.2);border-radius:8px;padding:0.5rem 1rem;font-size:0.9rem;color:var(--mist)">⑤ 健康慢慢來，但我一直在。</div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ② 週三活動方案 -->
+<section class="section s-dark" id="activity">
+  <div class="container">
+    <div class="section-tag">② 週三活動方案</div>
+    <h2>週三下午，來坐坐，喝喝咖啡，聊聊生活。</h2>
+    <p class="lead">不定位成課程或講座，就是朋友聚會。成交邏輯藏在流程裡。</p>
+
+    <h3 style="color:var(--amber);font-family:'Noto Serif TC',serif;margin-bottom:1rem;font-size:1rem">現場流程・60分鐘設計</h3>
+    <div class="flow fade">
+      <div class="flow-item"><div class="flow-icon">☕</div><div><h4>前30分｜喝咖啡聊天</h4><p>完全不提健康，讓人放鬆，建立安全感。詢問「最近身體有沒有什麼困擾？」讓客人自己說出痛點。</p></div></div>
+      <div class="flow-item highlight"><div class="flow-icon">⚗️</div><div><h4>第15分｜血糖實驗登場（核心）</h4><p>蔡自然說「對了，我最近在研究一個東西，你們要不要看？」試紙放含糖汽水→變色→加玉米胚芽粉→還原。讓客人親眼看到身體反應。</p></div></div>
+      <div class="flow-item"><div class="flow-icon">📱</div><div><h4>第10分｜掃碼做血糖評量</h4><p>「我有一個小測驗，你們做看看，5分鐘。」掃QR碼→輸入當天日期密碼→完成評量→看到自己的分數。5分以上自動解鎖行動任務輪盤。</p></div></div>
+      <div class="flow-item highlight"><div class="flow-icon">🎯</div><div><h4>第5分｜輪盤抽行動任務</h4><p>根據評量最高風險類別，輪盤轉出對應任務。截圖保存，帶回家執行7天。</p></div></div>
+      <div class="flow-item"><div class="flow-icon">🤝</div><div><h4>收尾｜自然導入體驗方案</h4><p>「有興趣試試7天體驗包嗎？NT$500，完成7天分享可以參加每週抽獎。」不推銷，讓客人自己說想要。</p></div></div>
+    </div>
+
+    <h3 style="color:var(--amber);font-family:'Noto Serif TC',serif;margin:2rem 0 1rem;font-size:1rem">成交邏輯説明</h3>
+    <div class="grid-3 fade">
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(168,197,181,0.15);border-radius:10px;padding:1.25rem">
+        <div style="font-size:0.7rem;color:var(--sage);font-weight:700;letter-spacing:0.15em;margin-bottom:0.5rem">第一步・引發好奇</div>
+        <p style="font-size:0.85rem;color:var(--mist)">血糖實驗的視覺震撼讓客人從「旁觀者」變成「有感覺的人」，不是蔡在說，是身體在說。</p>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(168,197,181,0.15);border-radius:10px;padding:1.25rem">
+        <div style="font-size:0.7rem;color:var(--gold);font-weight:700;letter-spacing:0.15em;margin-bottom:0.5rem">第二步・自我發現</div>
+        <p style="font-size:0.85rem;color:var(--mist)">評量讓客人自己看到問題。不是蔡說「你有問題」，而是數字說「這就是我的狀況」。</p>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(168,197,181,0.15);border-radius:10px;padding:1.25rem">
+        <div style="font-size:0.7rem;color:var(--amber);font-weight:700;letter-spacing:0.15em;margin-bottom:0.5rem">第三步・低門檻行動</div>
+        <p style="font-size:0.85rem;color:var(--mist)">NT$500體驗包＋行動任務，讓客人有理由「試試看」。完成分享還有抽獎，動機更強。</p>
+      </div>
+    </div>
+
+    <h3 style="color:var(--amber);font-family:'Noto Serif TC',serif;margin:2rem 0 1rem;font-size:1rem">蔡需要準備的資源</h3>
+    <div class="grid-2 fade">
+      <div class="card">
+        <div class="card-head">📦 實體道具</div>
+        <div class="info-row"><span class="info-key">血糖試紙</span><span class="info-val">可測糖份的試紙（每次茶會備用）</span></div>
+        <div class="info-row"><span class="info-key">含糖汽水</span><span class="info-val">市售含糖飲料（實驗用）</span></div>
+        <div class="info-row"><span class="info-key">玉米胚芽粉</span><span class="info-val">實驗展示＋體驗販售用</span></div>
+        <div class="info-row"><span class="info-key">咖啡甜點</span><span class="info-val">每場茶會招待，製造輕鬆氛圍</span></div>
+        <div class="info-row"><span class="info-key">7天體驗包</span><span class="info-val">NT$500，現場販售</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head gold">🎁 抽獎獎項設計</div>
+        <p style="font-size:0.85rem;color:var(--soft);margin-bottom:1rem">輪盤1-8號獎項由蔡自訂，填入智慧名片跑馬燈。每週茶會前更新一次即可。</p>
+        <div style="background:var(--warm);border-radius:8px;padding:0.85rem;font-size:0.82rem;color:var(--soft)">
+          範例：<br>
+          🎯 1號：免費諮詢一次<br>
+          🎯 2號：7天體驗包一份<br>
+          🎯 3號：下次茶會免費<br>
+          🎯 4號：蔡一信親簽健康手冊<br>
+          🎯 5-8號：蔡自訂
+        </div>
+        <div style="margin-top:1rem;padding:0.75rem;background:rgba(200,148,58,0.1);border-radius:8px;font-size:0.82rem;color:var(--gold)">
+          🔔 每週抽一名免費7天體驗包<br>付費體驗組＆免費行動組均可參加
+        </div>
+      </div>
+    </div>
+
+    <h3 style="color:var(--amber);font-family:'Noto Serif TC',serif;margin:2rem 0 1rem;font-size:1rem">密碼機制・保護商業模式</h3>
+    <div class="grid-2 fade">
+      <div class="pwd-demo">
+        <h4>週三活動入口</h4>
+        <p style="font-size:0.82rem;color:var(--mist);margin-bottom:1rem">輸入今天的日期即可進入</p>
+        <input class="pwd-input-demo" type="text" placeholder="例：0607" readonly>
+        <br>
+        <button class="pwd-btn-demo">進入活動</button>
+        <p class="pwd-hint">密碼＝當天日期（月份＋日期）<br>每天自動更新，隔天自動失效<br>蔡茶會開始時口頭告知即可</p>
+      </div>
+      <div class="card">
+        <div class="card-head red">🔒 為什麼要設密碼？</div>
+        <div class="info-row"><span class="info-key">保護邏輯</span><span class="info-val">評量頁包含完整商業設計，設密碼防止同業複製</span></div>
+        <div class="info-row"><span class="info-key">控制入口</span><span class="info-val">只有到場客人才知道密碼，篩選真正有意願的人</span></div>
+        <div class="info-row"><span class="info-key">自動更新</span><span class="info-val">密碼＝當天日期，完全不需要管理</span></div>
+        <div class="info-row"><span class="info-key">操作方式</span><span class="info-val">蔡開場說「今天密碼是0607」，客人掃碼輸入即可</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ③ 智慧名片規劃 -->
+<section class="section s-cream" id="namecard">
+  <div class="container">
+    <div class="section-tag">③ 智慧名片規劃</div>
+    <h2>智慧名片・完整填入內容</h2>
+    <p class="lead">名片是品牌的數位門面，每個欄位都有策略。</p>
+
+    <div class="grid-2 fade">
+      <div class="card">
+        <div class="card-head">📋 基本資料欄位</div>
+        <div class="info-row"><span class="info-key">姓名</span><span class="info-val">蔡一信</span></div>
+        <div class="info-row"><span class="info-key">職稱</span><span class="info-val">健康生活陪伴者</span></div>
+        <div class="info-row"><span class="info-key">品牌</span><span class="info-val">未來健康生活館</span></div>
+        <div class="info-row"><span class="info-key">電話</span><span class="info-val">0981-378242</span></div>
+        <div class="info-row"><span class="info-key">地址</span><span class="info-val">高雄市三民區覺民路531巷13號</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head sage">📢 跑馬燈文案</div>
+        <div class="marquee-box">🏥 未來健康生活館・高雄三民區 ｜ 🕐 11:30～21:00 ｜ 💚 健康從生活開始 ｜ ☕ 週三下午，來坐坐，喝喝咖啡，聊聊生活 ｜ 🎯 現場評量・5分以上可體驗控糖方案 ｜ 🎁 每週抽一名免費7天體驗包・完成任務分享均可參加 ｜ 🏆 完成90天控糖挑戰・糖化血色素沒降全額退款 ｜ 🎰 1號：＿＿ ｜ 2號：＿＿ ｜ 3號：＿＿ ｜ 4號：＿＿ ｜ 5號：＿＿ ｜ 6號：＿＿ ｜ 7號：＿＿ ｜ 8號：＿＿</p>
+        <p style="font-size:0.72rem;color:var(--sage);margin-top:0.75rem">※ 1-8號獎項由蔡一信自行填入</p>
+      </div>
+    </div>
+
+    <h3 style="font-family:'Noto Serif TC',serif;color:var(--forest);margin:2rem 0 1rem;font-size:1.05rem">品牌故事撰寫建議</h3>
+    <div class="card fade">
+      <div class="card-head">✍️ 品牌故事結構（建議300-500字）</div>
+      <div class="grid-2" style="margin-top:0.5rem">
+        <div>
+          <div class="step-box" style="margin-bottom:0.75rem"><div class="step-num">第一段・低谷</div><h4>生病最低谷的那一天</h4><p>描述發現三高＋心臟問題時的心情，具體的場景（診間、報告、那個數字）。讓人感同身受。</p></div>
+          <div class="step-box gold" style="margin-bottom:0.75rem"><div class="step-num">第二段・轉變</div><h4>我做了哪些改變</h4><p>飲食、作息、運動、情緒，每一個都是從小事開始。強調「不是一夕改變」，而是一點一點找回來。</p></div>
+        </div>
+        <div>
+          <div class="step-box" style="margin-bottom:0.75rem"><div class="step-num">第三段・成果</div><h4>數字回來了，但更珍貴的是</h4><p>不只是數值改善，而是學會了「如何照顧自己」。這才是真正的收穫。</p></div>
+          <div class="step-box gold"><div class="step-num">第四段・使命</div><h4>為什麼我要分享這些</h4><p>不是要賣你什麼，是因為走過，所以懂得。每一個花了冤枉錢、走了冤枉路的人，都值得被好好陪伴。</p></div>
+        </div>
+      </div>
+      <div style="background:var(--warm);border-radius:8px;padding:1rem;margin-top:1rem;font-size:0.85rem;color:var(--soft)">
+        <strong style="color:var(--forest);display:block;margin-bottom:0.5rem">⚠️ 撰寫注意事項</strong>
+        ✓ 用第一人稱「我」，不用「蔡館長」<br>
+        ✓ 具體的感受比數字更有力量<br>
+        ✓ 不宣稱治療疾病，定位為「生活管理」<br>
+        ✓ 結尾一句話帶出服務邀請
+      </div>
+    </div>
+
+    <h3 style="font-family:'Noto Serif TC',serif;color:var(--forest);margin:2rem 0 1rem;font-size:1.05rem">服務項目填寫建議</h3>
+    <div class="grid-3 fade">
+      <div class="card">
+        <div class="card-head">🌱 7天體驗方案</div>
+        <p style="font-size:0.85rem;color:var(--soft);margin-bottom:0.75rem"><strong style="color:var(--forest)">建議標題：</strong>控糖生活7天體驗</p>
+        <p style="font-size:0.82rem;color:var(--soft)">週三茶會現場評量5分以上可購買。包含：玉米胚芽粉7天份＋個人化使用指南＋LINE陪跑＋抽獎資格。</p>
+        <div style="margin-top:0.75rem;font-size:0.9rem;font-weight:700;color:var(--gold)">NT$500</div>
+      </div>
+      <div class="card">
+        <div class="card-head gold">🌳 90天控糖挑戰</div>
+        <p style="font-size:0.85rem;color:var(--soft);margin-bottom:0.75rem"><strong style="color:var(--forest)">建議標題：</strong>90天血糖重建計畫</p>
+        <p style="font-size:0.82rem;color:var(--soft)">玉米胚芽粉90天份＋蔡一信全程LINE陪跑＋每週追蹤＋成果報告。糖化血色素沒降，全額退款。</p>
+        <div style="margin-top:0.75rem;font-size:0.9rem;font-weight:700;color:var(--gold)">NT$20,000</div>
+      </div>
+      <div class="card">
+        <div class="card-head sage">💬 健康諮詢</div>
+        <p style="font-size:0.85rem;color:var(--soft);margin-bottom:0.75rem"><strong style="color:var(--forest)">建議標題：</strong>免費30分鐘健康諮詢</p>
+        <p style="font-size:0.82rem;color:var(--soft)">不賣產品、不推銷。陪你把自己的狀況說清楚，找到最適合你的第一步。加LINE預約。</p>
+        <div style="margin-top:0.75rem;font-size:0.9rem;font-weight:700;color:var(--sage)">完全免費</div>
+      </div>
+    </div>
+
+    <h3 style="font-family:'Noto Serif TC',serif;color:var(--forest);margin:2rem 0 1rem;font-size:1.05rem">照片牆素材需求</h3>
+    <div class="photo-grid fade">
+      <div class="photo-slot must"><div class="icon">🙋</div><p><strong>蔡本人主視覺</strong><br>溫暖自然，不要西裝<br>⭐ 必備</p></div>
+      <div class="photo-slot must"><div class="icon">🏠</div><p><strong>館內環境</strong><br>溫馨、乾淨、有溫度<br>⭐ 必備</p></div>
+      <div class="photo-slot must"><div class="icon">☕</div><p><strong>茶會現場</strong><br>大家聚在一起的氛圍<br>⭐ 必備</p></div>
+      <div class="photo-slot"><div class="icon">⚗️</div><p>血糖實驗過程<br>試紙變色的畫面</p></div>
+      <div class="photo-slot"><div class="icon">🌽</div><p>產品照片<br>玉米胚芽粉正面清楚</p></div>
+      <div class="photo-slot"><div class="icon">💬</div><p>客人見證截圖<br>真實回饋文字</p></div>
+      <div class="photo-slot"><div class="icon">📊</div><p>健檢報告前後對比<br>（徵得同意後使用）</p></div>
+      <div class="photo-slot"><div class="icon">🤝</div><p>蔡與客人互動<br>自然真實的畫面</p></div>
+      <div class="photo-slot"><div class="icon">🌿</div><p>品牌氛圍照<br>健康生活感</p></div>
+    </div>
+    <p style="font-size:0.78rem;color:var(--sage);margin-top:0.75rem">⭐ 標示為優先必備，建議先備齊3張必備照片即可上線，其餘陸續補充。</p>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ④ CTA製作指南 -->
+<section class="section s-warm" id="cta">
+  <div class="container">
+    <div class="section-tag">④ CTA製作指南</div>
+    <h2>三個CTA・各司其職</h2>
+    <p class="lead">每個按鈕都有明確目的，從故事到信任到行動。</p>
+
+    <div class="grid-3 fade">
+      <div class="cta-card">
+        <div class="cta-top c1">
+          <div class="cta-num">CTA 1</div>
+          <div class="cta-name">📅 週三活動</div>
+          <div class="cta-purpose">密碼保護・茶會現場專用</div>
+        </div>
+        <div class="cta-body">
+          <ul>
+            <li>點進去→輸入當天日期密碼</li>
+            <li>血糖評量15題（互動）</li>
+            <li>族群SOD使用指南</li>
+            <li>行動輪盤抽任務</li>
+            <li>90天挑戰＋抽獎輪盤</li>
+          </ul>
+          <div class="cta-link">
+            <strong>🔗 連結（已備妥）</strong>
+            angel0973180707.github.io/Happiness-Smart-Card-System/reports/cai_yixin_health_brand.html
+          </div>
+          <div style="margin-top:0.75rem;background:rgba(200,148,58,0.1);border-radius:6px;padding:0.6rem;font-size:0.78rem;color:var(--gold)">
+            🔑 密碼＝當天日期（例：0607）<br>蔡茶會開始時口頭告知
+          </div>
+        </div>
+      </div>
+
+      <div class="cta-card">
+        <div class="cta-top c2">
+          <div class="cta-num">CTA 2</div>
+          <div class="cta-name">💬 健康諮詢預約</div>
+          <div class="cta-purpose">加LINE・建立一對一關係</div>
+        </div>
+        <div class="cta-body">
+          <ul>
+            <li>點進去直接跳到LINE OA</li>
+            <li>客人加入即收到歡迎訊息</li>
+            <li>蔡可以直接一對一回應</li>
+            <li>最低門檻，最自然的名單收集</li>
+          </ul>
+          <div class="cta-link"><strong>🔗 需要申請LINE OA（見下方說明）</strong>申請完成後填入連結即可</div>
+          <div style="margin-top:0.75rem;background:rgba(90,140,114,0.1);border-radius:6px;padding:0.6rem;font-size:0.78rem;color:var(--moss)">歡迎訊息範例：<br>「你好，我是蔡一信，曾經也是個花了很多冤枉錢的病人。這裡沒有推銷，只有聊天、交流。有什麼想說的，歡迎找我。」</div>
+        </div>
+      </div>
+
+      <div class="cta-card">
+        <div class="cta-top c3">
+          <div class="cta-num">CTA 3</div>
+          <div class="cta-name">☕ 活動預約</div>
+          <div class="cta-purpose">Google表單・預約週三茶會</div>
+        </div>
+        <div class="cta-body">
+          <ul>
+            <li>點進去填寫預約表單</li>
+            <li>蔡提前知道本週人數</li>
+            <li>填表有儀式感，篩選有意願的人</li>
+            <li>自動收集姓名電話</li>
+          </ul>
+          <div class="cta-link"><strong>🔗 需要建立Google表單（見下方說明）</strong>建立完成後填入連結即可</div>
+          <div style="margin-top:0.75rem;background:rgba(200,148,58,0.1);border-radius:6px;padding:0.6rem;font-size:0.78rem;color:var(--gold)">表單欄位：<br>・姓名（必填）<br>・電話（必填）<br>・想參加哪一週（選擇）<br>・有什麼想聊的（選填）</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LINE OA說明 -->
+    <h3 style="font-family:'Noto Serif TC',serif;color:var(--forest);margin:2.5rem 0 1rem;font-size:1.05rem">LINE OA・功能說明＋申請步驟</h3>
+    <div class="grid-2 fade">
+      <div class="card">
+        <div class="card-head">📱 LINE OA 能做什麼？</div>
+        <div class="info-row"><span class="info-key">收名單</span><span class="info-val">客人加入即自動進入好友列表</span></div>
+        <div class="info-row"><span class="info-key">群發訊息</span><span class="info-val">一鍵發送健康資訊給所有好友</span></div>
+        <div class="info-row"><span class="info-key">自動回覆</span><span class="info-val">設定關鍵字觸發自動訊息</span></div>
+        <div class="info-row"><span class="info-key">QR碼</span><span class="info-val">專屬QR碼，名片印上去讓人掃</span></div>
+        <div class="info-row"><span class="info-key">標籤分類</span><span class="info-val">把好友分類（體驗中/已完成/潛在）</span></div>
+        <div class="info-row"><span class="info-key">費用</span><span class="info-val">每月500則訊息內免費</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head sage">✅ 申請步驟</div>
+        <div style="display:flex;flex-direction:column;gap:0.6rem">
+          <div class="step-box"><div class="step-num">STEP 1</div><h4>前往LINE官方帳號申請頁</h4><p>搜尋「LINE Official Account」或至 manager.line.biz</p></div>
+          <div class="step-box"><div class="step-num">STEP 2</div><h4>填寫帳號基本資料</h4><p>帳號名稱：未來健康生活館・蔡一信｜類別：健康/美容</p></div>
+          <div class="step-box"><div class="step-num">STEP 3</div><h4>設定歡迎訊息</h4><p>客人加入時自動發出的第一則訊息（見左側範例）</p></div>
+          <div class="step-box"><div class="step-num">STEP 4</div><h4>取得連結＋QR碼</h4><p>填入智慧名片CTA2連結欄位即完成</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Google表單說明 -->
+    <h3 style="font-family:'Noto Serif TC',serif;color:var(--forest);margin:2rem 0 1rem;font-size:1.05rem">Google表單・功能說明＋製作步驟</h3>
+    <div class="grid-2 fade">
+      <div class="card">
+        <div class="card-head gold">📋 Google表單能做什麼？</div>
+        <div class="info-row"><span class="info-key">收預約</span><span class="info-val">自動記錄每位預約者資料</span></div>
+        <div class="info-row"><span class="info-key">免費</span><span class="info-val">完全免費，不需要任何費用</span></div>
+        <div class="info-row"><span class="info-key">自動整理</span><span class="info-val">填寫資料自動匯入Google試算表</span></div>
+        <div class="info-row"><span class="info-key">Email通知</span><span class="info-val">有人填寫時自動發信通知蔡</span></div>
+        <div class="info-row"><span class="info-key">手機可用</span><span class="info-val">客人用手機填寫完全沒問題</span></div>
+        <div class="info-row"><span class="info-key">分享方式</span><span class="info-val">產生連結，填入名片CTA3即可</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head">✅ 製作步驟</div>
+        <div style="display:flex;flex-direction:column;gap:0.6rem">
+          <div class="step-box gold"><div class="step-num">STEP 1</div><h4>開啟 forms.google.com</h4><p>用Google帳號登入，點「+」建立新表單</p></div>
+          <div class="step-box gold"><div class="step-num">STEP 2</div><h4>填寫表單標題</h4><p>「週三健康生活聚・預約表單」</p></div>
+          <div class="step-box gold"><div class="step-num">STEP 3</div><h4>新增四個問題欄位</h4><p>姓名（簡答）、電話（簡答）、想參加哪週（下拉選單）、有什麼想聊的（段落，選填）</p></div>
+          <div class="step-box gold"><div class="step-num">STEP 4</div><h4>設定Email通知</h4><p>回應設定→有新回應時通知我→填入蔡的Email</p></div>
+          <div class="step-box gold"><div class="step-num">STEP 5</div><h4>取得連結</div><p>右上角「傳送」→連結→複製→填入名片CTA3</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ⑤ Google地圖好評引導 -->
+<section class="section s-dark" id="google">
+  <div class="container">
+    <div class="section-tag">⑤ Google地圖好評引導</div>
+    <h2>好評是最強的免費廣告</h2>
+    <p class="lead">有需求的人主動搜尋，找到你的商家，看到真實評論，信任感大幅提升。</p>
+
+    <div class="grid-2 fade">
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(168,197,181,0.15);border-radius:12px;padding:1.5rem">
+        <h3 style="color:var(--amber);font-family:'Noto Serif TC',serif;font-size:1rem;margin-bottom:1rem">茶會結束引導話術</h3>
+        <div style="background:rgba(255,255,255,0.08);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:1rem;font-size:0.88rem;color:var(--mist);font-style:italic;line-height:2">
+          「如果今天有什麼觸動你，可以幫我在Google留一個簡單的評論嗎？讓更多正在迷惘的人，可以找到這裡。不用寫很多，一句話就好。」
+        </div>
+        <div style="margin-top:1rem;font-size:0.82rem;color:var(--mist)">
+          ✓ 不是在要求，是在邀請<br>
+          ✓ 說明評論的意義（幫助別人）<br>
+          ✓ 降低門檻（一句話就好）<br>
+          ✓ 茶會最後自然帶出，不突兀
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(168,197,181,0.15);border-radius:12px;padding:1.5rem">
+        <h3 style="color:var(--amber);font-family:'Noto Serif TC',serif;font-size:1rem;margin-bottom:1rem">Google商家設定重點</h3>
+        <div style="display:flex;flex-direction:column;gap:0.75rem">
+          <div style="display:flex;gap:0.75rem;align-items:flex-start">
+            <span style="color:var(--amber);font-weight:700;min-width:20px">①</span>
+            <div><strong style="color:var(--white);font-size:0.88rem">商家名稱</strong><br><span style="font-size:0.82rem;color:var(--mist)">未來健康生活館｜蔡一信（含個人名字，強化人格化IP）</span></div>
+          </div>
+          <div style="display:flex;gap:0.75rem;align-items:flex-start">
+            <span style="color:var(--amber);font-weight:700;min-width:20px">②</span>
+            <div><strong style="color:var(--white);font-size:0.88rem">商家介紹文案</strong><br><span style="font-size:0.82rem;color:var(--mist)">「我曾經是個病患，花了很多冤枉錢。現在我把這些教訓帶到這個小生活館，陪伴每一位正在迷惘的人。不是推銷，只是陪你慢慢走。」</span></div>
+          </div>
+          <div style="display:flex;gap:0.75rem;align-items:flex-start">
+            <span style="color:var(--amber);font-weight:700;min-width:20px">③</span>
+            <div><strong style="color:var(--white);font-size:0.88rem">智慧名片連結</strong><br><span style="font-size:0.82rem;color:var(--mist)">在商家「網站」欄位填入智慧名片連結，讓搜尋者直接進入名片</span></div>
+          </div>
+          <div style="display:flex;gap:0.75rem;align-items:flex-start">
+            <span style="color:var(--amber);font-weight:700;min-width:20px">④</span>
+            <div><strong style="color:var(--white);font-size:0.88rem">照片上傳</strong><br><span style="font-size:0.82rem;color:var(--mist)">館內環境、蔡本人、茶會現場，讓人在搜尋時就感受到溫度</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:rgba(200,148,58,0.1);border:1px solid rgba(200,148,58,0.3);border-radius:12px;padding:1.5rem;margin-top:1.5rem;text-align:center" class="fade">
+      <h4 style="color:var(--amber);margin-bottom:0.5rem">📍 搜尋引導邏輯</h4>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0.5rem;justify-content:center;font-size:0.85rem;color:var(--mist)">
+        <span style="background:rgba(255,255,255,0.08);padding:0.4rem 0.85rem;border-radius:8px">短影音引發共鳴</span>
+        <span style="color:var(--gold)">→</span>
+        <span style="background:rgba(255,255,255,0.08);padding:0.4rem 0.85rem;border-radius:8px">Google搜尋「高雄健康生活館」</span>
+        <span style="color:var(--gold)">→</span>
+        <span style="background:rgba(255,255,255,0.08);padding:0.4rem 0.85rem;border-radius:8px">看到商家評論</span>
+        <span style="color:var(--gold)">→</span>
+        <span style="background:rgba(255,255,255,0.08);padding:0.4rem 0.85rem;border-radius:8px">點入智慧名片</span>
+        <span style="color:var(--gold)">→</span>
+        <span style="background:rgba(255,255,255,0.08);padding:0.4rem 0.85rem;border-radius:8px">加LINE預約茶會</span>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ⑥ 短影音主題 -->
+<section class="section s-cream" id="video">
+  <div class="container">
+    <div class="section-tag">⑥ 短影音主題</div>
+    <h2>精選50個短影音主題</h2>
+    <p class="lead">前三秒決定一切。每個主題都設計成讓人停下來的開場。</p>
+
+    <div class="topic-tabs">
+      <button class="topic-tab active" onclick="showTopic('story')">😢 故事型 15題</button>
+      <button class="topic-tab" onclick="showTopic('resonate')">💬 共鳴型 15題</button>
+      <button class="topic-tab" onclick="showTopic('edu')">📚 教育型 10題</button>
+      <button class="topic-tab" onclick="showTopic('concept')">💡 觀念型 10題</button>
+    </div>
+
+    <div class="topic-panel active" id="tab-story">
+      <div class="topic-cols">
+        <div class="topic-item"><span class="topic-n">01</span>那天我拿到健康報告，手在抖</div>
+        <div class="topic-item"><span class="topic-n">02</span>醫生說「你要注意了」，我腦袋空白了5秒</div>
+        <div class="topic-item"><span class="topic-n">03</span>太太哭著說「你要好好照顧自己」</div>
+        <div class="topic-item"><span class="topic-n">04</span>連走樓梯都喘的那一年</div>
+        <div class="topic-item"><span class="topic-n">05</span>第一次嘗試不吃消夜，失敗三次的故事</div>
+        <div class="topic-item"><span class="topic-n">06</span>花了很多錢買保健品，後來才發現</div>
+        <div class="topic-item"><span class="topic-n">07</span>三個月後，醫生說數字下來了</div>
+        <div class="topic-item"><span class="topic-n">08</span>朋友說「你看起來不一樣了」，那天很感動</div>
+        <div class="topic-item"><span class="topic-n">09</span>第一次連續走路30分鐘，我哭了</div>
+        <div class="topic-item"><span class="topic-n">10</span>家人從反對到支持，中間發生了什麼</div>
+        <div class="topic-item"><span class="topic-n">11</span>睡眠改善後，我的人生真的不一樣了</div>
+        <div class="topic-item"><span class="topic-n">12</span>那次差一點放棄的瞬間</div>
+        <div class="topic-item"><span class="topic-n">13</span>年底健檢，這次我不緊張了</div>
+        <div class="topic-item"><span class="topic-n">14</span>50歲的我，比40歲時更有精神</div>
+        <div class="topic-item"><span class="topic-n">15</span>走過之後的光——我想把這個分享給你</div>
+      </div>
+    </div>
+
+    <div class="topic-panel" id="tab-resonate">
+      <div class="topic-cols">
+        <div class="topic-item"><span class="topic-n">16</span>你有沒有明明很累，卻睡不著的夜晚？</div>
+        <div class="topic-item"><span class="topic-n">17</span>你上次運動是什麼時候？</div>
+        <div class="topic-item"><span class="topic-n">18</span>你有沒有「從明天開始」說了三年？</div>
+        <div class="topic-item"><span class="topic-n">19</span>「等忙完這陣子再說」這句話，你說了幾年了？</div>
+        <div class="topic-item"><span class="topic-n">20</span>有沒有人懂那種：很想改變，但就是動不起來</div>
+        <div class="topic-item"><span class="topic-n">21</span>你最後一次好好睡覺，是什麼時候？</div>
+        <div class="topic-item"><span class="topic-n">22</span>每次量血壓前，你是不是也會有點緊張？</div>
+        <div class="topic-item"><span class="topic-n">23</span>保健品買了一堆，但習慣沒有改變半個</div>
+        <div class="topic-item"><span class="topic-n">24</span>「這個年紀有點三高很正常」你也這樣說過嗎？</div>
+        <div class="topic-item"><span class="topic-n">25</span>如果給身體打分數，你給幾分？</div>
+        <div class="topic-item"><span class="topic-n">26</span>看到別人充滿活力，你有沒有羨慕過？</div>
+        <div class="topic-item"><span class="topic-n">27</span>你是否曾因身體狀況，少陪了家人？</div>
+        <div class="topic-item"><span class="topic-n">28</span>明明想早睡，滑了2小時手機才發現</div>
+        <div class="topic-item"><span class="topic-n">29</span>「我知道要改變，但不知道從哪開始」</div>
+        <div class="topic-item"><span class="topic-n">30</span>有沒有哪一刻，你突然想認真對待自己的身體？</div>
+      </div>
+    </div>
+
+    <div class="topic-panel" id="tab-edu">
+      <div class="topic-cols">
+        <div class="topic-item"><span class="topic-n">31</span>三高是什麼？一分鐘搞懂</div>
+        <div class="topic-item"><span class="topic-n">32</span>為什麼吃飯太快，會讓血糖飆升？</div>
+        <div class="topic-item"><span class="topic-n">33</span>喝水喝對了嗎？這五個時機最重要</div>
+        <div class="topic-item"><span class="topic-n">34</span>外食三個地雷，你踩了幾個？</div>
+        <div class="topic-item"><span class="topic-n">35</span>睡前滑手機對睡眠傷害有多大？</div>
+        <div class="topic-item"><span class="topic-n">36</span>壓力如何影響血糖？你可能不知道</div>
+        <div class="topic-item"><span class="topic-n">37</span>怎麼吃白飯才不會讓血糖太高？</div>
+        <div class="topic-item"><span class="topic-n">38</span>走路30分鐘等於什麼？數字告訴你</div>
+        <div class="topic-item"><span class="topic-n">39</span>慢性疲勞的五個早期訊號</div>
+        <div class="topic-item"><span class="topic-n">40</span>SOD是什麼？為什麼40歲後更需要？</div>
+      </div>
+    </div>
+
+    <div class="topic-panel" id="tab-concept">
+      <div class="topic-cols">
+        <div class="topic-item"><span class="topic-n">41</span>健康不是目的，是讓你做更多事的基礎</div>
+        <div class="topic-item"><span class="topic-n">42</span>改變不需要完美，需要持續</div>
+        <div class="topic-item"><span class="topic-n">43</span>最好的保健品，叫做睡眠</div>
+        <div class="topic-item"><span class="topic-n">44</span>健康是存款，你每天在存還是在提？</div>
+        <div class="topic-item"><span class="topic-n">45</span>不要等病了才開始，這件事我有資格說</div>
+        <div class="topic-item"><span class="topic-n">46</span>一個人的健康，影響的是整個家庭</div>
+        <div class="topic-item"><span class="topic-n">47</span>恐嚇不是動力，希望才是</div>
+        <div class="topic-item"><span class="topic-n">48</span>照顧好自己，才能照顧好家人</div>
+        <div class="topic-item"><span class="topic-n">49</span>知道和做到之間，差的是這個</div>
+        <div class="topic-item"><span class="topic-n">50</span>真正能陪伴你的，是走過的人</div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ⑦ 待確認清單 -->
+<section class="section s-dark" id="todo">
+  <div class="container">
+    <div class="section-tag">⑦ 待確認清單</div>
+    <h2>蔡一信・需要提供的資料</h2>
+    <p class="lead">以下確認完成後，智慧名片即可完整上線。</p>
+
+    <div class="todo-grid fade">
+      <div class="todo-item">
+        <div class="todo-num">①</div>
+        <div><h4>一句話理念</h4><p>從五個選項中選一個（見品牌定位區塊）</p></div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-num">②</div>
+        <div><h4>輪盤1-8號獎項</h4><p>決定獎項內容，填入智慧名片跑馬燈</p></div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-num">③</div>
+        <div><h4>LINE OA申請</h4><p>至manager.line.biz申請，取得連結填入CTA2</p><div class="todo-done">→ 步驟見CTA製作指南</div></div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-num">④</div>
+        <div><h4>Google表單建立</h4><p>至forms.google.com建立預約表單，取得連結填入CTA3</p><div class="todo-done">→ 步驟見CTA製作指南</div></div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-num">⑤</div>
+        <div><h4>品牌故事撰寫</h4><p>依照建議結構撰寫300-500字，填入智慧名片故事欄位</p><div class="todo-done">→ 結構見智慧名片區塊</div></div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-num">⑥</div>
+        <div><h4>照片準備</h4><p>本人主視覺1張、館內環境2張、茶會現場1張（優先）</p></div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-num">⑦</div>
+        <div><h4>Google商家設定</h4><p>更新商家名稱、介紹文案、填入智慧名片連結</p></div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-num">⑧</div>
+        <div><h4>血糖實驗道具</h4><p>備妥試紙、含糖汽水、玉米胚芽粉（茶會實驗用）</p></div>
+      </div>
+    </div>
+
+    <div style="background:rgba(200,148,58,0.1);border:1px solid rgba(200,148,58,0.3);border-radius:12px;padding:1.5rem;margin-top:1.5rem;text-align:center" class="fade">
+      <h4 style="color:var(--amber);font-family:'Noto Serif TC',serif;margin-bottom:0.5rem">✅ 目前已備妥</h4>
+      <p style="font-size:0.88rem;color:var(--mist)">CTA1 週三活動評量頁（含密碼機制、SOD指南、行動輪盤、抽獎輪盤）已完成，可立即使用。</p>
+      <div style="margin-top:0.75rem;font-size:0.78rem;color:var(--sage);word-break:break-all">
+        🔗 https://angel0973180707.github.io/Happiness-Smart-Card-System/reports/cai_yixin_health_brand.html
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer style="background:#0A1F14;color:var(--mist);text-align:center;padding:2rem;font-size:0.8rem;line-height:2;">
+  <strong style="color:var(--amber)">蔡一信・未來健康生活館</strong><br>
+  高雄市三民區覺民路531巷13號｜0981-378242<br>
+  健康從生活開始。週三下午，來坐坐，喝喝咖啡，聊聊生活。<br><br>
+  <span style="color:var(--sage);font-size:0.72rem">本提案由幸福天使智慧名片系統規劃製作</span>
+</footer>
+
+<script>
+function showTopic(id){
+  document.querySelectorAll('.topic-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.topic-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+const fader=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');});
+},{threshold:0.08});
+document.querySelectorAll('.fade').forEach(el=>fader.observe(el));
+</script>
+</body>
+</html>
 
