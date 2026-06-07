@@ -1,6 +1,5 @@
 /* =========================================
- * HSC Service Worker v1.5.5
- * COMPLETE OVERWRITE
+ * HSC Service Worker v1.7.2
  *
  * Goal:
  * - 控制 GitHub Pages PWA 快取
@@ -8,9 +7,10 @@
  * - 避免 HTML 長期卡舊版
  * - 靜態資源走快取優先
  * - HTML / version.json 走網路優先
+ * - GAS shell/lite API 走 stale-while-revalidate（即時回傳快取 + 背景更新）
  * ========================================= */
 
-const SW_VERSION = "v1.7.0";
+const SW_VERSION = "v1.7.2";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
 const CORE_ASSETS = [
@@ -98,6 +98,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // GAS shell/lite 讀取 API：stale-while-revalidate（立即回傳快取，背景更新）
+  if (isGasReadRequest(url)) {
+    event.respondWith(staleWhileRevalidate(req));
+    return;
+  }
+
   // 其他靜態資源：快取優先
   event.respondWith(cacheFirst(req));
 });
@@ -122,6 +128,12 @@ function isVersionJsonRequest(url) {
 
 function isCardJsonRequest(url) {
   return url.pathname.startsWith("/api/cards/") && url.pathname.endsWith(".json");
+}
+
+function isGasReadRequest(url) {
+  if (!url.pathname.startsWith("/gas-proxy/")) return false;
+  const action = url.searchParams.get("action") || "";
+  return action === "getCardPublicShell" || action === "getCardPublicLite";
 }
 
 async function networkFirst(req) {
