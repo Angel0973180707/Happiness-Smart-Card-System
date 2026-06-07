@@ -3221,13 +3221,10 @@ function bindInit() {
       const h = document.getElementById(headId);
       const c = document.getElementById(colId);
       if (!h || !c) return;
-      const b = c.querySelector(".collapsible-body");
-      if (!b) return;
       h.addEventListener("click", () => {
-        const open = b.style.display !== "none";
-        b.style.display = open ? "none" : "";
+        c.classList.toggle("open");
         const ch = h.querySelector(".chevron");
-        if (ch) ch.style.transform = open ? "" : "rotate(90deg)";
+        if (ch) ch.style.transform = c.classList.contains("open") ? "rotate(90deg)" : "";
       });
     });
 
@@ -3720,6 +3717,10 @@ function bindInit() {
 
     var dateFolder = todayStr();
 
+    // 使用 modular SDK（同 firebase.js），確保回傳完整 ?alt=media&token= 格式網址
+    var _fbsMod = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js");
+    var _modStorage = _fbsMod.getStorage(firebase.apps[0]);
+
     for (var i = 0; i < photoFiles.length; i++) {
       var file = photoFiles[i];
       progress.textContent = "處理中 " + (i + 1) + " / " + photoFiles.length + "：" + file.name;
@@ -3727,13 +3728,13 @@ function bindInit() {
       try {
         var compressed = await compressImage(file, maxWidth, quality);
         var filename   = safeName(file.name);
-        var path       = "uploads/batch/" + dateFolder + "/" + Date.now() + "_" + filename;
-        var storageRef = fbStorage.ref(path);
-        await storageRef.put(compressed.blob, {
+        var path       = "cards/batch/" + dateFolder + "/" + Date.now() + "_" + filename;
+        var storageRef = _fbsMod.ref(_modStorage, path);
+        await _fbsMod.uploadBytes(storageRef, compressed.blob, {
           contentType: "image/jpeg",
           cacheControl: "public,max-age=31536000,immutable"
         });
-        var url = await storageRef.getDownloadURL();
+        var url = await _fbsMod.getDownloadURL(storageRef);
 
         photoResults.push({ name: file.name, origSize: file.size, compSize: compressed.size, url: url });
         appendPhotoRow(file.name, file.size, compressed.size, url, null);
@@ -3970,6 +3971,56 @@ function bindInit() {
     }
   }
 
+  // ── 批次貼上卡號建 CTA ─────────────────────────────────
+  async function batchCardIdsToCtas() {
+    var textarea = document.getElementById("ctaBatchCardIds");
+    var statusEl = document.getElementById("ctaBatchStatus");
+    if (!textarea) return;
+
+    var raw = (textarea.value || "").trim();
+    if (!raw) { statusEl.textContent = "⚠️ 請貼入卡號"; return; }
+
+    var ids = raw.split(/[\n,，\s]+/).map(function(s) {
+      return s.trim().toUpperCase();
+    }).filter(Boolean);
+
+    if (!ids.length) { statusEl.textContent = "⚠️ 找不到卡號"; return; }
+
+    var btn = document.getElementById("btnBatchCardIdsToCtas");
+    btn.disabled = true;
+    statusEl.textContent = "查詢中（0 / " + ids.length + "）…";
+
+    var ok = 0, fail = 0;
+    for (var i = 0; i < ids.length; i++) {
+      var cardId = ids[i];
+      statusEl.textContent = "查詢中（" + (i + 1) + " / " + ids.length + "）：" + cardId;
+      try {
+        var res = await gasPost("adminGetCardDirect", { card_id: cardId });
+        var card = res.card || {};
+        var name  = (card.name  || "").trim();
+        var title = (card.title || "").trim();
+        var label = [name, title].filter(Boolean).join(" ") || cardId;
+        var link  = "https://angel-namecard.letssyncus.com/index.html?id=" + cardId;
+        addCtaRow(null, label, link);
+        ok++;
+      } catch(err) {
+        addCtaRow(null, cardId + "（查無此卡）", "");
+        fail++;
+      }
+    }
+
+    reorderSeq();
+    statusEl.textContent = "✅ 完成：成功 " + ok + " 筆" + (fail ? "，查無 " + fail + " 筆" : "");
+    textarea.value = "";
+    btn.disabled = false;
+
+    var title = document.getElementById("ctaEditorTitle");
+    if (title) {
+      var total = document.querySelectorAll("#ctaEditorBody tr[data-cta-row]").length;
+      title.textContent = "CTA 列表（目前共 " + total + " 筆）";
+    }
+  }
+
   // ── 儲存 ──────────────────────────────────────────────
   async function saveCtas() {
     var cardId = (document.getElementById("ctaCardId").value || "").trim().toUpperCase();
@@ -4017,6 +4068,9 @@ function bindInit() {
 
     var btnAdd = document.getElementById("btnAddCtaRow");
     if (btnAdd) btnAdd.addEventListener("click", function() { addCtaRow(); });
+
+    var btnBatch = document.getElementById("btnBatchCardIdsToCtas");
+    if (btnBatch) btnBatch.addEventListener("click", batchCardIdsToCtas);
 
     var btnSave = document.getElementById("btnSaveCtas");
     if (btnSave) btnSave.addEventListener("click", saveCtas);

@@ -168,12 +168,17 @@
     return isDataUrl(url) || isBlobUrl(url);
   }
 
-  /* EMPRYON_FB_PROXY 2026-05-18 firebase->/img/ 代理（中國 GFW 解）*/
+  /* EMPRYON_FB_PROXY 2026-05-18 firebase->/img/ 代理（中國 GFW 解）
+     僅代理標準卡片路徑 cards/TW####/...，其餘（batch 等）保留原始帶 token 網址 */
   function __fbProxy(s){
     if(!s||typeof s!=="string")return s;
     var m=s.match(/^https?:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[^\/]+\/o\/([^?]+)/i);
     if(!m)return s;
-    try{return "/img/"+decodeURIComponent(m[1]);}catch(e){return s;}
+    try{
+      var decoded=decodeURIComponent(m[1]);
+      if(!/^cards\/TW\d+\//i.test(decoded))return s;
+      return "/img/"+decoded;
+    }catch(e){return s;}
   }
 
   function normalizeImageUrl(raw) {

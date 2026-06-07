@@ -1386,6 +1386,21 @@ input:focus, textarea:focus, select:focus { outline: none; }
       <div id="mainCardResult" class="result-box" style="margin-top:10px;min-height:36px;display:none;"></div>
     </section>
 
+    <!-- ── 提案專區 ── -->
+    <section id="proposalSection" class="section">
+      <div class="section-header">
+        <div class="section-title">📋 提案專區</div>
+      </div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:12px;">
+        自動讀取專案 reports/ 資料夾，只要 push 新的 HTML 提案就會自動出現。
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn btn-primary btn-sm" id="btnLoadProposals">🔄 重新載入</button>
+        <span id="proposalStatus" style="font-size:12px;color:var(--ink2);line-height:32px;"></span>
+      </div>
+      <div id="proposalList"></div>
+    </section>
+
     <!-- ── 批次建卡 ── -->
     <section id="batchCreateSection" class="section">
       <div class="section-header">
@@ -1778,6 +1793,18 @@ input:focus, textarea:focus, select:focus { outline: none; }
             <a href="#" id="lnkFetchCtas" style="color:var(--primary);text-decoration:none;">查詢現有 CTA</a>
           </div>
 
+          <!-- 批次貼上卡號 -->
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:6px;">📋 批次貼上卡號建 CTA</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:6px;">每行一個卡號，系統自動查名字和連結加入下方列表</div>
+            <textarea id="ctaBatchCardIds" rows="4" placeholder="TW0001&#10;TW0002&#10;TW0003&#10;..."
+              style="width:100%;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);box-sizing:border-box;resize:vertical;font-family:monospace;"></textarea>
+            <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+              <button class="btn btn-primary btn-sm" id="btnBatchCardIdsToCtas">🔍 查卡建 CTA</button>
+              <span id="ctaBatchStatus" style="font-size:11px;color:var(--ink2);"></span>
+            </div>
+          </div>
+
           <!-- CTA 編輯表格 -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <span style="font-size:13px;font-weight:700;" id="ctaEditorTitle">CTA 列表（尚未查詢）</span>
@@ -1826,6 +1853,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
       <button class="more-menu-btn" data-section="systemSection">⚙️ 系統工具</button>
       <button class="more-menu-btn" data-section="mainCardSection">🔗 主附卡管理</button>
       <button class="more-menu-btn" data-section="batchCreateSection">🏢 批次建卡</button>
+      <button class="more-menu-btn" data-section="proposalSection">📋 提案專區</button>
     </div>
   </div>
 </div>
@@ -2040,7 +2068,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
     const wrap = $('#deliveryLinksWrap');
     if (!wrap) return;
     const base = 'https://angel-namecard.letssyncus.com/';
-    const cardUrl     = `${base}index.html?id=${encodeURIComponent(cardId)}`;
+    const cardUrl     = `${base}index.html?id=${encodeURIComponent(cardId)}&view=1`;
     const posterUrl   = `${base}poster.html?id=${encodeURIComponent(cardId)}`;
     const updateUrl   = `${base}form.html?mode=update&card_id=${encodeURIComponent(cardId)}&update_token=${encodeURIComponent(cardId)}`;
     const renewUrl    = `${base}form.html?mode=renew&card_id=${encodeURIComponent(cardId)}&renew_token=${encodeURIComponent(cardId)}`;
@@ -2802,6 +2830,93 @@ if (btnSubmitAgentInbox) {
     if (c2) c2.addEventListener("click", closeBankGuide);
     var modal = document.getElementById("bankGuideModal");
     if (modal) modal.addEventListener("click", function(e) { if (e.target === modal) closeBankGuide(); });
+  });
+})();
+</script>
+
+<script>
+// ── 提案專區模組 ──
+(function() {
+  var GITHUB_API = "https://api.github.com/repos/Angel0973180707/Happiness-Smart-Card-System/contents/reports";
+  var PAGES_BASE = "https://angel-namecard.letssyncus.com/reports/";
+
+  function escHtml(s) {
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function displayName(filename) {
+    return filename.replace(/\.html$/i, "").replace(/-/g, " ");
+  }
+
+  function copyText(text, msg) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function() { showToast(msg||"已複製"); }).catch(function() { fallbackCopy(text, msg); });
+    } else { fallbackCopy(text, msg); }
+  }
+  function fallbackCopy(text, msg) {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); if (typeof showToast === "function") showToast(msg||"已複製"); } catch(_) {}
+    document.body.removeChild(ta);
+  }
+
+  function renderProposals(files) {
+    var list = document.getElementById("proposalList");
+    if (!list) return;
+    if (!files.length) {
+      list.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:12px 0;">reports/ 資料夾目前沒有 HTML 提案檔。</div>';
+      return;
+    }
+    list.innerHTML = files.map(function(f) {
+      var url = PAGES_BASE + encodeURIComponent(f.name);
+      var name = displayName(f.name);
+      return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--ink1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(name) + '</div>' +
+          '<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(url) + '</div>' +
+        '</div>' +
+        '<button class="btn btn-soft btn-sm" onclick="navigator.clipboard?navigator.clipboard.writeText(\'' + url.replace(/'/g,"\\'") + '\').then(function(){if(typeof showToast===\'function\')showToast(\'🔗 已複製連結\');}):null" style="white-space:nowrap;">🔗 複製</button>' +
+        '<a href="' + escHtml(url) + '" target="_blank" class="btn btn-primary btn-sm" style="white-space:nowrap;text-decoration:none;">👁 開啟</a>' +
+        '</div>';
+    }).join("");
+  }
+
+  function loadProposals() {
+    var statusEl = document.getElementById("proposalStatus");
+    var listEl = document.getElementById("proposalList");
+    if (!listEl) return;
+    if (statusEl) statusEl.textContent = "載入中…";
+    listEl.innerHTML = "";
+
+    fetch(GITHUB_API)
+      .then(function(r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        var htmlFiles = data.filter(function(f) {
+          return f.type === "file" && /\.html$/i.test(f.name);
+        });
+        htmlFiles.sort(function(a, b) { return b.name.localeCompare(a.name); });
+        renderProposals(htmlFiles);
+        if (statusEl) statusEl.textContent = "共 " + htmlFiles.length + " 份提案";
+      })
+      .catch(function(err) {
+        if (listEl) listEl.innerHTML = '<div style="color:#e55;font-size:13px;padding:12px 0;">載入失敗：' + escHtml(err.message) + '</div>';
+        if (statusEl) statusEl.textContent = "";
+      });
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    var btn = document.getElementById("btnLoadProposals");
+    if (btn) btn.addEventListener("click", loadProposals);
+
+    // 切換到提案專區時自動載入
+    document.addEventListener("click", function(e) {
+      var moreBtn = e.target.closest('[data-section="proposalSection"]');
+      if (moreBtn) { setTimeout(loadProposals, 100); }
+    });
   });
 })();
 </script>
