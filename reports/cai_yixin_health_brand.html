@@ -3,874 +3,731 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>你的血糖，你了解嗎？</title>
+<title>你的血糖，你了解嗎？｜蔡一信・未來健康生活館</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #FBF8F3;
-    --card: #FFFFFF;
-    --forest: #1E4D3A;
-    --moss: #2E6B50;
-    --sage: #5A8C72;
-    --mist: #A8C5B5;
-    --gold: #C8943A;
-    --amber: #E8A83A;
-    --warm: #F5EFE6;
-    --red: #C0392B;
-    --red-light: #FDECEA;
-    --orange: #D35400;
-    --orange-light: #FEF0E6;
-    --green-light: #EAF5EE;
-    --ink: #2C2A27;
-    --soft: #7A7068;
-    --border: #E8E0D5;
-  }
+:root{
+  --bg:#FBF8F3;--card:#FFFFFF;--forest:#1E4D3A;--moss:#2E6B50;
+  --sage:#5A8C72;--mist:#A8C5B5;--gold:#C8943A;--amber:#E8A83A;
+  --warm:#F5EFE6;--red:#C0392B;--red-light:#FDECEA;
+  --orange:#D35400;--orange-light:#FEF0E6;--green-light:#EAF5EE;
+  --ink:#2C2A27;--soft:#7A7068;--border:#E8E0D5;--dark:#0E2D1F;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--ink);line-height:1.8;}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+/* HERO */
+.hero{background:linear-gradient(160deg,var(--dark) 0%,var(--forest) 100%);padding:4rem 2rem 3rem;text-align:center;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 30%,rgba(90,140,114,0.2) 0%,transparent 70%);}
+.hero-eyebrow{display:inline-block;background:rgba(200,148,58,0.2);border:1px solid rgba(200,148,58,0.4);color:var(--amber);padding:0.35rem 1.2rem;border-radius:99px;font-size:0.78rem;letter-spacing:0.15em;margin-bottom:1.5rem;position:relative;z-index:1;}
+.hero h1{font-family:'Noto Serif TC',serif;font-size:clamp(1.8rem,5vw,3rem);font-weight:900;color:#FEFCF9;line-height:1.3;margin-bottom:1rem;position:relative;z-index:1;}
+.hero h1 span{color:var(--amber);}
+.hero p{color:var(--mist);font-size:1rem;max-width:500px;margin:0 auto;position:relative;z-index:1;}
 
-  body {
-    font-family: 'Noto Sans TC', sans-serif;
-    background: var(--bg);
-    color: var(--ink);
-    line-height: 1.8;
-  }
+/* SECTIONS */
+.section{padding:3.5rem 1.5rem;}
+.container{max-width:720px;margin:0 auto;}
+.section-tag{display:inline-flex;align-items:center;gap:0.5rem;color:var(--sage);font-size:0.75rem;font-weight:700;letter-spacing:0.18em;margin-bottom:0.75rem;}
+.section-tag::before{content:'';width:20px;height:2px;background:var(--sage);}
+h2{font-family:'Noto Serif TC',serif;font-size:clamp(1.4rem,3vw,1.9rem);font-weight:900;color:var(--forest);margin-bottom:0.75rem;line-height:1.35;}
+.lead{font-size:0.95rem;color:var(--soft);margin-bottom:2rem;}
+.divider{height:1px;background:var(--border);margin:0 1.5rem;}
 
-  /* HERO */
-  .hero {
-    background: linear-gradient(160deg, #0E2D1F 0%, var(--forest) 100%);
-    padding: 4rem 2rem 3rem;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .hero::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse 70% 50% at 50% 30%, rgba(90,140,114,0.2) 0%, transparent 70%);
-  }
-  .hero-eyebrow {
-    display: inline-block;
-    background: rgba(200,148,58,0.2);
-    border: 1px solid rgba(200,148,58,0.4);
-    color: var(--amber);
-    padding: 0.35rem 1.2rem;
-    border-radius: 99px;
-    font-size: 0.78rem;
-    letter-spacing: 0.15em;
-    margin-bottom: 1.5rem;
-    position: relative; z-index: 1;
-  }
-  .hero h1 {
-    font-family: 'Noto Serif TC', serif;
-    font-size: clamp(1.8rem, 5vw, 3rem);
-    font-weight: 900;
-    color: #FEFCF9;
-    line-height: 1.3;
-    margin-bottom: 1rem;
-    position: relative; z-index: 1;
-  }
-  .hero h1 span { color: var(--amber); }
-  .hero p {
-    color: var(--mist);
-    font-size: 1rem;
-    max-width: 500px;
-    margin: 0 auto;
-    position: relative; z-index: 1;
-  }
+/* PART1 血糖重要性 */
+.importance-bg{background:var(--warm);}
+.chain{display:flex;flex-direction:column;gap:0;margin:1.5rem 0;}
+.chain-item{display:flex;gap:1rem;align-items:flex-start;padding:1rem 1.25rem;background:var(--card);border-radius:10px;margin-bottom:0.5rem;border-left:3px solid var(--red);}
+.chain-icon{font-size:1.4rem;min-width:36px;text-align:center;margin-top:0.1rem;}
+.chain-item h4{font-size:0.92rem;font-weight:700;color:var(--ink);margin-bottom:0.2rem;}
+.chain-item p{font-size:0.83rem;color:var(--soft);}
+.key-sentence{background:var(--forest);color:#FEFCF9;border-radius:12px;padding:1.5rem 2rem;text-align:center;margin-top:1.5rem;}
+.key-sentence p{font-size:1.05rem;font-family:'Noto Serif TC',serif;line-height:2;}
+.key-sentence span{color:var(--amber);font-weight:700;}
 
-  /* SECTIONS */
-  .section { padding: 3.5rem 1.5rem; }
-  .container { max-width: 720px; margin: 0 auto; }
+/* PART2 自我評量 */
+.assessment-bg{background:var(--bg);}
+.assess-intro{background:var(--green-light);border:1px solid var(--mist);border-radius:10px;padding:1rem 1.25rem;font-size:0.88rem;color:var(--moss);margin-bottom:1.5rem;display:flex;gap:0.75rem;align-items:flex-start;}
+.check-group{margin-bottom:2rem;}
+.check-group-title{font-size:0.78rem;font-weight:700;color:var(--gold);letter-spacing:0.15em;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;}
+.check-group-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.check-list{display:flex;flex-direction:column;gap:0.5rem;}
+.check-item{display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:var(--card);border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all 0.2s;user-select:none;}
+.check-item:hover{border-color:var(--sage);}
+.check-item.checked{border-color:var(--red);background:var(--red-light);}
+.check-item.checked .check-box{background:var(--red);border-color:var(--red);}
+.check-item.checked .check-box::after{opacity:1;}
+.check-box{width:20px;height:20px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;position:relative;transition:all 0.2s;}
+.check-box::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:white;opacity:0;transition:opacity 0.15s;}
+.check-label{font-size:0.88rem;color:var(--ink);}
+.check-item.checked .check-label{color:var(--red);font-weight:500;}
+.score-box{background:var(--card);border-radius:14px;padding:2rem;border:2px solid var(--border);text-align:center;margin-top:1.5rem;transition:all 0.3s;}
+.score-num{font-size:3.5rem;font-weight:900;font-family:'Noto Serif TC',serif;color:var(--forest);line-height:1;margin-bottom:0.5rem;}
+.score-label{font-size:1rem;color:var(--soft);margin-bottom:1rem;}
+.score-bar-bg{height:10px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:1.5rem;}
+.score-bar{height:100%;border-radius:99px;background:var(--sage);transition:width 0.6s ease,background 0.4s;width:0%;}
+.score-result{border-radius:10px;padding:1rem 1.25rem;font-size:0.9rem;line-height:1.7;display:none;}
+.score-result.show{display:block;}
+.score-result.low{background:var(--green-light);color:var(--moss);border:1px solid var(--mist);}
+.score-result.mid{background:var(--orange-light);color:var(--orange);border:1px solid #f0a070;}
+.score-result.high{background:var(--red-light);color:var(--red);border:1px solid #e0a0a0;}
+.score-result strong{display:block;font-size:1rem;margin-bottom:0.4rem;}
 
-  .section-tag {
-    display: inline-flex; align-items: center; gap: 0.5rem;
-    color: var(--sage); font-size: 0.75rem; font-weight: 700;
-    letter-spacing: 0.18em; margin-bottom: 0.75rem;
-  }
-  .section-tag::before { content: ''; width: 20px; height: 2px; background: var(--sage); }
+/* PART3 風險評估 */
+.risk-bg{background:var(--warm);}
+.risk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:1.5rem;}
+.risk-card{background:var(--card);border-radius:12px;padding:1.25rem;border-top:3px solid var(--mist);transition:all 0.2s;}
+.risk-card.high-risk{border-top-color:var(--red);}
+.risk-card.mid-risk{border-top-color:var(--orange);}
+.risk-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,0.08);}
+.risk-level{font-size:0.7rem;font-weight:700;letter-spacing:0.15em;margin-bottom:0.4rem;}
+.high-risk .risk-level{color:var(--red);}
+.mid-risk .risk-level{color:var(--orange);}
+.risk-card h4{font-size:0.95rem;color:var(--ink);margin-bottom:0.5rem;}
+.risk-card ul{padding-left:1rem;}
+.risk-card ul li{font-size:0.82rem;color:var(--soft);margin-bottom:0.25rem;}
+.oxidation-box{background:linear-gradient(135deg,var(--forest),var(--dark));color:white;border-radius:14px;padding:2rem;margin-top:2rem;}
+.oxidation-box h3{font-family:'Noto Serif TC',serif;color:var(--amber);font-size:1.1rem;margin-bottom:1rem;}
+.ox-flow{display:flex;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.25rem;}
+.ox-step{background:rgba(255,255,255,0.08);border:1px solid rgba(168,197,181,0.25);border-radius:8px;padding:0.5rem 0.85rem;font-size:0.82rem;color:var(--mist);}
+.ox-arrow{color:var(--amber);font-size:0.9rem;}
+.oxidation-box p{font-size:0.88rem;color:var(--mist);line-height:1.9;}
+.oxidation-box strong{color:var(--amber);}
 
-  h2 {
-    font-family: 'Noto Serif TC', serif;
-    font-size: clamp(1.4rem, 3vw, 1.9rem);
-    font-weight: 900; color: var(--forest);
-    margin-bottom: 0.75rem; line-height: 1.35;
-  }
-  .lead { font-size: 0.95rem; color: var(--soft); margin-bottom: 2rem; }
+/* PART4 SOD族群指南 */
+.sod-guide-bg{background:var(--bg);}
+.tribe-select-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.75rem;margin-bottom:2rem;}
+.tribe-select-btn{background:var(--card);border:2px solid var(--border);border-radius:10px;padding:0.85rem 0.75rem;text-align:center;font-size:0.88rem;color:var(--ink);cursor:pointer;transition:all 0.2s;font-family:'Noto Sans TC',sans-serif;}
+.tribe-select-btn:hover{border-color:var(--sage);background:var(--green-light);transform:translateY(-2px);}
+.tribe-select-btn.active{border-color:var(--forest);background:var(--forest);color:white;}
+.sod-guide-card{background:var(--card);border-radius:16px;padding:2rem;border:2px solid var(--forest);margin-top:1rem;animation:fadeUp 0.4s ease both;display:none;}
+.sod-guide-card.show{display:block;}
+.sod-guide-emoji{font-size:2.5rem;margin-bottom:0.75rem;}
+.sod-guide-tribe{font-size:0.75rem;font-weight:700;color:var(--sage);letter-spacing:0.15em;margin-bottom:0.5rem;}
+.sod-guide-title{font-family:'Noto Serif TC',serif;font-size:1.15rem;color:var(--forest);font-weight:700;margin-bottom:0.75rem;}
+.sod-guide-desc{font-size:0.9rem;color:var(--soft);margin-bottom:1rem;line-height:1.9;}
+.sod-how{background:var(--green-light);border-radius:8px;padding:0.85rem 1rem;border:1px solid var(--mist);}
+.sod-how strong{display:block;color:var(--forest);margin-bottom:0.3rem;font-size:0.88rem;}
+.sod-how p{font-size:0.88rem;color:var(--moss);}
+.sod-exp-box{background:var(--forest);border-radius:12px;padding:1.5rem;margin-top:1.5rem;text-align:center;color:white;}
+.sod-exp-box h4{font-family:'Noto Serif TC',serif;color:var(--amber);margin-bottom:0.5rem;}
+.sod-exp-box p{font-size:0.88rem;color:var(--mist);}
+.sod-exp-price{font-size:2rem;font-weight:900;color:var(--amber);margin:0.5rem 0;}
 
-  /* PART 1 — 血糖重要性 */
-  .importance-bg { background: var(--warm); }
+/* PART5 行動輪盤 */
+.action-wheel-bg{background:linear-gradient(160deg,var(--forest),var(--dark));color:white;}
+.action-wheel-bg h2{color:var(--amber);}
+.action-wheel-bg .lead{color:var(--mist);}
+.action-wheel-bg .section-tag{color:var(--sage);}
+.action-wheel-bg .section-tag::before{background:var(--sage);}
+.action-locked{background:rgba(255,255,255,0.06);border:1px solid rgba(168,197,181,0.2);border-radius:12px;padding:1.5rem;text-align:center;color:var(--mist);font-size:0.9rem;}
+.action-wheel-wrap{text-align:center;}
+.action-category-badge{display:inline-block;background:rgba(200,148,58,0.2);border:1px solid rgba(200,148,58,0.4);color:var(--amber);font-size:0.88rem;font-weight:700;padding:0.4rem 1.25rem;border-radius:99px;margin-bottom:1.25rem;letter-spacing:0.08em;}
+.wheel-container{position:relative;display:inline-block;margin-bottom:1.5rem;}
+.wheel-pointer{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:1.5rem;color:var(--red);z-index:10;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));}
+.spin-btn{display:block;width:100%;max-width:280px;margin:0 auto 0.75rem;background:var(--forest);color:white;border:none;border-radius:10px;padding:0.85rem 2rem;font-size:1rem;font-weight:700;font-family:'Noto Sans TC',sans-serif;cursor:pointer;transition:all 0.2s;letter-spacing:0.05em;}
+.spin-btn:hover{background:var(--moss);transform:translateY(-2px);}
+.spin-btn:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
 
-  .chain {
-    display: flex; flex-direction: column; gap: 0;
-    margin: 1.5rem 0;
-  }
-  .chain-item {
-    display: flex; gap: 1rem; align-items: flex-start;
-    padding: 1rem 1.25rem;
-    background: var(--card);
-    border-radius: 10px;
-    margin-bottom: 0.5rem;
-    border-left: 3px solid var(--mist);
-    position: relative;
-  }
-  .chain-item.danger { border-left-color: var(--red); }
-  .chain-icon {
-    font-size: 1.4rem; min-width: 36px;
-    text-align: center; margin-top: 0.1rem;
-  }
-  .chain-item h4 { font-size: 0.92rem; font-weight: 700; color: var(--ink); margin-bottom: 0.2rem; }
-  .chain-item p { font-size: 0.83rem; color: var(--soft); }
+/* 任務截圖 */
+.task-screenshot{animation:fadeUp 0.5s ease both;}
+.task-screenshot-inner{background:white;border-radius:20px;padding:2rem 1.75rem;margin-bottom:1rem;box-shadow:0 12px 40px rgba(0,0,0,0.4);max-width:340px;margin-left:auto;margin-right:auto;}
+.tsr-logo{font-size:0.72rem;color:var(--sage);letter-spacing:0.1em;margin-bottom:0.5rem;}
+.tsr-title{font-size:1rem;color:var(--soft);font-family:'Noto Serif TC',serif;margin-bottom:0.75rem;}
+.tsr-cat{display:inline-block;background:var(--green-light);color:var(--moss);font-size:0.78rem;font-weight:700;padding:0.25rem 0.85rem;border-radius:6px;margin-bottom:0.75rem;border:1px solid var(--mist);}
+.tsr-task{font-family:'Noto Serif TC',serif;font-size:1.2rem;font-weight:900;color:var(--forest);margin-bottom:0.5rem;line-height:1.4;}
+.tsr-duration{font-size:0.82rem;color:var(--soft);margin-bottom:1rem;}
+.tsr-indicators{background:var(--warm);border-radius:10px;padding:0.85rem;margin-bottom:0.85rem;}
+.tsr-ind-title{font-size:0.78rem;font-weight:700;color:var(--forest);margin-bottom:0.5rem;}
+.tsr-ind-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;}
+.tsr-ind{font-size:0.75rem;color:var(--soft);background:white;border-radius:6px;padding:0.4rem 0.5rem;text-align:center;}
+.tsr-ind span{font-size:0.9rem;display:block;margin-top:0.2rem;}
+.tsr-time{background:var(--warm);border-radius:8px;padding:0.5rem 1rem;font-size:0.8rem;color:var(--forest);font-weight:600;font-family:monospace;margin-bottom:0.5rem;}
+.tsr-notice{font-size:0.7rem;color:var(--soft);border-top:1px solid var(--border);padding-top:0.6rem;}
+.tsr-arrow{color:var(--amber);font-size:0.88rem;font-weight:600;text-align:center;margin-bottom:1.25rem;animation:pulse 1.5s ease infinite;}
+.lottery-box{background:rgba(200,148,58,0.1);border:1px solid rgba(200,148,58,0.3);border-radius:12px;padding:1.25rem;text-align:center;margin-top:1rem;}
+.lottery-title{color:var(--amber);font-weight:700;font-size:0.95rem;margin-bottom:0.5rem;}
+.lottery-desc{font-size:0.82rem;color:var(--mist);line-height:1.8;}
 
-  .key-sentence {
-    background: var(--forest);
-    color: #FEFCF9;
-    border-radius: 12px;
-    padding: 1.5rem 2rem;
-    text-align: center;
-    margin-top: 1.5rem;
-  }
-  .key-sentence p { font-size: 1.05rem; font-family: 'Noto Serif TC', serif; line-height: 2; }
-  .key-sentence span { color: var(--amber); font-weight: 700; }
+/* PART6 蔡一信的話 */
+.action-bg{background:linear-gradient(160deg,var(--forest),var(--dark));color:white;}
+.action-bg h2{color:var(--amber);}
+.action-bg .lead{color:var(--mist);}
+.action-bg .section-tag{color:var(--sage);}
+.action-bg .section-tag::before{background:var(--sage);}
+.quote-box{background:rgba(255,255,255,0.06);border-left:4px solid var(--gold);border-radius:0 12px 12px 0;padding:1.5rem 1.75rem;font-family:'Noto Serif TC',serif;font-size:1rem;color:var(--mist);line-height:2.1;margin-bottom:2rem;font-style:italic;}
+.quote-box strong{color:var(--amber);font-style:normal;}
+.challenge-box{background:rgba(255,255,255,0.05);border:1px solid rgba(168,197,181,0.25);border-radius:14px;padding:2rem;text-align:center;}
+.challenge-box h3{font-family:'Noto Serif TC',serif;color:var(--amber);font-size:1.2rem;margin-bottom:0.5rem;}
+.challenge-box p{color:var(--mist);font-size:0.88rem;margin-bottom:1.5rem;}
+.challenge-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.5rem;}
+.c-step{background:rgba(255,255,255,0.06);border-radius:10px;padding:1rem;text-align:center;}
+.c-step .num{font-size:1.5rem;font-weight:900;color:var(--amber);display:block;font-family:'Noto Serif TC',serif;}
+.c-step p{font-size:0.8rem;color:var(--mist);margin-top:0.25rem;}
+.reward-line{background:rgba(200,148,58,0.15);border:1px solid rgba(200,148,58,0.35);border-radius:8px;padding:0.75rem 1.25rem;font-size:0.88rem;color:var(--amber);}
 
-  /* PART 2 — 自我評量 */
-  .assessment-bg { background: var(--bg); }
+/* PART7 抽獎輪盤 */
+.reward-wheel-bg{background:linear-gradient(160deg,var(--dark),var(--forest));color:white;}
+.reward-wheel-bg h2{color:var(--amber);}
+.reward-wheel-bg .lead{color:var(--mist);}
+.reward-wheel-bg .section-tag{color:var(--sage);}
+.reward-wheel-bg .section-tag::before{background:var(--sage);}
+.reward-wheel-wrap{text-align:center;}
+.screenshot-result{animation:fadeUp 0.5s ease both;}
+.screenshot-inner{background:white;border-radius:20px;padding:2.5rem 2rem;margin-bottom:1rem;box-shadow:0 12px 40px rgba(0,0,0,0.3);max-width:320px;margin-left:auto;margin-right:auto;}
+.sr-logo{font-size:0.75rem;color:var(--sage);letter-spacing:0.1em;margin-bottom:0.5rem;}
+.sr-title{font-size:1rem;color:var(--soft);font-family:'Noto Serif TC',serif;}
+.sr-number{font-size:6rem;font-weight:900;font-family:'Noto Serif TC',serif;color:var(--forest);line-height:1;margin:0.5rem 0 1rem;text-shadow:0 4px 12px rgba(30,77,58,0.2);}
+.sr-hint{font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.35rem;}
+.sr-sub{font-size:0.8rem;color:var(--soft);margin-bottom:1.25rem;line-height:1.6;}
+.sr-time{background:var(--warm);border-radius:8px;padding:0.5rem 1rem;font-size:0.82rem;color:var(--forest);font-weight:600;letter-spacing:0.05em;margin-bottom:0.75rem;font-family:monospace;}
+.sr-notice{font-size:0.72rem;color:var(--soft);border-top:1px solid var(--border);padding-top:0.75rem;margin-top:0.25rem;}
+.sr-arrow{color:var(--amber);font-size:0.88rem;font-weight:600;letter-spacing:0.05em;animation:pulse 1.5s ease infinite;}
 
-  .assess-intro {
-    background: var(--green-light);
-    border: 1px solid var(--mist);
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
-    font-size: 0.88rem;
-    color: var(--moss);
-    margin-bottom: 1.5rem;
-    display: flex; gap: 0.75rem; align-items: flex-start;
-  }
+footer{background:#0A1F14;color:var(--mist);text-align:center;padding:2rem;font-size:0.8rem;line-height:2;}
+footer strong{color:var(--amber);}
 
-  .check-group { margin-bottom: 2rem; }
-  .check-group-title {
-    font-size: 0.78rem; font-weight: 700; color: var(--gold);
-    letter-spacing: 0.15em; margin-bottom: 0.75rem;
-    display: flex; align-items: center; gap: 0.5rem;
-  }
-  .check-group-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-  .check-list { display: flex; flex-direction: column; gap: 0.5rem; }
-  .check-item {
-    display: flex; align-items: center; gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: var(--card);
-    border-radius: 8px;
-    border: 1.5px solid var(--border);
-    cursor: pointer;
-    transition: all 0.2s;
-    user-select: none;
-  }
-  .check-item:hover { border-color: var(--sage); }
-  .check-item.checked {
-    border-color: var(--red);
-    background: var(--red-light);
-  }
-  .check-item.checked .check-box { background: var(--red); border-color: var(--red); }
-  .check-item.checked .check-box::after { opacity: 1; }
-  .check-box {
-    width: 20px; height: 20px; border-radius: 4px;
-    border: 2px solid var(--border);
-    flex-shrink: 0; position: relative;
-    transition: all 0.2s;
-  }
-  .check-box::after {
-    content: '✓';
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.75rem; color: white;
-    opacity: 0; transition: opacity 0.15s;
-  }
-  .check-label { font-size: 0.88rem; color: var(--ink); }
-  .check-item.checked .check-label { color: var(--red); font-weight: 500; }
-
-  /* SCORE */
-  .score-box {
-    background: var(--card);
-    border-radius: 14px;
-    padding: 2rem;
-    border: 2px solid var(--border);
-    text-align: center;
-    margin-top: 1.5rem;
-    transition: all 0.3s;
-  }
-  .score-num {
-    font-size: 3.5rem; font-weight: 900;
-    font-family: 'Noto Serif TC', serif;
-    color: var(--forest);
-    line-height: 1;
-    margin-bottom: 0.5rem;
-  }
-  .score-label { font-size: 1rem; color: var(--soft); margin-bottom: 1rem; }
-  .score-bar-bg {
-    height: 10px; background: var(--border);
-    border-radius: 99px; overflow: hidden;
-    margin-bottom: 1.5rem;
-  }
-  .score-bar {
-    height: 100%; border-radius: 99px;
-    background: var(--sage);
-    transition: width 0.6s ease, background 0.4s;
-    width: 0%;
-  }
-  .score-result {
-    border-radius: 10px; padding: 1rem 1.25rem;
-    font-size: 0.9rem; line-height: 1.7;
-    display: none;
-  }
-  .score-result.show { display: block; }
-  .score-result.low { background: var(--green-light); color: var(--moss); border: 1px solid var(--mist); }
-  .score-result.mid { background: var(--orange-light); color: var(--orange); border: 1px solid #f0a070; }
-  .score-result.high { background: var(--red-light); color: var(--red); border: 1px solid #e0a0a0; }
-  .score-result strong { display: block; font-size: 1rem; margin-bottom: 0.4rem; }
-
-  /* PART 3 — 風險評估 */
-  .risk-bg { background: var(--warm); }
-
-  .risk-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem; margin-top: 1.5rem;
-  }
-  .risk-card {
-    background: var(--card);
-    border-radius: 12px; padding: 1.25rem;
-    border-top: 3px solid var(--mist);
-    transition: all 0.2s;
-  }
-  .risk-card.high-risk { border-top-color: var(--red); }
-  .risk-card.mid-risk { border-top-color: var(--orange); }
-  .risk-card.low-risk { border-top-color: var(--sage); }
-  .risk-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-  .risk-level {
-    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em;
-    margin-bottom: 0.4rem;
-  }
-  .high-risk .risk-level { color: var(--red); }
-  .mid-risk .risk-level { color: var(--orange); }
-  .low-risk .risk-level { color: var(--sage); }
-  .risk-card h4 { font-size: 0.95rem; color: var(--ink); margin-bottom: 0.5rem; }
-  .risk-card ul { padding-left: 1rem; }
-  .risk-card ul li { font-size: 0.82rem; color: var(--soft); margin-bottom: 0.25rem; }
-
-  .oxidation-box {
-    background: linear-gradient(135deg, #1E4D3A, #0E2D1F);
-    color: white; border-radius: 14px;
-    padding: 2rem; margin-top: 2rem;
-  }
-  .oxidation-box h3 {
-    font-family: 'Noto Serif TC', serif;
-    color: var(--amber); font-size: 1.1rem;
-    margin-bottom: 1rem;
-  }
-  .ox-flow {
-    display: flex; align-items: center;
-    flex-wrap: wrap; gap: 0.5rem;
-    margin-bottom: 1.25rem;
-  }
-  .ox-step {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(168,197,181,0.25);
-    border-radius: 8px; padding: 0.5rem 0.85rem;
-    font-size: 0.82rem; color: var(--mist);
-  }
-  .ox-arrow { color: var(--amber); font-size: 0.9rem; }
-  .oxidation-box p { font-size: 0.88rem; color: var(--mist); line-height: 1.9; }
-  .oxidation-box strong { color: var(--amber); }
-
-  /* PART 4 — SOD產品 */
-  .product-bg { background: var(--bg); }
-
-  .sod-intro {
-    background: var(--card);
-    border-radius: 14px; padding: 2rem;
-    border: 1px solid var(--border);
-    margin-bottom: 1.5rem;
-  }
-  .sod-intro h3 {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 1.1rem; color: var(--forest);
-    margin-bottom: 0.5rem;
-  }
-  .sod-intro p { font-size: 0.88rem; color: var(--soft); margin-bottom: 1rem; }
-  .sod-tag {
-    display: inline-block;
-    background: var(--green-light);
-    color: var(--moss); font-size: 0.78rem;
-    padding: 0.3rem 0.85rem; border-radius: 6px;
-    margin-right: 0.5rem; margin-bottom: 0.4rem;
-    border: 1px solid var(--mist);
-  }
-
-  .not-replace {
-    background: var(--orange-light);
-    border: 1px solid #f0a070;
-    border-radius: 10px; padding: 1rem 1.25rem;
-    font-size: 0.88rem; color: var(--orange);
-    margin-bottom: 1.5rem;
-    display: flex; gap: 0.75rem;
-  }
-
-  .timeline {
-    display: flex; flex-direction: column; gap: 0;
-    margin-top: 1.5rem;
-  }
-  .timeline-item {
-    display: flex; gap: 1.25rem;
-    padding-bottom: 1.5rem;
-    position: relative;
-  }
-  .timeline-item:last-child { padding-bottom: 0; }
-  .timeline-item::before {
-    content: '';
-    position: absolute; left: 19px; top: 36px;
-    bottom: 0; width: 2px;
-    background: var(--border);
-  }
-  .timeline-item:last-child::before { display: none; }
-  .timeline-dot {
-    width: 40px; height: 40px; border-radius: 50%;
-    background: var(--forest); color: var(--amber);
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 900; font-size: 0.8rem;
-    flex-shrink: 0; z-index: 1;
-  }
-  .timeline-content {
-    background: var(--card); border-radius: 10px;
-    padding: 1rem 1.25rem; flex: 1;
-    border: 1px solid var(--border);
-  }
-  .timeline-content h4 { font-size: 0.9rem; color: var(--moss); margin-bottom: 0.3rem; }
-  .timeline-content p { font-size: 0.85rem; color: var(--soft); }
-  .timeline-content .week-tag {
-    font-size: 0.7rem; font-weight: 700; color: var(--gold);
-    letter-spacing: 0.12em; display: block; margin-bottom: 0.3rem;
-  }
-
-  /* PART 5 — 行動 */
-  .action-bg {
-    background: linear-gradient(160deg, var(--forest), #0E2D1F);
-    color: white;
-  }
-  .action-bg h2 { color: var(--amber); }
-  .action-bg .lead { color: var(--mist); }
-
-  .quote-box {
-    background: rgba(255,255,255,0.06);
-    border-left: 4px solid var(--gold);
-    border-radius: 0 12px 12px 0;
-    padding: 1.5rem 1.75rem;
-    font-family: 'Noto Serif TC', serif;
-    font-size: 1rem; color: var(--mist);
-    line-height: 2.1; margin-bottom: 2rem;
-    font-style: italic;
-  }
-  .quote-box strong { color: var(--amber); font-style: normal; }
-
-  .challenge-box {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(168,197,181,0.25);
-    border-radius: 14px; padding: 2rem;
-    text-align: center;
-  }
-  .challenge-box h3 {
-    font-family: 'Noto Serif TC', serif;
-    color: var(--amber); font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-  }
-  .challenge-box p { color: var(--mist); font-size: 0.88rem; margin-bottom: 1.5rem; }
-  .challenge-steps {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.75rem; margin-bottom: 1.5rem;
-  }
-  .c-step {
-    background: rgba(255,255,255,0.06);
-    border-radius: 10px; padding: 1rem;
-    text-align: center;
-  }
-  .c-step .num {
-    font-size: 1.5rem; font-weight: 900;
-    color: var(--amber); display: block;
-    font-family: 'Noto Serif TC', serif;
-  }
-  .c-step p { font-size: 0.8rem; color: var(--mist); margin-top: 0.25rem; }
-
-  .reward-line {
-    background: rgba(200,148,58,0.15);
-    border: 1px solid rgba(200,148,58,0.35);
-    border-radius: 8px; padding: 0.75rem 1.25rem;
-    font-size: 0.88rem; color: var(--amber);
-  }
-
-  footer {
-    background: #0A1F14; color: var(--mist);
-    text-align: center; padding: 2rem;
-    font-size: 0.8rem; line-height: 2;
-  }
-  footer strong { color: var(--amber); }
-
-  /* ANIMATIONS */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .fade-in { animation: fadeUp 0.6s ease both; }
-
-  /* DIVIDER */
-  .divider {
-    height: 1px; background: var(--border);
-    margin: 0 1.5rem;
-  }
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+.fade-in{animation:fadeUp 0.6s ease both;}
 </style>
 </head>
 <body>
 
+<!-- 密碼遮罩 -->
+<div id="pwdOverlay" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#0E2D1F,#1E4D3A);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;">
+  <div style="font-size:0.75rem;color:#A8C5B5;letter-spacing:0.15em;margin-bottom:1.5rem">蔡一信・未來健康生活館</div>
+  <div style="font-family:'Noto Serif TC',serif;font-size:1.6rem;font-weight:900;color:#FEFCF9;margin-bottom:0.5rem;line-height:1.3">週三活動<br>專屬入口</div>
+  <div style="font-size:0.88rem;color:#A8C5B5;margin-bottom:2rem">請輸入今日密碼以進入</div>
+  <input id="pwdInput" type="tel" maxlength="4" placeholder="輸入4位數字"
+    style="background:rgba(255,255,255,0.08);border:2px solid rgba(168,197,181,0.3);border-radius:12px;padding:1rem 1.5rem;width:100%;max-width:240px;color:white;font-size:1.8rem;text-align:center;font-family:monospace;letter-spacing:0.3em;margin-bottom:1rem;outline:none;"
+    oninput="checkPwd(this.value)"
+  >
+  <div id="pwdError" style="font-size:0.82rem;color:#e87878;min-height:1.2rem;margin-bottom:1rem"></div>
+  <div style="font-size:0.78rem;color:rgba(168,197,181,0.6)">密碼為今天的日期<br>例如6月7日請輸入 0607</div>
+  <div style="margin-top:2rem;font-size:0.72rem;color:rgba(168,197,181,0.4)">不知道密碼？請向蔡一信索取</div>
+</div>
+
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-eyebrow">蔡一信・健康生活陪伴</div>
+  <div class="hero-eyebrow">蔡一信・未來健康生活館</div>
   <h1>你的血糖，<br>正在影響你<span>每一天</span>的感受。</h1>
   <p style="margin-top:1rem">三分鐘自我評量，找出你現在最需要關注的健康訊號。</p>
 </div>
 
-<!-- PART 1 血糖重要性 -->
+<!-- PART1 血糖重要性 -->
 <section class="section importance-bg">
   <div class="container">
     <div class="section-tag">第一部分</div>
     <h2>血糖不穩，身體到底發生了什麼？</h2>
-    <p class="lead">很多人以為血糖只跟糖尿病有關。其實，血糖波動每天都在影響你的精神、體重、情緒和老化速度。</p>
-
+    <p class="lead">血糖波動每天都在影響你的精神、體重、情緒和老化速度。</p>
     <div class="chain">
-      <div class="chain-item danger">
-        <div class="chain-icon">🍚</div>
-        <div>
-          <h4>飯後血糖快速上升</h4>
-          <p>精緻澱粉、含糖飲料、外食高油→血糖急速飆高</p>
-        </div>
-      </div>
-      <div class="chain-item danger">
-        <div class="chain-icon">⚡</div>
-        <div>
-          <h4>胰島素大量分泌</h4>
-          <p>身體緊急應對→大量胰島素湧出→血糖驟降→強烈飢餓感再來</p>
-        </div>
-      </div>
-      <div class="chain-item danger">
-        <div class="chain-icon">🔥</div>
-        <div>
-          <h4>自由基大量產生</h4>
-          <p>血糖忽高忽低的過程中，細胞氧化壓力急速累積</p>
-        </div>
-      </div>
-      <div class="chain-item danger">
-        <div class="chain-icon">💔</div>
-        <div>
-          <h4>細胞環境惡化</h4>
-          <p>氧化傷害持續累積→胰島素阻抗→血管壁受損→老化加速</p>
-        </div>
-      </div>
+      <div class="chain-item"><div class="chain-icon">🍚</div><div><h4>飯後血糖快速上升</h4><p>精緻澱粉、含糖飲料、外食高油→血糖急速飆高</p></div></div>
+      <div class="chain-item"><div class="chain-icon">⚡</div><div><h4>胰島素大量分泌</h4><p>血糖驟降→強烈飢餓感→疲憊→情緒波動</p></div></div>
+      <div class="chain-item"><div class="chain-icon">🔥</div><div><h4>自由基大量產生</h4><p>血糖忽高忽低，細胞氧化壓力急速累積</p></div></div>
+      <div class="chain-item"><div class="chain-icon">💔</div><div><h4>細胞環境惡化</h4><p>氧化傷害持續累積→胰島素阻抗→血管壁受損→老化加速</p></div></div>
     </div>
-
     <div class="key-sentence">
-      <p>
-        你感覺到的<span>疲憊、睏意、情緒起伏、體重頑固</span>，<br>
-        很多時候不是你不努力，<br>
-        而是血糖一直在<span>悄悄消耗你的精力</span>。
-      </p>
+      <p>你感覺到的<span>疲憊、睏意、情緒起伏、體重頑固</span>，<br>很多時候不是你不努力，<br>而是血糖一直在<span>悄悄消耗你的精力</span>。</p>
     </div>
   </div>
 </section>
-
 <div class="divider"></div>
 
-<!-- PART 2 自我評量 -->
+<!-- PART2 自我評量 -->
 <section class="section assessment-bg">
   <div class="container">
     <div class="section-tag">第二部分</div>
     <h2>你的身體，現在給你什麼訊號？</h2>
     <p class="lead">勾選你目前有的狀況，越誠實越準確。</p>
+    <div class="assess-intro"><span>💡</span><span>這不是醫療診斷，而是幫你看清楚自己身體目前的狀態。每一個勾選，都是身體在跟你說話。</span></div>
 
-    <div class="assess-intro">
-      <span>💡</span>
-      <span>這不是醫療診斷，而是幫你看清楚自己身體目前的狀態。每一個勾選，都是身體在跟你說話。</span>
-    </div>
-
-    <!-- 飯後感受 -->
     <div class="check-group">
       <div class="check-group-title">飯後感受</div>
       <div class="check-list">
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">吃完飯很想睡覺，尤其是午餐後</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">吃完不久又覺得餓，很快想再吃東西</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">吃甜食或澱粉後，特別容易疲憊</span>
-        </div>
+        <div class="check-item" data-cat="飲食" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">吃完飯很想睡覺，尤其是午餐後</span></div>
+        <div class="check-item" data-cat="飲食" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">吃完不久又覺得餓，很快想再吃東西</span></div>
+        <div class="check-item" data-cat="飲食" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">吃甜食或澱粉後，特別容易疲憊</span></div>
       </div>
     </div>
-
-    <!-- 日常精神 -->
     <div class="check-group">
-      <div class="check-group-title">日常精神狀態</div>
+      <div class="check-group-title">運動習慣</div>
       <div class="check-list">
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">下午三四點特別疲憊，需要提神</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">明明睡夠了，早上還是沒精神</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">專注力變差，容易分心或腦霧</span>
-        </div>
+        <div class="check-item" data-cat="運動" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">下午三四點特別疲憊，需要提神</span></div>
+        <div class="check-item" data-cat="運動" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">明明睡夠了，早上還是沒精神</span></div>
+        <div class="check-item" data-cat="運動" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">專注力變差，容易分心或腦霧</span></div>
       </div>
     </div>
-
-    <!-- 體重與外觀 -->
     <div class="check-group">
       <div class="check-group-title">體重與身體組成</div>
       <div class="check-list">
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">體重很難降，尤其是腰腹部位</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">對甜食或澱粉有強烈渴望，很難抵抗</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">容易口渴，喝水量比以前多</span>
-        </div>
+        <div class="check-item" data-cat="壓力" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">體重很難降，尤其是腰腹部位</span></div>
+        <div class="check-item" data-cat="壓力" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">對甜食或澱粉有強烈渴望，很難抵抗</span></div>
+        <div class="check-item" data-cat="壓力" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">容易口渴，喝水量比以前多</span></div>
       </div>
     </div>
-
-    <!-- 情緒與睡眠 -->
     <div class="check-group">
-      <div class="check-group-title">情緒與睡眠</div>
+      <div class="check-group-title">睡眠與情緒</div>
       <div class="check-list">
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">情緒容易起伏，餓了就變得焦躁</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">睡眠淺或容易半夜醒來</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">壓力大時特別想吃東西</span>
-        </div>
+        <div class="check-item" data-cat="睡眠" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">情緒容易起伏，餓了就變得焦躁</span></div>
+        <div class="check-item" data-cat="睡眠" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">睡眠淺或容易半夜醒來</span></div>
+        <div class="check-item" data-cat="睡眠" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">壓力大時特別想吃東西</span></div>
       </div>
     </div>
-
-    <!-- 健檢數值 -->
     <div class="check-group">
       <div class="check-group-title">健檢數值與家族史</div>
       <div class="check-list">
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">空腹血糖偏高（100mg/dL以上）</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">三酸甘油脂或膽固醇數值異常</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-box"></div>
-          <span class="check-label">家族中有糖尿病或心血管疾病史</span>
-        </div>
+        <div class="check-item" data-cat="健康管理" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">空腹血糖偏高（100mg/dL以上）</span></div>
+        <div class="check-item" data-cat="健康管理" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">三酸甘油脂或膽固醇數值異常</span></div>
+        <div class="check-item" data-cat="健康管理" onclick="toggleCheck(this)"><div class="check-box"></div><span class="check-label">家族中有糖尿病或心血管疾病史</span></div>
       </div>
     </div>
 
-    <!-- SCORE -->
     <div class="score-box" id="scoreBox">
       <div class="score-num" id="scoreNum">0</div>
       <div class="score-label">項符合</div>
-      <div class="score-bar-bg">
-        <div class="score-bar" id="scoreBar"></div>
-      </div>
-      <div class="score-result low" id="resultLow">
-        <strong>🟢 目前訊號不明顯</strong>
-        血糖相關症狀較少，但預防永遠比治療重要。維持現有的生活習慣，定期關注身體變化。
-      </div>
-      <div class="score-result mid" id="resultMid">
-        <strong>🟡 身體已在發出提醒</strong>
-        你有幾個血糖波動的典型訊號。雖然還不到警戒線，但這些感受不是正常的，值得認真面對。
-      </div>
-      <div class="score-result high" id="resultHigh">
-        <strong>🔴 血糖波動可能正在影響你的生活品質</strong>
-        多個訊號同時出現，表示氧化壓力可能已在累積。這不是你意志力不夠，而是身體需要支援了。
-      </div>
+      <div class="score-bar-bg"><div class="score-bar" id="scoreBar"></div></div>
+      <div class="score-result low" id="resultLow"><strong>🟢 目前訊號不明顯</strong>血糖相關症狀較少，繼續維持現有習慣，定期關注身體變化。加入LINE社群持續追蹤。</div>
+      <div class="score-result mid" id="resultMid"><strong>🟡 身體已在發出提醒</strong>你有幾個血糖波動的典型訊號，值得認真面對。<br><br><span style="color:var(--orange);font-weight:700">✅ 符合週三茶會7天體驗資格（NT$500）</span><br><span style="font-size:0.82rem">完成7天體驗＋群組分享，即可參加每週免費體驗包抽獎</span></div>
+      <div class="score-result high" id="resultHigh"><strong>🔴 血糖波動可能正在影響你的生活品質</strong>多個訊號同時出現，身體需要支援了。<br><br><span style="color:var(--red);font-weight:700">✅ 符合週三茶會7天體驗資格（NT$500）</span><br><span style="font-size:0.82rem">建議同時了解90天控糖挑戰方案・糖化血色素沒降全額退款</span></div>
     </div>
   </div>
 </section>
-
 <div class="divider"></div>
 
-<!-- PART 3 風險評估 -->
+<!-- PART3 風險評估 -->
 <section class="section risk-bg">
   <div class="container">
     <div class="section-tag">第三部分</div>
     <h2>哪些生活習慣，讓血糖更難穩定？</h2>
-    <p class="lead">很多人不是不想改變，而是生活條件讓改變很難落實。這不是你的錯，但它的影響是真實的。</p>
-
+    <p class="lead">不是你不想改，而是生活條件讓改變很難落實。</p>
     <div class="risk-grid">
-      <div class="risk-card high-risk">
-        <div class="risk-level">高風險</div>
-        <h4>🍱 飲食習慣</h4>
-        <ul>
-          <li>三餐以外食為主</li>
-          <li>常喝含糖飲料</li>
-          <li>喜歡白飯麵包甜食</li>
-          <li>吃飯速度很快</li>
-          <li>應酬多難以控制</li>
-        </ul>
-      </div>
-      <div class="risk-card high-risk">
-        <div class="risk-level">高風險</div>
-        <h4>😴 作息壓力</h4>
-        <ul>
-          <li>睡眠不規律或熬夜</li>
-          <li>長期高壓工作</li>
-          <li>靠吃東西紓壓</li>
-          <li>久坐缺乏活動</li>
-          <li>沒有固定運動習慣</li>
-        </ul>
-      </div>
-      <div class="risk-card mid-risk">
-        <div class="risk-level">中風險</div>
-        <h4>🧠 認知盲點</h4>
-        <ul>
-          <li>以為只有甜食才有問題</li>
-          <li>不知道自己血糖是否正常</li>
-          <li>覺得「我這樣多年都沒事」</li>
-          <li>等有症狀才處理</li>
-        </ul>
-      </div>
-      <div class="risk-card mid-risk">
-        <div class="risk-level">中風險</div>
-        <h4>🔄 身體狀態</h4>
-        <ul>
-          <li>40歲以上代謝減緩</li>
-          <li>肌肉量減少</li>
-          <li>長期慢性疲勞</li>
-          <li>體重持續緩慢增加</li>
-        </ul>
-      </div>
+      <div class="risk-card high-risk"><div class="risk-level">高風險</div><h4>🍱 飲食習慣</h4><ul><li>三餐以外食為主</li><li>常喝含糖飲料</li><li>喜歡白飯麵包甜食</li><li>吃飯速度很快</li></ul></div>
+      <div class="risk-card high-risk"><div class="risk-level">高風險</div><h4>😴 作息壓力</h4><ul><li>睡眠不規律或熬夜</li><li>長期高壓工作</li><li>靠吃東西紓壓</li><li>久坐缺乏活動</li></ul></div>
+      <div class="risk-card mid-risk"><div class="risk-level">中風險</div><h4>🧠 認知盲點</h4><ul><li>以為只有甜食才有問題</li><li>不知道自己血糖是否正常</li><li>覺得「我這樣多年都沒事」</li></ul></div>
+      <div class="risk-card mid-risk"><div class="risk-level">中風險</div><h4>🔄 身體狀態</h4><ul><li>40歲以上代謝減緩</li><li>肌肉量減少</li><li>長期慢性疲勞</li></ul></div>
     </div>
-
     <div class="oxidation-box">
       <h3>⚗️ 為什麼這些習慣這麼難改？</h3>
       <div class="ox-flow">
-        <div class="ox-step">血糖波動</div>
-        <div class="ox-arrow">→</div>
-        <div class="ox-step">自由基累積</div>
-        <div class="ox-arrow">→</div>
-        <div class="ox-step">細胞氧化</div>
-        <div class="ox-arrow">→</div>
-        <div class="ox-step">胰島素阻抗</div>
-        <div class="ox-arrow">→</div>
+        <div class="ox-step">血糖波動</div><div class="ox-arrow">→</div>
+        <div class="ox-step">自由基累積</div><div class="ox-arrow">→</div>
+        <div class="ox-step">細胞氧化</div><div class="ox-arrow">→</div>
+        <div class="ox-step">胰島素阻抗</div><div class="ox-arrow">→</div>
         <div class="ox-step">更難穩定</div>
       </div>
-      <p>
-        這是一個惡性循環。<strong>不是你沒有意志力，而是細胞環境已經讓改變變得更困難。</strong><br><br>
-        要打破這個循環，除了慢慢調整生活習慣，還需要從細胞層面開始減少氧化傷害。
-      </p>
+      <p>這是一個惡性循環。<strong>不是你沒有意志力，而是細胞環境已經讓改變變得更困難。</strong><br><br>要打破這個循環，除了慢慢調整生活習慣，還需要從細胞層面開始減少氧化傷害。</p>
     </div>
   </div>
 </section>
-
 <div class="divider"></div>
 
-<!-- PART 4 SOD產品說明 -->
-<section class="section product-bg">
+<!-- PART4 SOD族群使用指南 -->
+<section class="section sod-guide-bg">
   <div class="container">
     <div class="section-tag">第四部分</div>
-    <h2>玉米胚芽粉（高SOD）可以幫你做什麼？</h2>
-    <p class="lead">不是神奇藥方，而是從細胞層面支援你的身體，讓改變更容易發生。</p>
+    <h2>玉米胚芽粉（高SOD）・你的專屬使用指南</h2>
+    <p class="lead">選一個最符合你生活狀況的族群，看看怎麼把SOD融入你的日常。</p>
 
-    <div class="sod-intro">
-      <h3>SOD 是什麼？</h3>
-      <p>SOD（超氧化物歧化酶）是人體內天然存在的抗氧化酵素，負責清除自由基、保護細胞。隨著年齡增長，SOD自然分泌減少，清除自由基的能力下降。</p>
-      <p>玉米胚芽粉含有高濃度天然SOD，可以補充身體清除自由基的能力。</p>
-      <div>
-        <span class="sod-tag">清除自由基</span>
-        <span class="sod-tag">減少氧化壓力</span>
-        <span class="sod-tag">支援細胞環境</span>
-        <span class="sod-tag">輔助血糖管理</span>
-        <span class="sod-tag">天然植物來源</span>
-      </div>
+    <div class="tribe-select-grid">
+      <div class="tribe-select-btn" onclick="showGuide(0)">☕ 外食族</div>
+      <div class="tribe-select-btn" onclick="showGuide(1)">🌙 熬夜族</div>
+      <div class="tribe-select-btn" onclick="showGuide(2)">💼 高壓族</div>
+      <div class="tribe-select-btn" onclick="showGuide(3)">🍰 甜食族</div>
+      <div class="tribe-select-btn" onclick="showGuide(4)">🍻 應酬族</div>
+      <div class="tribe-select-btn" onclick="showGuide(5)">🏃 沒時間運動</div>
+      <div class="tribe-select-btn" onclick="showGuide(6)">🌅 疲憊族</div>
+      <div class="tribe-select-btn" onclick="showGuide(7)">🔄 三高家族史</div>
     </div>
 
-    <div class="not-replace">
-      <span>⚠️</span>
-      <span>本產品為健康輔助食品，<strong>不取代醫療</strong>，不宣稱治療或改善任何疾病。若有慢性病或服藥中，請諮詢醫師。</span>
+    <div id="sodGuideCard" class="sod-guide-card">
+      <div class="sod-guide-emoji" id="guideEmoji"></div>
+      <div class="sod-guide-tribe" id="guideTribe"></div>
+      <div class="sod-guide-title" id="guideTitle"></div>
+      <div class="sod-guide-desc" id="guideDesc"></div>
+      <div class="sod-how"><strong>✦ 怎麼用？</strong><p id="guideHow"></p></div>
     </div>
 
-    <h3 style="font-family:'Noto Serif TC',serif;color:var(--forest);margin-bottom:1.25rem;font-size:1.05rem">30天，你可能感受到的變化</h3>
+    <div class="sod-exp-box">
+      <h4>🌽 週三茶會・7天體驗方案</h4>
+      <div class="sod-exp-price">NT$500</div>
+      <p>現場評量5分以上・符合體驗資格<br>完成7天使用記錄＋群組分享<br>即可參加每週免費體驗包抽獎</p>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
 
-    <div class="timeline">
-      <div class="timeline-item">
-        <div class="timeline-dot">W1</div>
-        <div class="timeline-content">
-          <span class="week-tag">第一週</span>
-          <h4>飯後睏意開始減少</h4>
-          <p>氧化壓力降低，飯後血糖的劇烈波動趨於平緩，午後睏意可能有所改善。</p>
+<!-- PART5 行動輪盤 -->
+<section class="section action-wheel-bg" id="actionWheelSection">
+  <div class="container">
+    <div class="section-tag">第五部分</div>
+    <h2>你的控糖行動任務 🎯</h2>
+    <p class="lead">根據你的評量結果，輪盤為你準備了最適合的行動任務。</p>
+
+    <div id="actionLocked" class="action-locked">
+      ⚠️ 請先完成上方評量（5分以上），行動輪盤將自動解鎖
+    </div>
+
+    <div id="actionWheelWrap" style="display:none">
+      <div class="action-wheel-wrap">
+        <div class="action-category-badge" id="actionCatBadge"></div>
+        <div class="wheel-container">
+          <div class="wheel-pointer">▼</div>
+          <canvas id="actionCanvas" width="300" height="300"></canvas>
         </div>
+        <button class="spin-btn" id="actionSpinBtn" onclick="spinActionWheel()">轉出我的任務 🎯</button>
       </div>
-      <div class="timeline-item">
-        <div class="timeline-dot">W2</div>
-        <div class="timeline-content">
-          <span class="week-tag">第二週</span>
-          <h4>下午精神比較穩定</h4>
-          <p>整體精神狀態改善，下午三四點的疲憊感可能減輕，專注力提升。</p>
+
+      <div class="task-screenshot" id="taskScreenshot" style="display:none">
+        <div class="task-screenshot-inner">
+          <div class="tsr-logo">蔡一信・未來健康生活館</div>
+          <div class="tsr-title">🎯 你的控糖行動任務</div>
+          <div class="tsr-cat" id="tsrCat"></div>
+          <div class="tsr-task" id="tsrTask"></div>
+          <div class="tsr-duration">執行 7 天・記錄感受・群組分享</div>
+          <div class="tsr-indicators">
+            <div class="tsr-ind-title">每天記錄五個指標</div>
+            <div class="tsr-ind-grid">
+              <div class="tsr-ind">① 飯後精神<br><span>😴 😐 😊</span></div>
+              <div class="tsr-ind">② 下午狀態<br><span>⚡ 😐 ✨</span></div>
+              <div class="tsr-ind">③ 甜食渴望<br><span>🍰 😐 💪</span></div>
+              <div class="tsr-ind">④ 整體感受<br><span>😫 😐 🌟</span></div>
+              <div class="tsr-ind" style="grid-column:1/-1">⑤ 今天一句話<br><span style="font-size:0.75rem">（自由填寫）</span></div>
+            </div>
+          </div>
+          <div class="tsr-time" id="tsrTime"></div>
+          <div class="tsr-notice">※ 截圖保存・完成7天後在LINE群組分享即可參加抽獎</div>
         </div>
-      </div>
-      <div class="timeline-item">
-        <div class="timeline-dot">W3</div>
-        <div class="timeline-content">
-          <span class="week-tag">第三週</span>
-          <h4>對甜食的渴望降低</h4>
-          <p>血糖波動趨於穩定，身體對糖分的急迫需求減少，飲食選擇更容易做到。</p>
-        </div>
-      </div>
-      <div class="timeline-item">
-        <div class="timeline-dot">W4</div>
-        <div class="timeline-content">
-          <span class="week-tag">第四週</span>
-          <h4>整體狀態明顯提升</h4>
-          <p>睡眠品質改善、情緒更穩定、體重開始有變化。這是細胞環境改善後的連鎖反應。</p>
+        <div class="tsr-arrow">↑ 長按畫面截圖保存</div>
+        <div class="lottery-box">
+          <div class="lottery-title">🎁 完成分享・參加每週抽獎</div>
+          <div class="lottery-desc">七天體驗包組（NT$500）・七天行動組（免費）<br>完成7天記錄＋群組分享<br>均可參加每週免費7天體驗包抽獎</div>
         </div>
       </div>
     </div>
   </div>
 </section>
-
 <div class="divider"></div>
 
-<!-- PART 5 行動 -->
+<!-- PART6 蔡一信的話 -->
 <section class="section action-bg">
   <div class="container">
-    <div class="section-tag" style="color:var(--sage)">第五部分</div>
+    <div class="section-tag">第六部分</div>
     <h2>蔡一信想跟你說</h2>
     <p class="lead">不是要推銷你，是想讓你少走一些我走過的冤枉路。</p>
-
     <div class="quote-box">
       生活一下子改不了，我知道。<br>
       但身體的氧化傷害，每天都在累積。<br><br>
       我不敢保證每個人都有效，<br>
-      但我願意<strong>跟你一起試30天</strong>。<br>
-      有效果我退你500，沒效果你告訴我，<br>
-      我們繼續找方法。<br><br>
+      但我願意<strong>跟你一起走90天</strong>。<br>
+      糖化血色素沒有改善，我全額退款。<br><br>
       <strong>陪你，不是賣你。</strong>
     </div>
-
     <div class="challenge-box">
-      <h3>🌱 30天血糖穩定挑戰</h3>
-      <p>購買後加入，蔡一信全程LINE陪跑</p>
-
+      <h3>🌱 90天控糖挑戰</h3>
+      <p>NT$20,000・蔡一信全程LINE陪跑</p>
       <div class="challenge-steps">
-        <div class="c-step">
-          <span class="num">01</span>
-          <p>填寫自己的改善目標</p>
-        </div>
-        <div class="c-step">
-          <span class="num">02</span>
-          <p>每天使用記錄感受</p>
-        </div>
-        <div class="c-step">
-          <span class="num">03</span>
-          <p>每週回報一次狀況</p>
-        </div>
-        <div class="c-step">
-          <span class="num">04</span>
-          <p>30天後對比變化</p>
-        </div>
+        <div class="c-step"><span class="num">01</span><p>填寫改善目標</p></div>
+        <div class="c-step"><span class="num">02</span><p>每天使用記錄</p></div>
+        <div class="c-step"><span class="num">03</span><p>每週回報狀況</p></div>
+        <div class="c-step"><span class="num">04</span><p>90天對比成果</p></div>
       </div>
+      <div class="reward-line">🏆 糖化血色素沒降→全額退款・完成挑戰→轉輪盤抽好禮</div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
 
-      <div class="reward-line">
-        🎁 30天有感受到改善 → 退還 NT$500，作為你認真面對健康的獎勵
+<!-- PART7 抽獎輪盤 -->
+<section class="section reward-wheel-bg">
+  <div class="container">
+    <div class="section-tag">完成挑戰的獎勵</div>
+    <h2>完成90天挑戰<br>轉一下抽你的獎 🎉</h2>
+    <p class="lead">糖化血色素有改善，就可以轉一次。抽到幾號，對照蔡一信智慧名片跑馬燈領獎。</p>
+    <div class="reward-wheel-wrap">
+      <div id="rewardSpinArea">
+        <div class="wheel-container" style="margin-bottom:1.5rem">
+          <div class="wheel-pointer">▼</div>
+          <canvas id="rewardCanvas" width="300" height="300"></canvas>
+        </div>
+        <button class="spin-btn" id="rewardSpinBtn" onclick="spinRewardWheel()">轉動抽獎 🎉</button>
+      </div>
+      <div class="screenshot-result" id="screenshotResult" style="display:none">
+        <div class="screenshot-inner">
+          <div class="sr-logo">蔡一信・未來健康生活館</div>
+          <div class="sr-title">🎉 恭喜！你抽到</div>
+          <div class="sr-number" id="srNumber"></div>
+          <div class="sr-hint">請截圖保存此畫面</div>
+          <div class="sr-sub">對照蔡一信智慧名片上的獎項清單領獎</div>
+          <div class="sr-time" id="srTime"></div>
+          <div class="sr-notice">※ 每人限抽一次，憑截圖時間戳核對</div>
+        </div>
+        <div class="sr-arrow">↑ 長按畫面截圖保存</div>
       </div>
     </div>
   </div>
 </section>
 
 <footer>
-  <strong>蔡一信・健康生活陪伴</strong><br>
-  曾經：嚴重心臟病｜高血壓｜高血脂｜高血糖<br>
-  現在：把真實走過的教訓，分享給每一個正在找方向的人<br><br>
-  健康不是被推銷，而是被理解與陪伴。
+  <strong>蔡一信・未來健康生活館</strong><br>
+  高雄市三民區覺民路531巷13號｜0981-378242｜11:30～21:00<br>
+  健康從生活開始。週三下午，來坐坐，喝喝咖啡，聊聊生活。
 </footer>
 
 <script>
-  let checkedCount = 0;
-  const total = 15;
-
-  function toggleCheck(el) {
-    el.classList.toggle('checked');
-    checkedCount = document.querySelectorAll('.check-item.checked').length;
-    updateScore();
+// ── 密碼驗證 ──
+function checkPwd(val) {
+  if (val.length < 4) {
+    document.getElementById('pwdError').textContent = '';
+    return;
   }
-
-  function updateScore() {
-    const num = document.getElementById('scoreNum');
-    const bar = document.getElementById('scoreBar');
-    const low = document.getElementById('resultLow');
-    const mid = document.getElementById('resultMid');
-    const high = document.getElementById('resultHigh');
-
-    num.textContent = checkedCount;
-    const pct = (checkedCount / total) * 100;
-    bar.style.width = pct + '%';
-
-    // color
-    if (pct < 33) {
-      bar.style.background = '#5A8C72';
-    } else if (pct < 66) {
-      bar.style.background = '#D35400';
-    } else {
-      bar.style.background = '#C0392B';
-    }
-
-    low.classList.remove('show');
-    mid.classList.remove('show');
-    high.classList.remove('show');
-
-    if (checkedCount === 0) return;
-    if (checkedCount <= 4) low.classList.add('show');
-    else if (checkedCount <= 9) mid.classList.add('show');
-    else high.classList.add('show');
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const today = mm + dd;
+  if (val === today) {
+    document.getElementById('pwdOverlay').style.opacity = '0';
+    document.getElementById('pwdOverlay').style.transition = 'opacity 0.4s ease';
+    setTimeout(() => {
+      document.getElementById('pwdOverlay').style.display = 'none';
+    }, 400);
+  } else {
+    document.getElementById('pwdError').textContent = '密碼不正確，請向蔡一信索取今日密碼';
+    document.getElementById('pwdInput').value = '';
+    document.getElementById('pwdInput').style.borderColor = '#e87878';
+    setTimeout(() => {
+      document.getElementById('pwdInput').style.borderColor = 'rgba(168,197,181,0.3)';
+    }, 1500);
   }
+}
 
-  // scroll reveal
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.style.opacity = '1';
-        e.target.style.transform = 'translateY(0)';
-      }
-    });
-  }, { threshold: 0.1 });
+// ── 評量 ──
+let checkedCount = 0;
+const total = 15;
 
-  document.querySelectorAll('.chain-item, .risk-card, .timeline-item, .sod-intro').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(16px)';
-    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-    observer.observe(el);
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+  checkedCount = document.querySelectorAll('.check-item.checked').length;
+  updateScore();
+}
+
+function updateScore() {
+  const num = document.getElementById('scoreNum');
+  const bar = document.getElementById('scoreBar');
+  const low = document.getElementById('resultLow');
+  const mid = document.getElementById('resultMid');
+  const high = document.getElementById('resultHigh');
+  num.textContent = checkedCount;
+  const pct = (checkedCount/total)*100;
+  bar.style.width = pct+'%';
+  if(pct<33) bar.style.background='#5A8C72';
+  else if(pct<66) bar.style.background='#D35400';
+  else bar.style.background='#C0392B';
+  low.classList.remove('show'); mid.classList.remove('show'); high.classList.remove('show');
+  if(checkedCount===0) return;
+  if(checkedCount<=4) low.classList.add('show');
+  else if(checkedCount<=9) { mid.classList.add('show'); unlockActionWheel(); }
+  else { high.classList.add('show'); unlockActionWheel(); }
+}
+
+// ── SOD族群指南 ──
+const guideData = [
+  { emoji:'☕', tribe:'外食族', title:'不需要改變吃什麼，也能開始保護身體', desc:'三餐外食，根本控制不了吃什麼——這是很多人的現實。生活暫時改不了沒關係。', how:'每餐飯前加一匙玉米胚芽粉，讓SOD先幫你清除這頓飯可能帶來的氧化傷害。外食繼續吃，身體有人幫你擋著。' },
+  { emoji:'🌙', tribe:'熬夜族', title:'睡眠不夠，身體修復能力大打折扣', desc:'睡不早是現代人的困境，但身體不會因為你忙就停止氧化傷害的累積。', how:'睡前服用一匙，幫助身體在夜間進行抗氧化修復。就算睡得晚，SOD讓身體的自我修復效率更好。' },
+  { emoji:'💼', tribe:'高壓族', title:'壓力本身就是自由基的來源之一', desc:'壓力大的時候，身體會分泌大量壓力荷爾蒙，同時產生更多自由基。', how:'壓力特別大的時候加量使用，直接清除壓力產生的自由基。不是解決壓力，而是減少壓力對身體的傷害。' },
+  { emoji:'🍰', tribe:'甜食族', title:'不需要戒甜食，先減少它對血糖的衝擊', desc:'甜食戒不掉是很正常的，血糖波動讓你更渴望甜食，形成惡性循環。', how:'吃甜食前先服用，SOD提前部署，減緩血糖急速波動。你還是可以享受甜食，但身體不用獨自承受那個衝擊。' },
+  { emoji:'🍻', tribe:'應酬族', title:'酒精本身就會大量產生自由基', desc:'應酬無法拒絕，但酒精代謝過程中產生的氧化傷害是真實的。', how:'喝酒前後各服用一次，降低酒精帶來的氧化傷害。應酬無法拒絕，但傷害可以降低。' },
+  { emoji:'🏃', tribe:'沒時間運動族', title:'運動無法替代，但氧化傷害可以另一個角度減少', desc:'下班已經累了，沒時間運動不是藉口，是現實。', how:'運動可以幫助清除自由基，SOD做的事情一樣。沒時間運動的日子，讓SOD補上那個缺口，保護細胞環境。' },
+  { emoji:'🌅', tribe:'疲憊族', title:'慢性疲勞很多時候跟細胞氧化有關', desc:'明明睡夠了還是很累，不是懶，可能是細胞環境出了問題。', how:'早上起床後服用一匙，幫助穩定一整天的精神狀態。不是提神，而是讓細胞環境改善，精神自然穩定。' },
+  { emoji:'🔄', tribe:'三高家族史', title:'基因無法改變，但細胞環境可以從現在開始保護', desc:'家族有三高史，不代表你一定會得，但需要比別人更早開始保護。', how:'每天固定時間使用，讓SOD持續清除氧化傷害，長期累積保護力。不是治療，而是讓身體有更好的底子面對風險。' }
+];
+
+function showGuide(idx) {
+  document.querySelectorAll('.tribe-select-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  const d = guideData[idx];
+  document.getElementById('guideEmoji').textContent = d.emoji;
+  document.getElementById('guideTribe').textContent = d.tribe + '專屬用法';
+  document.getElementById('guideTitle').textContent = d.title;
+  document.getElementById('guideDesc').textContent = d.desc;
+  document.getElementById('guideHow').textContent = d.how;
+  const card = document.getElementById('sodGuideCard');
+  card.classList.remove('show');
+  setTimeout(()=>card.classList.add('show'),50);
+}
+
+// ── 行動輪盤 ──
+const actionTasks = {
+  飲食: { label:'🍱 飲食習慣', color:'#C8943A', tasks:['飯前先吃蔬菜，改變吃飯順序7天','這週不喝含糖飲料，記錄感受','吃飯速度放慢，每口咀嚼15下'] },
+  睡眠: { label:'🌙 睡眠習慣', color:'#2A4A8B', tasks:['固定11點前上床，連續7天','睡前30分鐘不滑手機，記錄睡眠品質','每天記錄起床時的精神狀態'] },
+  壓力: { label:'😤 壓力管理', color:'#6B3A7A', tasks:['每天深呼吸3分鐘，早晚各一次','每天走路15分鐘紓壓，記錄心情','每天寫下一件今天做到的小事'] },
+  運動: { label:'🏃 運動習慣', color:'#1E6B5A', tasks:['飯後走路10分鐘，連續7天','每天做5分鐘伸展，記錄身體感受','爬樓梯取代電梯，持續7天'] },
+  健康管理: { label:'📋 日常行動', color:'#8B4A2A', tasks:['每天記錄飲食，不評判只觀察','早上空腹量體重，記錄7天','每天喝夠2000ml水，持續7天'] }
+};
+
+let actionAngle=0, actionSpinning=false, actionUsed=false, currentCat=null;
+
+function getTopCategory() {
+  const cats = { 飲食:0, 運動:0, 壓力:0, 睡眠:0, 健康管理:0 };
+  document.querySelectorAll('.check-item.checked').forEach(el=>{
+    const c = el.dataset.cat;
+    if(cats[c]!==undefined) cats[c]++;
   });
+  return Object.entries(cats).sort((a,b)=>b[1]-a[1])[0][0];
+}
+
+function unlockActionWheel() {
+  if(actionUsed) return;
+  const cat = getTopCategory();
+  currentCat = cat;
+  const d = actionTasks[cat];
+  document.getElementById('actionLocked').style.display='none';
+  document.getElementById('actionWheelWrap').style.display='block';
+  document.getElementById('actionCatBadge').textContent = d.label+'・你的最高風險區';
+  drawActionWheel(0);
+}
+
+function adjustColor(hex,amt){
+  const n=parseInt(hex.slice(1),16);
+  const r=Math.min(255,Math.max(0,(n>>16)+amt));
+  const g=Math.min(255,Math.max(0,((n>>8)&0xff)+amt));
+  const b=Math.min(255,Math.max(0,(n&0xff)+amt));
+  return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
+}
+
+function drawActionWheel(angle){
+  const canvas=document.getElementById('actionCanvas');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const cx=canvas.width/2,cy=canvas.height/2,r=cx-8;
+  const d=actionTasks[currentCat];
+  const n=3,arc=(Math.PI*2)/n;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const shades=[d.color,adjustColor(d.color,-25),adjustColor(d.color,25)];
+  for(let i=0;i<n;i++){
+    const a=angle+i*arc;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+arc);ctx.closePath();
+    ctx.fillStyle=shades[i];ctx.fill();
+    ctx.strokeStyle='white';ctx.lineWidth=3;ctx.stroke();
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(a+arc/2);
+    ctx.textAlign='right';ctx.fillStyle='white';
+    ctx.font='bold 11px "Noto Sans TC",sans-serif';
+    const lbl=d.tasks[i].length>10?d.tasks[i].slice(0,9)+'…':d.tasks[i];
+    ctx.fillText(lbl,r-10,5);ctx.restore();
+  }
+  ctx.beginPath();ctx.arc(cx,cy,26,0,Math.PI*2);
+  ctx.fillStyle='white';ctx.fill();
+  ctx.fillStyle=d.color;ctx.font='bold 10px "Noto Sans TC",sans-serif';
+  ctx.textAlign='center';ctx.fillText('任務',cx,cy+4);
+}
+
+function spinActionWheel(){
+  if(actionSpinning||actionUsed) return;
+  actionSpinning=true;
+  document.getElementById('actionSpinBtn').disabled=true;
+  const extra=(5+Math.random()*5)*Math.PI*2;
+  const target=actionAngle+extra;
+  const dur=3500,start=performance.now(),startA=actionAngle;
+  function animate(now){
+    const t=Math.min((now-start)/dur,1);
+    const e=1-Math.pow(1-t,4);
+    actionAngle=startA+(target-startA)*e;
+    drawActionWheel(actionAngle);
+    if(t<1){requestAnimationFrame(animate);}
+    else{actionAngle=target%(Math.PI*2);actionSpinning=false;actionUsed=true;showTaskResult();}
+  }
+  requestAnimationFrame(animate);
+}
+
+function showTaskResult(){
+  const n=3,arc=(Math.PI*2)/n;
+  const norm=(((-actionAngle-Math.PI/2)%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
+  const idx=Math.floor(norm/arc)%n;
+  const d=actionTasks[currentCat];
+  const task=d.tasks[idx];
+  const now=new Date();
+  const pad=v=>String(v).padStart(2,'0');
+  const t=now.getFullYear()+'/'+pad(now.getMonth()+1)+'/'+pad(now.getDate())+'  '+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  document.getElementById('tsrCat').textContent=d.label;
+  document.getElementById('tsrTask').textContent=task;
+  document.getElementById('tsrTime').textContent='📅 '+t;
+  document.getElementById('actionSpinArea').style.display='none';
+  const result=document.getElementById('taskScreenshot');
+  result.style.display='block';
+  result.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+// ── 抽獎輪盤 ──
+const rNums=['1','2','3','4','5','6','7','8'];
+const rColors=['#C8943A','#2E6B50','#C0392B','#6B3A7A','#1E6B5A','#8B4A2A','#A86A1A','#2A4A8B'];
+let rAngle=0,rSpinning=false,rUsed=false;
+
+function drawRewardWheel(a){
+  const canvas=document.getElementById('rewardCanvas');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const cx=canvas.width/2,cy=canvas.height/2,r=cx-8;
+  const n=rNums.length,arc=(Math.PI*2)/n;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<n;i++){
+    const angle=a+i*arc;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,angle+arc);ctx.closePath();
+    ctx.fillStyle=rColors[i];ctx.fill();
+    ctx.strokeStyle='white';ctx.lineWidth=3;ctx.stroke();
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(angle+arc/2);
+    ctx.textAlign='center';ctx.fillStyle='white';
+    ctx.font='bold 30px "Noto Serif TC",serif';
+    ctx.fillText(rNums[i],r*0.62,10);ctx.restore();
+  }
+  ctx.beginPath();ctx.arc(cx,cy,26,0,Math.PI*2);
+  ctx.fillStyle='white';ctx.fill();
+  ctx.fillStyle='#1E4D3A';ctx.font='bold 11px "Noto Sans TC",sans-serif';
+  ctx.textAlign='center';ctx.fillText('抽獎',cx,cy+4);
+}
+
+function spinRewardWheel(){
+  if(rSpinning||rUsed) return;
+  rSpinning=true;
+  document.getElementById('rewardSpinBtn').disabled=true;
+  const extra=(7+Math.random()*5)*Math.PI*2;
+  const target=rAngle+extra;
+  const dur=4000,start=performance.now(),startA=rAngle;
+  function animate(now){
+    const t=Math.min((now-start)/dur,1);
+    const e=1-Math.pow(1-t,4);
+    rAngle=startA+(target-startA)*e;
+    drawRewardWheel(rAngle);
+    if(t<1){requestAnimationFrame(animate);}
+    else{rAngle=target%(Math.PI*2);rSpinning=false;rUsed=true;showRewardResult();}
+  }
+  requestAnimationFrame(animate);
+}
+
+function showRewardResult(){
+  const n=rNums.length,arc=(Math.PI*2)/n;
+  const norm=(((-rAngle-Math.PI/2)%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
+  const idx=Math.floor(norm/arc)%n;
+  const now=new Date();
+  const pad=v=>String(v).padStart(2,'0');
+  const t=now.getFullYear()+'/'+pad(now.getMonth()+1)+'/'+pad(now.getDate())+'  '+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  document.getElementById('srNumber').textContent=rNums[idx]+'號';
+  document.getElementById('srTime').textContent='📅 '+t;
+  document.getElementById('rewardSpinArea').style.display='none';
+  const result=document.getElementById('screenshotResult');
+  result.style.display='block';
+  result.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+drawRewardWheel(0);
+
+// scroll reveal
+const observer=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';}});
+},{threshold:0.1});
+document.querySelectorAll('.chain-item,.risk-card,.sod-exp-box').forEach(el=>{
+  el.style.opacity='0';el.style.transform='translateY(16px)';
+  el.style.transition='opacity 0.5s ease,transform 0.5s ease';
+  observer.observe(el);
+});
 </script>
 </body>
 </html>
