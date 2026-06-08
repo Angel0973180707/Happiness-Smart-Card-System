@@ -3221,10 +3221,12 @@ function bindInit() {
       const h = document.getElementById(headId);
       const c = document.getElementById(colId);
       if (!h || !c) return;
+      const b = c.querySelector(".collapsible-body");
       h.addEventListener("click", () => {
-        c.classList.toggle("open");
+        const opening = b && b.style.display === "none";
+        if (b) b.style.display = opening ? "block" : "none";
         const ch = h.querySelector(".chevron");
-        if (ch) ch.style.transform = c.classList.contains("open") ? "rotate(90deg)" : "";
+        if (ch) ch.style.transform = opening ? "rotate(90deg)" : "";
       });
     });
 
