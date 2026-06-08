@@ -3719,10 +3719,6 @@ function bindInit() {
 
     var dateFolder = todayStr();
 
-    // 使用 modular SDK（同 firebase.js），確保回傳完整 ?alt=media&token= 格式網址
-    var _fbsMod = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js");
-    var _modStorage = _fbsMod.getStorage(firebase.apps[0]);
-
     for (var i = 0; i < photoFiles.length; i++) {
       var file = photoFiles[i];
       progress.textContent = "處理中 " + (i + 1) + " / " + photoFiles.length + "：" + file.name;
@@ -3731,12 +3727,12 @@ function bindInit() {
         var compressed = await compressImage(file, maxWidth, quality);
         var filename   = safeName(file.name);
         var path       = "cards/batch/" + dateFolder + "/" + Date.now() + "_" + filename;
-        var storageRef = _fbsMod.ref(_modStorage, path);
-        await _fbsMod.uploadBytes(storageRef, compressed.blob, {
+        var storageRef = fbStorage.ref(path);
+        await storageRef.put(compressed.blob, {
           contentType: "image/jpeg",
           cacheControl: "public,max-age=31536000,immutable"
         });
-        var url = await _fbsMod.getDownloadURL(storageRef);
+        var url = await storageRef.getDownloadURL();
 
         photoResults.push({ name: file.name, origSize: file.size, compSize: compressed.size, url: url });
         appendPhotoRow(file.name, file.size, compressed.size, url, null);
