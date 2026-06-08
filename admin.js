@@ -3726,7 +3726,7 @@ function bindInit() {
       try {
         var compressed = await compressImage(file, maxWidth, quality);
         var filename   = safeName(file.name);
-        var path       = "cards/batch/" + dateFolder + "/" + Date.now() + "_" + filename;
+        var path       = "uploads/batch/" + dateFolder + "/" + Date.now() + "_" + filename;
         var storageRef = fbStorage.ref(path);
         await storageRef.put(compressed.blob, {
           contentType: "image/jpeg",
