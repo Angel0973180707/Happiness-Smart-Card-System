@@ -54,7 +54,7 @@
   
   async function loadPricingV2FromGas() {
     try {
-      const resp = await fetch(`${CONFIG.GAS_URL}?action=getPricingConfig&tenant=angel`);
+      const resp = await fetchWithTimeout_(`${CONFIG.GAS_URL}?action=getPricingConfig&tenant=angel`, {}, 10000);
       const data = await resp.json();
       
       if (data && data.ok && data.pricing_v2) {
@@ -867,10 +867,17 @@ function calcQuantityAddon(qty, config) {
     }
   }
 
+  async function fetchWithTimeout_(url, options, timeoutMs = 20000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try { return await fetch(url, { ...options, signal: ctrl.signal }); }
+    finally { clearTimeout(timer); }
+  }
+
   async function postToGas(payload) {
     const body = new URLSearchParams();
     body.append("payload", JSON.stringify(payload || {}));
-    const res = await fetch(CONFIG.GAS_URL, { method: "POST", body });
+    const res = await fetchWithTimeout_(CONFIG.GAS_URL, { method: "POST", body });
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); } catch (err) {
