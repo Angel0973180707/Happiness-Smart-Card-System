@@ -11,7 +11,7 @@
 (() => {
   "use strict";
 
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+  const GAS_URL = "https://angel-namecard.letssyncus.com/gas-proxy/exec";
   const VERSION = "722.2";
 
   const TEXT_FIELDS = [

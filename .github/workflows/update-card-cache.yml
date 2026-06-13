@@ -2,7 +2,7 @@ name: Update Card Cache
 
 on:
   schedule:
-    - cron: '* * * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -10,20 +10,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_PAT }}
 
       - name: Fetch card data from GAS
         run: |
           mkdir -p api/cards
-          curl -L --max-time 30 \
-            "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec?action=getCardPublicShell&id=TW0001&tenant=angel" \
-            -o api/cards/TW0001-shell.json
-          curl -L --max-time 30 \
-            "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec?action=getCardPublicLite&id=TW0001&tenant=angel" \
-            -o api/cards/TW0001.json
+          curl -L --fail --show-error --max-time 30 \
+            "https://angel-namecard.letssyncus.com/gas-proxy/exec?action=getCardPublicShell&id=TW0001&tenant=angel" \
+            -o api/cards/TW0001-shell.json || { echo "Shell fetch failed"; exit 1; }
+          curl -L --fail --show-error --max-time 30 \
+            "https://angel-namecard.letssyncus.com/gas-proxy/exec?action=getCardPublicLite&id=TW0001&tenant=angel" \
+            -o api/cards/TW0001.json || { echo "Lite fetch failed"; exit 1; }
           echo "Done: $(date)"
+
+      - name: Validate JSON
+        run: |
+          python3 -c "import json,sys; json.load(open('api/cards/TW0001-shell.json'))" || { echo "Shell JSON invalid"; exit 1; }
+          python3 -c "import json,sys; json.load(open('api/cards/TW0001.json'))" || { echo "Lite JSON invalid"; exit 1; }
+          echo "JSON validation passed"
 
       - name: Commit and push
         run: |
@@ -33,6 +39,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: update card cache $(date -u '+%Y-%m-%d %H:%M:%S')"
+            git commit -m "chore: update card cache $(date -u '+%Y-%m-%d %H:%M')"
             git push
           fi
