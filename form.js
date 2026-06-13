@@ -877,7 +877,7 @@ function calcQuantityAddon(qty, config) {
   async function postToGas(payload) {
     const body = new URLSearchParams();
     body.append("payload", JSON.stringify(payload || {}));
-    const res = await fetchWithTimeout_(CONFIG.GAS_URL, { method: "POST", body });
+    const res = await fetchWithTimeout_(CONFIG.GAS_URL, { method: "POST", body }, 45000);
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); } catch (err) {
