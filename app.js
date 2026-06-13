@@ -32,14 +32,14 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v8.3.8-speed",
+  VERSION: "v8.3.9",
   FETCH_TIMEOUT_MS: 7000,
   RETRY: 1,
   HUB_URL: "https://angel-namecard.letssyncus.com/",
-  // 快取 TTL 設定（延長減少 GAS 冷啟動頻率）
-  CACHE_SHELL_MS:  20 * 60 * 1000,  // 20 分鐘（原 5 分）
-  CACHE_LITE_MS:   15 * 60 * 1000,  // 15 分鐘（原 3 分）
-  CACHE_FULL_MS:    8 * 60 * 1000,  //  8 分鐘（原 2 分）
+  // 快取 TTL（keepWarm 已保持 GAS 溫熱，可縮短以加快更新顯示）
+  CACHE_SHELL_MS:   5 * 60 * 1000,  //  5 分鐘
+  CACHE_LITE_MS:    5 * 60 * 1000,  //  5 分鐘
+  CACHE_FULL_MS:    3 * 60 * 1000,  //  3 分鐘
 };
 
 const FACADE_SAMPLE_ID = "TW0001";
