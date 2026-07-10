@@ -22,6 +22,15 @@ var CTA_EXT_MAX   = 50; // CTA 總上限（含 ext）
 //  儲存：把 CTA 4+ 寫入 card_cta_ext
 // ─────────────────────────────────────────
 function saveOverflowCtas_(cardId, params) {
+  // 🔒 鎖定：card_cta_ext 是全部卡片共用的一張表，「讀整張表→用行號刪除→appendRow」
+  // 這段如果被併發執行會互相打架（行號跑掉、刪到別張卡的資料），全程鎖住。
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (lockErr) {
+    throw new Error("系統忙碌，無法儲存 CTA 資料，請稍後再試。");
+  }
+
   try {
     var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     var sheet = ss.getSheetByName("card_cta_ext");
@@ -62,6 +71,13 @@ function saveOverflowCtas_(cardId, params) {
     console.log("[extTables] saveOverflowCtas_ 完成，cardId=" + cardId);
   } catch(e) {
     console.error("[extTables] saveOverflowCtas_ 失敗:", e.message);
+    throw e; // ★ 不再吞掉錯誤：讓 updateCardByToken_ 知道 CTA 沒存成功，不能謊報更新成功
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (releaseErr) {
+      Logger.log("saveOverflowCtas_ lock release failed: " + (releaseErr && releaseErr.message ? releaseErr.message : String(releaseErr)));
+    }
   }
 }
 
@@ -69,6 +85,14 @@ function saveOverflowCtas_(cardId, params) {
 //  儲存：把照片 11+ 寫入 card_photo_ext
 // ─────────────────────────────────────────
 function saveOverflowPhotos_(cardId, params) {
+  // 🔒 鎖定：card_photo_ext 也是全部卡片共用的一張表，同 saveOverflowCtas_ 的理由全程鎖住。
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (lockErr) {
+    throw new Error("系統忙碌，無法儲存照片資料，請稍後再試。");
+  }
+
   try {
     var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     var sheet = ss.getSheetByName("card_photo_ext");
@@ -122,6 +146,13 @@ function saveOverflowPhotos_(cardId, params) {
     console.log("[extTables] saveOverflowPhotos_ 完成，cardId=" + cardId);
   } catch(e) {
     console.error("[extTables] saveOverflowPhotos_ 失敗:", e.message);
+    throw e; // ★ 不再吞掉錯誤：讓 updateCardByToken_ 知道照片沒存成功，不能謊報更新成功
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (releaseErr) {
+      Logger.log("saveOverflowPhotos_ lock release failed: " + (releaseErr && releaseErr.message ? releaseErr.message : String(releaseErr)));
+    }
   }
 }
 

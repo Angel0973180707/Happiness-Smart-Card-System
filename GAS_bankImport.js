@@ -146,8 +146,9 @@ function adminConfirmBankImport_(params) {
   var now     = new Date();
   var nowStr  = now.toISOString();
   var written = [];
+  var rowsToAppend = []; // 🚀 二維陣列，迴圈中先 push，迴圈結束後一次性 setValues 寫入
 
-  entries.forEach(function(entry) {
+  entries.forEach(function(entry, entryIndex) {
     var cardId = String(entry.card_id || "").trim().toUpperCase();
     var amt    = Number(entry.amount  || 0);
     var last5  = String(entry.last5   || "").trim();
@@ -157,8 +158,8 @@ function adminConfirmBankImport_(params) {
       var row = new Array(headers.length).fill("");
       function set(f, v) { if (idx[f] !== undefined) row[idx[f]] = v; }
 
-      // 產生唯一 id
-      var inboxId = "BANK_" + cardId + "_" + now.getTime();
+      // 產生唯一 id（加上批次內序號，避免同一批同卡號多筆匯入時 id 撞號）
+      var inboxId = "BANK_" + cardId + "_" + now.getTime() + "_" + entryIndex;
       set("id",         inboxId);
       set("card_id",    cardId);
       set("amount",     amt);
@@ -171,12 +172,34 @@ function adminConfirmBankImport_(params) {
       set("payment_inbox_id", inboxId);
       set("transaction_date", String(entry.date || "").trim());
 
-      inbox.appendRow(row);
+      rowsToAppend.push(row);
       written.push({ card_id: cardId, ok: true });
     } catch(err) {
       written.push({ card_id: cardId, ok: false, error: err.message });
     }
   });
+
+  // 🔒 鎖定：保護「計算寫入位置 + 批次寫入」這段，避免併發匯入時互相蓋掉彼此的資料列
+  if (rowsToAppend.length) {
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(30000);
+    } catch (lockErr) {
+      throw new Error("系統忙碌，無法完成銀行對帳匯入，請稍後再試。");
+    }
+
+    try {
+      // 一次性批次寫入：計算目前最後一列之後的起始位置，寫入整個二維陣列
+      var startRow = inbox.getLastRow() + 1;
+      inbox.getRange(startRow, 1, rowsToAppend.length, headers.length).setValues(rowsToAppend);
+    } finally {
+      try {
+        lock.releaseLock();
+      } catch (releaseErr) {
+        Logger.log("adminConfirmBankImport_ lock release failed: " + (releaseErr && releaseErr.message ? releaseErr.message : String(releaseErr)));
+      }
+    }
+  }
 
   // 觸發自動比對
   var matchResult = { ok: false, message: "autoMatch 未執行" };

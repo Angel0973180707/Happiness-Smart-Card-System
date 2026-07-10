@@ -76,27 +76,36 @@ function adminSetCardCtas_(params) {
     if (t || l) valid.push({ seq: idx + 1, cta_text: t, cta_link: l });
   });
 
-  // ── 1. 更新 card_db（CTA 1~3 + cta_limit）──
-  var cardRow = findRowByField_("card_db", "id", cardId);
-  if (!cardRow) throw new Error("找不到卡片：" + cardId);
-
-  var dbPatch = {};
-  for (var i = 1; i <= 3; i++) {
-    var found = null;
-    for (var j = 0; j < valid.length; j++) {
-      if (valid[j].seq === i) { found = valid[j]; break; }
-    }
-    dbPatch["cta_text_" + i] = found ? found.cta_text : "";
-    dbPatch["cta_link_" + i] = found ? found.cta_link : "";
-  }
-  dbPatch.cta_limit = String(valid.length);
-
-  var updatedRow = Object.assign({}, cardRow, dbPatch);
-  updateRowByName_("card_db", cardRow.__rowNum, updatedRow);
-
-  // ── 2. 更新 card_cta_ext（seq 4+）──
-  var overflow = valid.filter(function(c) { return c.seq > 3; });
+  // 🔒 鎖定：card_db 的這張卡 + 全部卡片共用的 card_cta_ext，
+  // 「讀取→刪除→appendRow」整段鎖住，避免跟客戶自行更新（saveOverflowCtas_）撞在一起把資料弄亂。
+  var lock = LockService.getScriptLock();
   try {
+    lock.waitLock(30000);
+  } catch (lockErr) {
+    throw new Error("系統忙碌，無法儲存 CTA 資料，請稍後再試。");
+  }
+
+  try {
+    // ── 1. 更新 card_db（CTA 1~3 + cta_limit）──
+    var cardRow = findRowByField_("card_db", "id", cardId);
+    if (!cardRow) throw new Error("找不到卡片：" + cardId);
+
+    var dbPatch = {};
+    for (var i = 1; i <= 3; i++) {
+      var found = null;
+      for (var j = 0; j < valid.length; j++) {
+        if (valid[j].seq === i) { found = valid[j]; break; }
+      }
+      dbPatch["cta_text_" + i] = found ? found.cta_text : "";
+      dbPatch["cta_link_" + i] = found ? found.cta_link : "";
+    }
+    dbPatch.cta_limit = String(valid.length);
+
+    var updatedRow = Object.assign({}, cardRow, dbPatch);
+    updateRowByName_("card_db", cardRow.__rowNum, updatedRow);
+
+    // ── 2. 更新 card_cta_ext（seq 4+）──
+    var overflow = valid.filter(function(c) { return c.seq > 3; });
     var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     var sheet = ss.getSheetByName("card_cta_ext");
     if (!sheet) {
@@ -118,16 +127,23 @@ function adminSetCardCtas_(params) {
     overflow.forEach(function(c) {
       sheet.appendRow([cardId, c.seq, c.cta_text, c.cta_link]);
     });
+
+    // ── 3. 清快取（兩張表都異動了）──
+    try {
+      var cache = CacheService.getScriptCache();
+      cache.remove("hsc:sheet_rows:card_cta_ext");
+      cache.remove("hsc:sheet_rows:card_db");
+    } catch(_) {}
+
+    return { ok: true, card_id: cardId, count: valid.length };
   } catch(e) {
-    console.error("[ctaManager] 更新 card_cta_ext 失敗:", e.message);
+    console.error("[ctaManager] adminSetCardCtas_ 失敗:", e.message);
+    throw e; // ★ 不再吞掉錯誤：ext 表寫入失敗要讓管理員知道，不能謊報成功
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (releaseErr) {
+      Logger.log("adminSetCardCtas_ lock release failed: " + (releaseErr && releaseErr.message ? releaseErr.message : String(releaseErr)));
+    }
   }
-
-  // ── 3. 清快取（兩張表都異動了）──
-  try {
-    var cache = CacheService.getScriptCache();
-    cache.remove("hsc:sheet_rows:card_cta_ext");
-    cache.remove("hsc:sheet_rows:card_db");
-  } catch(_) {}
-
-  return { ok: true, card_id: cardId, count: valid.length };
 }

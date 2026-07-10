@@ -472,6 +472,7 @@ const ACTIONS = [
   "getPendingOfflinePayments",
   "runDailyOps",
   "installCommercialTriggers",
+  "getTriggerStatus",
   "getCommissions",
   "approveCommission",
   "markCommissionPaid",
@@ -571,7 +572,10 @@ const ACTIONS = [
   "adminGetBatchMaster",
   "adminDeleteBatchMaster",
   "adminGrantUnlimitedUpdate",
-  "adminRepairCardLimits"
+  "adminRepairCardLimits",
+  "adminPreviewTestMarker",
+  "adminCleanupTestMarker",
+  "adminRecreatePermanentTestCards"
 ];
 const ADMIN_PROTECTED_ACTIONS = [
   "getTrackingSummary",
@@ -614,6 +618,7 @@ const ADMIN_PROTECTED_ACTIONS = [
   "getPendingOfflinePayments",
   "runDailyOps",
   "installCommercialTriggers",
+  "getTriggerStatus",
   "approveCommission",
   "markCommissionPaid",
   "confirmAddonOrderPaid",
@@ -697,7 +702,10 @@ const ADMIN_PROTECTED_ACTIONS = [
   "adminGetBatchMaster",
   "adminDeleteBatchMaster",
   "adminGrantUnlimitedUpdate",
-  "adminRepairCardLimits"
+  "adminRepairCardLimits",
+  "adminPreviewTestMarker",
+  "adminCleanupTestMarker",
+  "adminRecreatePermanentTestCards"
 ];
 // ============================================================
 // 主題欄位驗證與標準化 (清洗用)
@@ -1320,10 +1328,6 @@ function ensureSchemaHeaders_(schemaName) {
   return result;
 }
 
-function ensureAllSchemasOrThrow_() {
-  return ensureSchemasOrThrow_(Object.keys(SCHEMA));
-}
-
 function normalizeSchemaNameArg_(schemaName) {
   var raw = sanitizeText_(schemaName);
   if (!raw) return "";
@@ -1340,24 +1344,6 @@ function normalizeSchemaNameArg_(schemaName) {
     }
   }
   return raw;
-}
-
-function ensureSchemasOrThrow_(schemaNames) {
-  var names = Array.isArray(schemaNames) ? schemaNames : [schemaNames];
-  var results = [];
-  var seen = {};
-  for (var i = 0; i < names.length; i++) {
-    var schemaName = normalizeSchemaNameArg_(names[i]);
-    if (!schemaName || seen[schemaName]) continue;
-    seen[schemaName] = true;
-    if (!SCHEMA[schemaName]) throw new Error("Schema not defined: " + schemaName);
-    var res = ensureSchemaHeaders_(schemaName);
-    results.push(res);
-    if (res.missing_columns.length > 0) {
-      throw new Error("Missing required columns in " + schemaName + ": " + res.missing_columns.join(", "));
-    }
-  }
-  return results;
 }
 
 function installAddonModule_() {
@@ -1424,91 +1410,6 @@ function adminBackfillAddonDueAt_(req) {
   return backfillAddonDueAtRows_(req);
 }
 
-function createAddonOrder_(req) {
-  ensureAllSchemasOrThrow_();
-  ensureItemDbSchema_();
-  var installResult = installAddonModule_();
-  if (installResult.header_mismatch) throw new Error("add_on_order_db header mismatch");
-
-  var cardId = sanitizeText_(req.card_id || req.cardId || req.id);
-  if (!cardId) throw new Error("Missing card_id");
-  var card = findRowByField_("card_db", "id", cardId);
-  if (!card) throw new Error("Card not found");
-
-  var tenant = sanitizeText_(card.tenant) || CONFIG.DEFAULT_TENANT;
-  var code = normalizeAddonItemCode_(req.item_code || req.itemCode || req.add_on_type || req.addOnType || req.addon_type || req.addonType || req.addon_key);
-  if (!code) throw new Error("Missing add_on_type");
-  var qty = Number(req.qty || req.quantity || 1);
-  if (!isFinite(qty) || qty <= 0) qty = 1;
-  var unitPrice = resolveAddOnPrice_(code, { tenant: tenant, price: req.price, unit_price: req.unit_price, unitPrice: req.unitPrice });
-  var amountBefore = roundMoney_(unitPrice * qty);
-  var payment = getOrderPaymentByCardId_(cardId);
-  var now = new Date();
-  var row = emptyRow_("add_on_order_db");
-  var orderId = "AO" + Utilities.formatDate(now, CONFIG.DEFAULT_TIMEZONE, "yyyyMMddHHmmss") + generateRandomCode_(4);
-
-  var targetType = resolveAddonTargetType_(code);
-  var pointsRedeem = { applied: false, points_used: 0, amount_after: amountBefore, reason: "not_applied" };
-  if (targetType !== "agent_upgrade_fee" || canUsePointsForPaymentType_("addon_payment")) {
-    pointsRedeem = applyPointsRedemptionToAmount_({
-      card: card,
-      requested_points: req.points_to_apply || req.pointsApply || req.use_points || 0,
-      amount_before: amountBefore,
-      ref_id: orderId,
-      type: "addon_redeem",
-      note: "addon_points_redeem",
-      operator: sanitizeText_(req.created_by || req.createdBy || "system")
-    });
-  }
-
-  if (targetType === "agent_upgrade_fee")
- {
-    var agentId = resolvePointsOwnerAgentIdForCard_(card);
-    var agent = getAgentById_(agentId);
-    if (!agent || sanitizeText_(agent.agent_type) !== "referral" || sanitizeText_(agent.eligible_for_upgrade) !== "TRUE") {
-      throw new Error("Not eligible for partner upgrade");
-    }
-  }
-
-  row.addon_order_id = orderId;
-  row.card_id = cardId;
-  row.created_at = toIso_(now);
-  row.updated_at = toIso_(now);
-  row.addon_type = normalizeAddonTypeLabel_(code);
-  row.addon_key = code;
-  row.item_code = code;
-  row.item_name = getAddonItemNameByCode_(code);
-  row.qty = String(qty);
-  row.unit_price = String(unitPrice);
-  row.amount = String(pointsRedeem.amount_after);
-  row.status = "pending";
-  row.due_at = resolveAddonOrderDueAtForWrite_(req, now);
-  row.paid_at = "";
-  row.cancelled_at = "";
-  row.payment_id = payment ? sanitizeText_(payment.payment_id) : "";
-  row.transaction_id = "";
-  row.note = sanitizeText_(req.note);
-  if (pointsRedeem.applied || pointsRedeem.reason) {
-    row.note = mergeNote_(row.note, "points_redeem=" + JSON.stringify(pointsRedeem));
-  }
-  row.created_by = sanitizeText_(req.created_by || req.createdBy || "system");
-  row.tenant = tenant;
-  row.is_test = sanitizeText_(req.is_test || card.is_test) || "FALSE";
-  row.bundle_parent_code = "";
-  row.applied_at = "";
-  row.applied_note = "";
-  appendRowByName_("add_on_order_db", row);
-  return {
-    ok: true,
-    version: HSC_VERSION,
-    action: "createAddOnOrder",
-    add_on_order: row,
-    addon_order: row,
-    order: row,
-    points_redeem: pointsRedeem,
-    target_type: targetType
-  };
-}
 
 function adminCancelAddonOrder_(req) {
   ensureAllSchemasOrThrow_();
@@ -1589,9 +1490,7 @@ function repairAddonOrderStatuses_() {
 // ============================================================
 var _schemaCheckCache_ = {};
 
-function isSheetRowsScriptCacheable_(schemaName) {
-  return ["plan_db", "pricing_db", "commission_rules", "announcement_db"].indexOf(String(schemaName || "")) !== -1;
-}
+
 
 function getSheetRowsScriptCacheKey_(schemaName) {
   return "hsc:sheet_rows:" + String(schemaName || "");
@@ -1600,11 +1499,6 @@ function getSheetRowsScriptCacheKey_(schemaName) {
 function clearSchemaCheckCache_(schemaName) {
   if (schemaName) delete _schemaCheckCache_[schemaName];
   else _schemaCheckCache_ = {};
-}
-
-function isActiveStatus_(status) {
-  var s = sanitizeText_(status).toLowerCase();
-  return s === "active" || s === "enabled" || s === "on" || s === "true";
 }
 
 function parseBoolClean_(value, fallback) {
@@ -1701,20 +1595,6 @@ function buildLatestPaymentMapFromRows_(payments) {
   return map;
 }
 
-function buildUpdateCountMapFromRows_(rows, tenant) {
-  var now = new Date();
-  var year = now.getFullYear();
-  var map = {};
-  (rows || []).forEach(function(row) {
-    if (!sameTenant_(row.tenant, tenant)) return;
-    var d = new Date(sanitizeText_(row.created_at));
-    if (isNaN(d.getTime()) || d.getFullYear() !== year) return;
-    var cid = sanitizeText_(row.card_id);
-    if (!cid) return;
-    map[cid] = (map[cid] || 0) + 1;
-  });
-  return map;
-}
 // ============================================================
 // v8.4.3 新增:CTA / 照片 加購擴充分頁讀取
 // ============================================================
@@ -1908,40 +1788,7 @@ function getCardPublicShell_(req) {
    try { recordCardView_(targetCardId); } catch(_e) {}
   return { ok: true, version: HSC_VERSION, action: "getCardPublicShell", card_id: targetCardId, cached: false, card: shell };
 }
-function getAdminBootstrap_(req) {
-  req = req || {};
-  requireAdminKeyOrSystem_(req);
-  var tenant = getTenant_(req);
-  var includeRenewals = String(req.include_renewals || "").toLowerCase() !== "false";
-  var includeAddons = String(req.include_addons || "").toLowerCase() !== "false";
-  var includeAgents = String(req.include_agents || "").toLowerCase() !== "false";
-  var includeAnnouncements = String(req.include_announcements || "").toLowerCase() !== "false";
-  var paymentsLimit = Number(req.payments_limit || 200) || 200;
-  var result = { ok: true, version: HSC_VERSION, action: "getAdminBootstrap", tenant: tenant, generated_at: nowIso_() };
-  try { result.requests = getRequests_({ tenant: tenant, admin_key: req.admin_key, __system_call: req.__system_call, limit: req.requests_limit || 50, offset: 0, light: true }).requests || []; } catch(e) { result.requests = []; result._err_requests = e.message; }
-  try { result.cards = getCards_({ tenant: tenant, admin_key: req.admin_key, __system_call: req.__system_call, limit: req.cards_limit || 100, offset: 0, light: true }).cards || []; } catch(e) { result.cards = []; result._err_cards = e.message; }
-  try {
-    var paymentRows = getPayments_({ tenant: tenant, admin_key: req.admin_key, __system_call: req.__system_call, limit: paymentsLimit, offset: 0, light: true }).payments || [];
-    result.payments = paymentRows; result.payment_list = paymentRows;
-  } catch(e) { result.payments = []; result.payment_list = []; result._err_payments = e.message; }
-  try {
-    var opsResult = getRecentOpsLogs_({ tenant: tenant, admin_key: req.admin_key, __system_call: req.__system_call, limit: req.ops_limit || 20 }) || {};
-    result.ops_logs = opsResult.items || opsResult.logs || [];
-  } catch(e) { result.ops_logs = []; result._err_ops = e.message; }
-  if (includeAnnouncements) {
-    try { result.announcements = getAnnouncements_({ tenant: tenant }).announcements || []; } catch(e) { result.announcements = []; }
-  }
-  if (includeRenewals) {
-    try { result.renewals = adminGetRenewalList_({ tenant: tenant, admin_key: req.admin_key, __system_call: req.__system_call }).renewals || []; } catch(e) { result.renewals = []; result._err_renewals = e.message; }
-  }
-  if (includeAddons) {
-    try { result.addons = getAddonOrders_({ tenant: tenant, admin_key: req.admin_key, __system_call: req.__system_call }).addon_orders || []; } catch(e) { result.addons = []; result._err_addons = e.message; }
-  }
-  if (includeAgents) {
-    try { result.agents = adminListAgents_({ tenant: tenant, admin_key: req.admin_key, __system_call: req.__system_call, limit: 200 }).agents || []; } catch(e) { result.agents = []; result._err_agents = e.message; }
-  }
-  return result;
-}
+
 
 // ============================================================
 // 路由與主函式
@@ -2312,15 +2159,6 @@ function adminBuildSpecialFormUrl_(req) {
   };
 }
 
-function buildSpecialFormUrl_(inviteCode, mode, photoLimit) {
-  var url = CONFIG.BASE_URL + "form.html?invite=" + encodeURIComponent(sanitizeText_(inviteCode));
-  if (mode) url += "&mode=" + encodeURIComponent(sanitizeText_(mode));
-  if (photoLimit !== null && photoLimit !== undefined && !isNaN(photoLimit)) {
-    url += "&photo_limit=" + encodeURIComponent(String(photoLimit));
-  }
-  return toLiffUrl_(url);
-}
-
 // ============================================================
 // 邀請碼相關
 // ============================================================
@@ -2527,6 +2365,18 @@ function getRequestTrace_(req) {
   };
 }
 
+// ★ 校驗 ref 是否對應真實存在的卡片或代理商，避免髒資料（例如系統保護卡、
+// 前端 fallback 產生的錯誤值）流入推薦鏈路，最後污染分潤歸屬。
+// 查無此人、空值、或系統保護卡一律回傳空字串（等同「無推薦來源」）。
+function resolveValidatedRequestRef_(rawRef) {
+  var ref = sanitizeText_(rawRef);
+  if (!ref) return "";
+  if (SYSTEM_PROTECTED_UPGRADE_IDS.indexOf(ref) !== -1) return "";
+  if (findRowByField_("card_db", "id", ref)) return ref;
+  if (findRowByField_("agent_db", "agent_id", ref)) return ref;
+  return "";
+}
+
 function createRequest_(req) {
   var tenant = getTenant_(req);
   var now = new Date();
@@ -2535,7 +2385,7 @@ function createRequest_(req) {
   var row = emptyRow_("request_db");
   row.request_id = requestId;
   row.created_at = toIso_(now);
-  row.ref = sanitizeText_(req.ref);
+  row.ref = resolveValidatedRequestRef_(req.ref);
   row.status = "pending";
   row.assigned_invite_code = "";
   row.assigned_by = "";
@@ -2975,12 +2825,7 @@ function getCardPublicLite_(req) {
   if (publicSource.agent_type !== undefined) publicSource.agent_type = normalizeAgentTypeForDisplay_(publicSource.agent_type);
   
   var payload = normalizePublicCardPayload_(publicSource);
-   // v8.4.3:背景靜默同步擴充分頁旗標(不擋讀取流程)
-  try {
-    syncCardExtraPurchasedFlags_(targetCardId);
-  } catch (_e) {
-    Logger.log("syncCardExtraPurchasedFlags_ silent fail: " + (_e && _e.message));
-  }// ★ 合併 ext 表（CTA 第4個起 / 照片第11張起）
+  // ★ 合併 ext 表（CTA 第4個起 / 照片第11張起）
     payload = mergeExtCtas_(targetCardId, payload);
     payload = mergeExtPhotos_(targetCardId, payload);
     setPublicCardCache_(targetCardId, payload, 180);
@@ -3143,49 +2988,73 @@ function createUpdateFeePayment_(req) {
     var token = sanitizeText_(req.update_token || req.token);
     var cardId = sanitizeText_(req.card_id);
     if (!token) throw new Error("Missing update token");
-    var card = findRowByField_("card_db", "update_token", token);
-    if (!card && cardId && token === cardId) {
-    card = findRowByField_("card_db", "id", cardId);
-  }
-    if (!card) throw new Error("Card not found for update token");
 
-    var eligibility = evaluateUpdateEligibilityForCard_(card);
-    if (eligibility.charge_required && !eligibility.paid_ready) {
-      throw new Error("Update fee payment required before update");
+    // 🔒 鎖定：保護「讀卡片 → clone → 套用欄位 → 寫回 card_db」整段，
+    // 避免客戶在不同裝置/分頁併發送出更新時，後寫入的把先寫入的悄悄蓋掉（無聲吃單）。
+    // saveOverflowCtas_ / saveOverflowPhotos_ 各自有獨立的鎖，故意放在這個鎖釋放「之後」
+    // 才呼叫，不做巢狀鎖定。
+    var updatedCard, eligibility, allowedFields;
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(30000);
+    } catch (lockErr) {
+      throw new Error("系統忙碌，無法完成更新，請稍後再試。");
     }
 
-    var plan = ensurePlanExists_(card.plan, card.tenant);
-    var normalizedInput = normalizeUpdateCardReqFields_(req);
-    var allowedFields = resolveUpdateAllowedFields_(card, plan);
-    var updatedCard = shallowClone_(card);
+    try {
+      var card = findRowByField_("card_db", "update_token", token);
+      if (!card && cardId && token === cardId) {
+        card = findRowByField_("card_db", "id", cardId);
+      }
+      if (!card) throw new Error("Card not found for update token");
 
-    Object.keys(normalizedInput).forEach(function(field) {
-      if (allowedFields.indexOf(field) === -1) return;
-      var candidate = normalizedInput[field];
-      if (!shouldApplyUpdateValue_(field, candidate)) return;
-      updatedCard[field] = normalizeUpdateValue_(field, candidate);
-    });
+      eligibility = evaluateUpdateEligibilityForCard_(card);
+      if (eligibility.charge_required && !eligibility.paid_ready) {
+        throw new Error("Update fee payment required before update");
+      }
 
-    updatedCard.style = resolveStyleForPlan_(plan, updatedCard.style);
-    updatedCard.paper = resolvePaperForPlan_(plan, updatedCard.paper);
+      var plan = ensurePlanExists_(card.plan, card.tenant);
+      var normalizedInput = normalizeUpdateCardReqFields_(req);
+      allowedFields = resolveUpdateAllowedFields_(card, plan);
+      updatedCard = shallowClone_(card);
 
-    var normalized = normalizeCardThemeFields_(updatedCard);
-    updatedCard = normalized.updatedRow;
+      Object.keys(normalizedInput).forEach(function(field) {
+        if (allowedFields.indexOf(field) === -1) return;
+        var candidate = normalizedInput[field];
+        if (!shouldApplyUpdateValue_(field, candidate)) return;
+        updatedCard[field] = normalizeUpdateValue_(field, candidate);
+      });
 
-    validateCardAgainstPlan_(updatedCard, plan);
-    updatedCard.updated_at = toIso_(now);
-    updatedCard.process_status = sanitizeText_(updatedCard.process_status) || "ready";
-    if (!sanitizeText_(updatedCard.update_token)) {
-      updatedCard.update_token = token;
+      updatedCard.style = resolveStyleForPlan_(plan, updatedCard.style);
+      updatedCard.paper = resolvePaperForPlan_(plan, updatedCard.paper);
+
+      var normalized = normalizeCardThemeFields_(updatedCard);
+      updatedCard = normalized.updatedRow;
+
+      validateCardAgainstPlan_(updatedCard, plan);
+      updatedCard.updated_at = toIso_(now);
+      updatedCard.process_status = sanitizeText_(updatedCard.process_status) || "ready";
+      if (!sanitizeText_(updatedCard.update_token)) {
+        updatedCard.update_token = token;
+      }
+      if (!sanitizeText_(updatedCard.update_token_created_at)) {
+        updatedCard.update_token_created_at = sanitizeText_(card.update_token_created_at) || toIso_(now);
+      }
+      updatedCard.update_token_expire = "";
+
+      updateRowByName_("card_db", card.__rowNum, updatedCard);
+    } finally {
+      try {
+        lock.releaseLock();
+      } catch (releaseErr) {
+        Logger.log("updateCardByToken_ lock release failed: " + (releaseErr && releaseErr.message ? releaseErr.message : String(releaseErr)));
+      }
     }
-    if (!sanitizeText_(updatedCard.update_token_created_at)) {
-      updatedCard.update_token_created_at = sanitizeText_(card.update_token_created_at) || toIso_(now);
-    }
-    updatedCard.update_token_expire = "";
-
-    updateRowByName_("card_db", card.__rowNum, updatedCard);
 
     // ★ 儲存 overflow CTA（第4個起）和 overflow 照片（第11張起）到 ext 表
+    // saveOverflowCtas_ / saveOverflowPhotos_ 內部有自己獨立的 LockService，
+    // 而且現在失敗會 throw（不再吞掉錯誤），這裡不用額外 try/catch，讓錯誤自然往上拋，
+    // 避免明明存失敗卻回傳「更新成功」給客戶。
     var _extCardId = updatedCard.id || updatedCard.card_id || cardId;
     saveOverflowCtas_(_extCardId, req);
     saveOverflowPhotos_(_extCardId, req);
@@ -3257,25 +3126,29 @@ function createAddonOrdersFromPayment_(payment, card, eventType) {
   var cardId = sanitizeText_(card.id || card.card_id);
   if (!paymentId || !cardId) return [];
 
-  // 從 note 解析 addon_items
-  var addonItems = parseAddonItemsFromNote_(payment.note);
-  if (!addonItems || !addonItems.length) return [];
-
   var now = new Date();
   var nowIso = toIso_(now);
   var tenant = sanitizeText_(card.tenant) || CONFIG.DEFAULT_TENANT;
   var noteLabel = eventType || "first_payment";
   var created = [];
 
+  // renewal 即使沒有 addon items，也必須繼續執行權益 reconciliation。
+  var addonItems = parseAddonItemsFromNote_(payment.note);
+  addonItems = Array.isArray(addonItems) ? addonItems : [];
+  if (!addonItems.length && noteLabel !== "renewal") {
+    return created;
+  }
+
   addonItems.forEach(function(item) {
     var code = sanitizeText_(item.item_key || item.code || "");
     if (!code) return;
 
-    // 防重複：同一張卡同一個 addon_key 已有 paid 紀錄就跳過
+    // 防重複：同一付款同一 addon_key 已有 paid 紀錄就跳過（允許不同付款重複購買）
     try {
       var existing = getSheetRowsByName_("add_on_order_db").filter(function(row) {
         return sanitizeText_(row.card_id) === cardId &&
-               sanitizeText_(row.addon_key) === code &&
+               sanitizeText_(row.payment_id) === paymentId &&
+               sanitizeText_(row.addon_key || row.item_code || row.addon_type) === code &&
                sanitizeText_(row.status).toLowerCase() === "paid";
       });
       if (existing.length > 0) return;
@@ -3305,6 +3178,12 @@ function createAddonOrdersFromPayment_(payment, card, eventType) {
     row.applied_note = noteLabel + "_confirmed";
 
     appendRowByName_("add_on_order_db", row);
+
+    if (noteLabel === "first_payment") {
+      created.push(code);
+      return;
+    }
+
      // ★ v448：確認加購後自動更新 card_db 的 photo_limit / cta_limit
       try {
         var addQty = Math.max(1, toNumber_(item.qty) || 1);
@@ -3324,7 +3203,8 @@ function createAddonOrdersFromPayment_(payment, card, eventType) {
               for (var ri = 1; ri < cData.length; ri++) {
                 if (String(cData[ri][cIdIdx]) === String(cardId)) {
                   cSheet.getRange(ri + 1, cFIdx + 1).setValue(String(newVal));
-                  try { CacheService.getScriptCache().remove('sheet_card_db'); } catch(_) {}
+                  invalidateCacheOnWrite_("card_db");
+                  invalidateCardPublicCache_(cardId);
                   Logger.log('[addon] ' + limitField + ' 更新: ' + cardId + ' → ' + newVal);
                   break;
                 }
@@ -3337,6 +3217,52 @@ function createAddonOrdersFromPayment_(payment, card, eventType) {
     created.push(code);
   });
 
+  if (noteLabel === "renewal") {
+    var renewal = findRowByField_("renewal_db", "payment_id", paymentId);
+    if (!renewal) {
+      Logger.log("[createAddonOrdersFromPayment_] renewal record missing: " + paymentId);
+      return created;
+    }
+
+    var keepPhotoQty = Math.max(0, toNumber_(renewal.keep_photo_extra_qty) || 0);
+    var keepCtaQty = Math.max(0, toNumber_(renewal.keep_cta_extra_qty) || 0);
+
+    var freshCard = findRowByField_("card_db", "id", cardId);
+    if (freshCard) {
+      var currentPlanInfo = getPlanEntitlements_(freshCard.plan, tenant);
+      var targetPlanCode = sanitizeText_(payment.plan) || sanitizeText_(freshCard.plan);
+      var targetPlanInfo = getPlanEntitlements_(targetPlanCode, tenant);
+
+      var currentBasePhoto = Math.max(0, toNumber_(currentPlanInfo.photo_limit_default));
+      var currentBaseCta = Math.max(0, toNumber_(currentPlanInfo.cta_limit));
+      var targetBasePhoto = Math.max(0, toNumber_(targetPlanInfo.photo_limit_default));
+      var targetBaseCta = Math.max(0, toNumber_(targetPlanInfo.cta_limit));
+
+      var manualPhotoDelta = Math.max(
+        0,
+        toNumber_(freshCard.photo_limit) - currentBasePhoto - Math.max(0, toNumber_(freshCard.photo_extra_purchased))
+      );
+      var manualCtaDelta = Math.max(
+        0,
+        toNumber_(freshCard.cta_limit) - currentBaseCta - Math.max(0, toNumber_(freshCard.cta_extra_purchased))
+      );
+
+      var reconciled = shallowClone_(freshCard);
+      reconciled.photo_extra_purchased = String(keepPhotoQty);
+      reconciled.cta_extra_purchased = String(keepCtaQty);
+      reconciled.photo_limit = String(Math.min(PHOTO_LIMIT_ABSOLUTE_MAX, targetBasePhoto + keepPhotoQty + manualPhotoDelta));
+      reconciled.cta_limit = String(targetBaseCta + keepCtaQty + manualCtaDelta);
+      reconciled.updated_at = nowIso;
+
+      try {
+        updateRowByName_("card_db", freshCard.__rowNum, reconciled);
+        invalidateCardPublicCache_(cardId);
+      } catch (reconcileErr) {
+        Logger.log("[createAddonOrdersFromPayment_] renewal reconciliation failed: " + reconcileErr.message);
+      }
+    }
+  }
+
   return created;
 }
 function confirmPayment_(req) {
@@ -3344,6 +3270,27 @@ function confirmPayment_(req) {
   var paymentId = sanitizeText_(req.payment_id || req.paymentId);
   if (!paymentId) throw new Error("Missing payment_id");
 
+  // 🔒 鎖定：防止同一筆付款被併發請求（例如管理員手滑點兩下、或前端重試）重複確認、重複開卡
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (lockErr) {
+    throw new Error("系統忙碌，無法完成付款確認，請稍後再試。");
+  }
+
+  try {
+    return confirmPayment_locked_(req, paymentId, now);
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (releaseErr) {
+      Logger.log("confirmPayment_ lock release failed: " + (releaseErr && releaseErr.message ? releaseErr.message : String(releaseErr)));
+    }
+  }
+}
+
+// confirmPayment_ 的實際邏輯，全程在 LockService 保護下執行，不對外直接呼叫
+function confirmPayment_locked_(req, paymentId, now) {
   var payment = findRowByField_("payment_db", "payment_id", paymentId);
   if (!payment) throw new Error("Payment not found");
 
@@ -4011,6 +3958,7 @@ function markPaymentRefunded_(req) {
         updatedCardForRefund.expires_at = sanitizeText_(renewalForRefund.current_expires_at);
         updatedCardForRefund.updated_at = toIso_(now);
         updateRowByName_("card_db", cardForRefund.__rowNum, updatedCardForRefund);
+        invalidateCardPublicCache_(sanitizeText_(renewalForRefund.card_id));
       }
     }
   } catch (expiryErr) {
@@ -4336,29 +4284,12 @@ function reverseCommission_(req) {
   return { ok: true, version: HSC_VERSION, action: "reverseCommission", reversals: reversals };
 }
 
-function getCommissionList_(req) {
-  var agentId = sanitizeText_(req.agent_id || req.agentId);
-  var rows = getSheetRowsByName_("commission_db").filter(function(r) {
-    return sanitizeText_(r.beneficiary_agent_id) === agentId;
-  });
-  return { ok: true, version: HSC_VERSION, action: "getCommissionList", commissions: rows };
-}
-
 function getCommissionByPayment_(req) {
   var paymentId = sanitizeText_(req.payment_id || req.paymentId);
   var rows = findRowsByField_("commission_db", "payment_id", paymentId);
   return { ok: true, version: HSC_VERSION, action: "getCommissionByPayment", commissions: rows };
 }
 
-function adminGetCommissionList_(req) {
-  return { ok: true, version: HSC_VERSION, action: "adminGetCommissionList", commissions: getSheetRowsByName_("commission_db") };
-}
-
-function getPaymentCommissionStatus_(req) {
-  var paymentId = sanitizeText_(req.payment_id || req.paymentId);
-  var payment = findRowByField_("payment_db", "payment_id", paymentId);
-  return { ok: true, version: HSC_VERSION, action: "getPaymentCommissionStatus", status: payment ? payment.commission_status : "" };
-}
 
 // ============================================================
 // 服務記錄相關
@@ -4836,46 +4767,6 @@ function markCardRenewed_(req) {
   return { ok: true, version: HSC_VERSION, action: "markCardRenewed", card_id: card.id, payment: payment };
 }
 
-function triggerExpiryCheck_(req) {
-  var now = new Date();
-  var cards = getSheetRowsByName_("card_db");
-  var results = { locked_overdue: 0, expired: 0, touched: 0 };
-  cards.forEach(function(card) {
-    var changed = false;
-    var updated = shallowClone_(card);
-    var deliveredAt = toDateSafe_(card.delivered_at);
-    var paymentPaidAt = sanitizeText_(card.payment_paid_at);
-    var expiresAt = toDateSafe_(card.expires_at);
-    if (deliveredAt && !paymentPaidAt) {
-      var overdueLimit = addDays_(deliveredAt, CONFIG.PAYMENT_DUE_DAYS);
-      if (now.getTime() > overdueLimit.getTime() && sanitizeText_(card.status) !== "locked") {
-        updated.status = "locked";
-        updated.billing_status = "overdue";
-        updated.inactivated_at = toIso_(now);
-        updated.updated_at = toIso_(now);
-        changed = true;
-        results.locked_overdue++;
-      }
-    }
-    if (expiresAt && now.getTime() > expiresAt.getTime()) {
-      if (sanitizeText_(updated.status) !== "expired") {
-        updated.status = "expired";
-        updated.billing_status = "expired";
-        updated.expired_at = sanitizeText_(updated.expired_at) || toIso_(now);
-        updated.updated_at = toIso_(now);
-        changed = true;
-        results.expired++;
-      }
-      syncAgentSelfRenewalByCard_(card.id, false, now, "card_expired");
-    }
-    if (changed) {
-      updateRowByName_("card_db", card.__rowNum, updated);
-      results.touched++;
-    }
-  });
-  return { ok: true, version: HSC_VERSION, action: "triggerExpiryCheck", result: results };
-}
-
 function scheduledExpiryCheck_() {
   return triggerExpiryCheck_({ action: "triggerExpiryCheck" });
 }
@@ -5011,164 +4902,14 @@ function getSheetByName_(schemaName) {
   return sheet;
 }
 
-function schemaNameToConfigKey_(schemaName) {
-  var map = {
-    "card_db": "CARD",
-    "lead_db": "LEAD",
-    "invite_db": "INVITE",
-    "plan_db": "PLAN",
-    "payment_db": "PAYMENT",
-    "renewal_db": "RENEWAL",
-    "pricing_db": "PRICING",
-    "commission_db": "COMMISSION",
-    "commission_rules": "COMMISSION_RULES",
-    "agent_db": "AGENT",
-    "announcement_db": "ANNOUNCEMENT",
-    "update_log_db": "UPDATE_LOG",
-    "agent_policy_log": "AGENT_POLICY_LOG",
-    "promo_rules": "PROMO_RULES",
-    "request_db": "REQUEST",
-    "service_log": "SERVICE_LOG",
-    "add_on_order_db": "ADDON_ORDER",
-    "ops_log_db": "OPS_LOG",
-    "agent_settlement_report": "AGENT_SETTLEMENT_REPORT",
-    "agent_points_log": "AGENT_POINTS_LOG",
-    "agent_commission_log": "AGENT_COMMISSION_LOG",
-    "tracking_log": "TRACKING",
-    "recognition_db": "RECOGNITION",
-    "payment_inbox_db": "PAYMENT_INBOX",
-    "card_cta_ext": "CARD_CTA_EXT",
-    "card_photo_ext": "CARD_PHOTO_EXT"
-  };
-  if (!map[schemaName]) throw new Error("Unknown schema name: " + schemaName);
-  return map[schemaName];
-}
 // ============================================================
 // 請求層級 Sheet 快取
 // ============================================================
 var _sheetRowCache_ = {};
 var _sheetRowCacheEnabled_ = true;
 
-function clearSheetRowCache_(schemaName) {
-  var cache = CacheService.getScriptCache();
-  if (schemaName) {
-    delete _sheetRowCache_[schemaName];
-    clearSchemaCheckCache_(schemaName);
-    try { cache.remove(getSheetRowsScriptCacheKey_(schemaName)); } catch (_e) {}
-  } else {
-    _sheetRowCache_ = {};
-    clearSchemaCheckCache_();
-    Object.keys(SCHEMA).forEach(function(name) {
-      try { cache.remove(getSheetRowsScriptCacheKey_(name)); } catch (_e) {}
-    });
-  }
-}
 
-function invalidateCacheOnWrite_(schemaName) {
-  clearSheetRowCache_(schemaName);
-}
 
-function getSheetRowsByName_(schemaName) {
-  if (_sheetRowCacheEnabled_ && _sheetRowCache_[schemaName]) {
-    return _sheetRowCache_[schemaName];
-  }
-
-  var useScriptCache = isSheetRowsScriptCacheable_(schemaName);
-  var scriptCache = useScriptCache ? CacheService.getScriptCache() : null;
-  var cacheKey = useScriptCache ? getSheetRowsScriptCacheKey_(schemaName) : "";
-
-  if (useScriptCache) {
-    var cached = scriptCache.get(cacheKey);
-    if (cached) {
-      try {
-        var parsed = JSON.parse(cached);
-        if (_sheetRowCacheEnabled_) _sheetRowCache_[schemaName] = parsed;
-        return parsed;
-      } catch (_e) {}
-    }
-  }
-
-  var sheet = getSheetByName_(schemaName);
-  var expectedHeaders = SCHEMA[schemaName];
-  if (!expectedHeaders) throw new Error("Schema not defined: " + schemaName);
-
-  var lastRow = sheet.getLastRow();
-  var lastCol = expectedHeaders.length;
-  var values = sheet.getRange(1, 1, Math.max(lastRow, 1), lastCol).getValues();
-  var actualHeaders = values[0] || [];
-  validateHeaders_(schemaName, actualHeaders);
-
-  if (lastRow <= 1) {
-    if (_sheetRowCacheEnabled_) _sheetRowCache_[schemaName] = [];
-    if (useScriptCache) {
-      try { scriptCache.put(cacheKey, JSON.stringify([]), 300); } catch (_e) {}
-    }
-    return [];
-  }
-
-  var rows = [];
-  for (var r = 1; r < values.length; r++) {
-    var rowObj = {};
-    for (var c = 0; c < expectedHeaders.length; c++) {
-      rowObj[expectedHeaders[c]] = normalizeCell_(values[r][c]);
-    }
-    rowObj = normalizeRowDateFieldsForSchema_(schemaName, rowObj);
-    rowObj.__rowNum = r + 1;
-    rows.push(rowObj);
-  }
-
-  if (_sheetRowCacheEnabled_) _sheetRowCache_[schemaName] = rows;
-  if (useScriptCache) {
-    try { scriptCache.put(cacheKey, JSON.stringify(rows), 300); } catch (_e) {}
-  }
-  return rows;
-}
-
-function appendRowByName_(schemaName, rowObj) {
-  var sheet = getSheetByName_(schemaName);
-  var headers = SCHEMA[schemaName];
-  validateHeaders_(schemaName, sheet.getRange(1, 1, 1, headers.length).getValues()[0]);
-  var normalizedRow = ensureRequiredDueFieldsForSchema_(schemaName, normalizeRowDateFieldsForSchema_(schemaName, rowObj));
-  var values = headers.map(function(h) {
-    return normalizedRow[h] !== undefined ? normalizedRow[h] : "";
-  });
-  sheet.appendRow(values);
-  invalidateCacheOnWrite_(schemaName);
-  return sheet.getLastRow();
-}
-
-function updateRowByName_(schemaName, rowNum, rowObj) {
-  var sheet = getSheetByName_(schemaName);
-  var headers = SCHEMA[schemaName];
-  validateHeaders_(schemaName, sheet.getRange(1, 1, 1, headers.length).getValues()[0]);
-  var normalizedRow = ensureRequiredDueFieldsForSchema_(schemaName, normalizeRowDateFieldsForSchema_(schemaName, rowObj));
-  var values = headers.map(function(h) {
-    return normalizedRow[h] !== undefined ? normalizedRow[h] : "";
-  });
-  sheet.getRange(rowNum, 1, 1, headers.length).setValues([values]);
-  invalidateCacheOnWrite_(schemaName);
-}
-
-function updateRowsByNameBatch_(schemaName, rowsToWrite) {
-  rowsToWrite = Array.isArray(rowsToWrite) ? rowsToWrite : [];
-  if (!rowsToWrite.length) return 0;
-
-  var sheet = getSheetByName_(schemaName);
-  var headers = SCHEMA[schemaName];
-  validateHeaders_(schemaName, sheet.getRange(1, 1, 1, headers.length).getValues()[0]);
-
-  rowsToWrite.forEach(function(entry) {
-    if (!entry || !entry.rowNum || !entry.rowObj) return;
-    var normalizedRow = ensureRequiredDueFieldsForSchema_(schemaName, normalizeRowDateFieldsForSchema_(schemaName, entry.rowObj));
-    var values = headers.map(function(h) {
-      return normalizedRow[h] !== undefined ? normalizedRow[h] : "";
-    });
-    sheet.getRange(entry.rowNum, 1, 1, headers.length).setValues([values]);
-  });
-
-  invalidateCacheOnWrite_(schemaName);
-  return rowsToWrite.length;
-}
 
 function emptyRow_(schemaName) {
   var headers = SCHEMA[schemaName];
@@ -5307,6 +5048,11 @@ function adminGrantAddon_(req)
 
   updated.updated_at = nowIso;
   updateRowByName_("card_db", card.__rowNum, updated);
+  try {
+    invalidateCardPublicCache_(cardId);
+  } catch (cacheErr) {
+    Logger.log("[adminGrantAddon_] cache invalidation failed: " + cacheErr.message);
+  }
 
   for (var i = 0; i < changes.length; i++) {
     writeOpsLog_({
@@ -5344,15 +5090,6 @@ function validateHeaders_(schemaName, actualHeaders) {
       throw new Error("Header mismatch in " + schemaName + " at col " + (i + 1) + ": expected [" + expected[i] + "] but got [" + actual[i] + "]");
     }
   }
-}
-
-function findRowByField_(schemaName, field, value) {
-  var rows = getSheetRowsByName_(schemaName);
-  var target = normalizeCell_(value);
-  for (var i = 0; i < rows.length; i++) {
-    if (normalizeCell_(rows[i][field]) === target) return rows[i];
-  }
-  return null;
 }
 
 function findRowsByField_(schemaName, field, value) {
@@ -5751,6 +5488,7 @@ const OFFLINE_PAYMENT_INFO = {
 };
 
 const COMMERCIAL_TRIGGER_PLAN = [
+  { fn: "keepWarmPing_",        type: "minutes", every: 5 },
   { fn: "triggerExpiryCheck_", type: "daily", hour: 1 },
   { fn: "triggerOverdueLock_", type: "daily", hour: 1, minute: 10 },
   { fn: "adminCheckSchemaStatus_", type: "daily", hour: 2 },
@@ -6750,6 +6488,11 @@ function triggerOverdueLock_() {
     updatedCard.inactivated_at = nowIso;
     updatedCard.updated_at = nowIso;
     updateRowByName_("card_db", card.__rowNum, updatedCard);
+    try {
+      invalidateCardPublicCache_(cardId);
+    } catch (cacheErr) {
+      Logger.log("[triggerOverdueLock_] cache invalidation failed: " + cacheErr.message);
+    }
 
     var updatedPayment = shallowClone_(payment);
     updatedPayment.status = "overdue";
@@ -7210,66 +6953,6 @@ function getAddonOrders_(req) {
     addon_orders: rows
   };
 }
-function getAdminCardDashboard_(req) {
-  ensureSchemasOrThrow_(["card_db", "payment_db", "commission_db", "add_on_order_db", "renewal_db", "update_log_db"]);
-  req = req || {};
-  requireAdminKeyOrSystem_(req);
-  var tenant = getTenant_(req);
-  var nowMs = Date.now();
-  var cards = getSheetRowsByName_("card_db").filter(function(row) { return sameTenant_(row.tenant, tenant); }).sort(function(a, b) { return sanitizeText_(b.created_at).localeCompare(sanitizeText_(a.created_at)); });
-  var payments = getSheetRowsByName_("payment_db").filter(function(row) { return sameTenant_(row.tenant, tenant); }).sort(function(a, b) {
-    var aTs = toTimestampMs_(a.updated_at || a.created_at || a.paid_at || a.due_at);
-    var bTs = toTimestampMs_(b.updated_at || b.created_at || b.paid_at || b.due_at);
-    return bTs - aTs;
-  });
-  var commissions = getSheetRowsByName_("payment_db").filter(function(row) {
-    if (!sameTenant_(row.tenant, tenant)) return false;
-    if (sanitizeText_(row.status).toLowerCase() !== "paid") return false;
-    var eventType = sanitizeText_(row.event_type);
-    var orderType = sanitizeText_(row.order_type);
-    var commissionStatus = sanitizeText_(row.commission_status).toLowerCase();
-    var relevant = eventType === "first_payment" || eventType === "renewal" || orderType === "renewal" || eventType === "addon_payment";
-    return relevant && (!commissionStatus || commissionStatus === "pending");
-  }).sort(function(a,b){ return sanitizeText_(b.created_at).localeCompare(sanitizeText_(a.created_at)); }).map(function(row){
-    return { payment_id: sanitizeText_(row.payment_id), card_id: sanitizeText_(row.card_id), amount: Number(row.amount || 0), event_type: sanitizeText_(row.event_type), order_type: sanitizeText_(row.order_type), commission_status: sanitizeText_(row.commission_status), paid_at: sanitizeText_(row.paid_at), created_at: sanitizeText_(row.created_at) };
-  });
-  var pendingAddons = getSheetRowsByName_("add_on_order_db").filter(function(row){ return sameTenant_(row.tenant, tenant) && sanitizeText_(row.status).toLowerCase() === "pending"; }).map(function(row){
-    var countdown = buildAddonOrderCountdown_(row, nowMs);
-    return { addon_order_id: sanitizeText_(row.addon_order_id), card_id: sanitizeText_(row.card_id), addon_type: sanitizeText_(row.addon_type), addon_key: sanitizeText_(row.addon_key), item_code: sanitizeText_(row.item_code), item_name: sanitizeText_(row.item_name), qty: Number(row.qty || 0), amount: Number(row.amount || 0), status: sanitizeText_(row.status), created_at: sanitizeText_(row.created_at), due_at: countdown.due_at, countdown_label: countdown.label, is_overdue: countdown.is_overdue, is_today: countdown.is_today };
-  }).sort(function(a,b){ return toTimestampMs_(a.due_at) - toTimestampMs_(b.due_at); });
-  var pendingRenewals = listPendingRenewals_(tenant).map(function(row){
-    var info = buildRenewalCountdownInfo_(row, nowMs);
-    return { renewal_id: sanitizeText_(row.renewal_id), card_id: sanitizeText_(row.card_id), status: sanitizeText_(row.status), billing_status: sanitizeText_(row.billing_status), total_amount: toNumber_(row.total_amount), due_at: info.due_at || formatRenewalDateForDisplay_(row.due_at), countdown_label: info.label, is_overdue: !!info.is_overdue, is_today: !!info.is_today, reminder_stage: resolveRenewalReminderStageByCountdown_(info), last_reminded_at: formatRenewalDateForDisplay_(row.last_reminded_at) };
-  }).sort(function(a,b){ return toTimestampMs_(a.due_at) - toTimestampMs_(b.due_at); });
-  var latestPaymentMap = buildLatestPaymentMapFromRows_(payments);
-  var updateCountMap = buildUpdateCountMapFromRows_(getSheetRowsByName_("update_log_db"), tenant);
-  var summary = { cards_total: cards.length, unpaid_cards: 0, due_today_cards: 0, overdue_cards: 0, pending_commission_count: commissions.length, pending_addon_count: pendingAddons.length, pending_addon_due_today_count: pendingAddons.filter(function(item){ return !!item.is_today; }).length, pending_addon_overdue_count: pendingAddons.filter(function(item){ return !!item.is_overdue; }).length, renewal_pending_count: pendingRenewals.length, renewal_due_today_count: pendingRenewals.filter(function(item){ return !!item.is_today; }).length, renewal_overdue_count: pendingRenewals.filter(function(item){ return !!item.is_overdue; }).length };
-  var dueToday = [];
-  var overdue = [];
-  var enrichedCards = cards.map(function(card) {
-    var latestPayment = latestPaymentMap[sanitizeText_(card.id)] || null;
-    var enriched = enrichAdminDashboardCard_(card, latestPayment, nowMs, updateCountMap);
-    var cardBillingStatus = sanitizeText_(enriched.billing_status).toLowerCase();
-    var latestPaymentStatus = sanitizeText_(enriched.latest_payment_status).toLowerCase();
-    if (cardBillingStatus !== "paid") summary.unpaid_cards++;
-    if (!enriched.renewal_payment_pending && latestPaymentStatus !== "paid") {
-      if (enriched.payment_countdown && enriched.payment_countdown.is_today) {
-        summary.due_today_cards++;
-        dueToday.push(buildAdminDashboardAlertItem_(card, latestPayment, enriched.payment_countdown.label, enriched));
-      }
-      if (isDashboardCardOverdue_(enriched)) {
-        summary.overdue_cards++;
-        overdue.push(buildAdminDashboardAlertItem_(card, latestPayment, resolveDashboardOverdueLabel_(enriched), enriched));
-      }
-    }
-    return enriched;
-  });
-  enrichedCards = sortDashboardCards_(enrichedCards);
-  dueToday = sortDashboardAlertItems_(dueToday);
-  overdue = sortDashboardAlertItems_(overdue);
-  return { ok: true, version: HSC_VERSION, action: "getAdminCardDashboard", summary: summary, cards: enrichedCards, alerts: { due_today: dueToday, overdue: overdue, pending_commissions: commissions, pending_addons: pendingAddons, pending_renewals: pendingRenewals } };
-}
-
 function getDashboardCards_(tenant) {
   return getSheetRowsByName_("card_db")
     .filter(function(row) {
@@ -8015,6 +7698,11 @@ function confirmAddOnPayment_(req) {
   var updatedCard = applySingleAddonToCard_(card, order);
   updatedCard.updated_at = nowIso_();
   updateRowByName_("card_db", card.__rowNum, updatedCard);
+  try {
+    invalidateCardPublicCache_(updatedCard.id || updatedCard.card_id);
+  } catch (cacheErr) {
+    Logger.log("[confirmAddOnPayment_] cache invalidation failed: " + cacheErr.message);
+  }
 
   var updatedOrder = shallowClone_(order);
   updatedOrder.status = "paid";
@@ -8309,7 +7997,9 @@ function installCommercialTriggers_(req) {
     if (found) return;
 
     var builder = ScriptApp.newTrigger(item.fn).timeBased();
-    if (item.type === "daily") {
+    if (item.type === "minutes") {
+      builder = builder.everyMinutes(item.every || 5);
+    } else if (item.type === "daily") {
       builder = builder.everyDays(1).atHour(item.hour || 0);
       if (typeof item.minute === "number") {
         builder = builder.nearMinute(item.minute);
@@ -8511,6 +8201,14 @@ function adminRepairDueAt_(req) {
     patchedCard.payment_due_at = dueAtText;
     patchedCard.updated_at = nowIso_();
     updateRowByName_("card_db", card.__rowNum, patchedCard);
+    try {
+      invalidateCardPublicCache_(cardId);
+    } catch (cacheErr) {
+      Logger.log(
+        "[adminRepairDueAt_] cache invalidation failed: " +
+        cacheErr.message
+      );
+    }
   }
 
   writeOpsLog_({
@@ -8593,6 +8291,7 @@ function adminUpdateCard_(req) {
 
   updated.updated_at = nowIso_();
   updateRowByName_("card_db", card.__rowNum, updated);
+  invalidateCardPublicCache_(cardId);
   writeOpsLog_({
     module: "card",
     action: "adminUpdateCard",
@@ -9057,6 +8756,11 @@ function runPaymentOverdueCheck_() {
       updated.inactivated_at = nowIso_();
       updated.updated_at = nowIso_();
       updateRowByName_("card_db", card.__rowNum, updated);
+      try {
+        invalidateCardPublicCache_(updated.id || updated.card_id);
+      } catch (cacheErr) {
+        Logger.log("[runPaymentOverdueCheck_] cache invalidation failed: " + cacheErr.message);
+      }
       locked.push({ card_id: updated.id, payment_due_at: updated.payment_due_at });
     } catch (err) {}
   });
@@ -9080,6 +8784,11 @@ function runCardExpiryCheck_() {
       updated.expired_at = nowIso_();
       updated.updated_at = nowIso_();
       updateRowByName_("card_db", card.__rowNum, updated);
+      try {
+        invalidateCardPublicCache_(updated.id || updated.card_id);
+      } catch (cacheErr) {
+        Logger.log("[runCardExpiryCheck_] cache invalidation failed: " + cacheErr.message);
+      }
       expired.push({ card_id: updated.id, expires_at: updated.expires_at });
     } catch (err) {}
   });
@@ -9716,60 +9425,6 @@ function runPaymentLockSweep() {
   };
 }
 
-function runInviteExpireSweep() {
-  ensureSchemasOrThrow_(["invite_db"]);
-
-  var now = new Date();
-  var nowIso = nowIso_();
-  var invites = getSheetRowsByName_("invite_db");
-  var expired = [];
-  var pendingWrites = [];
-
-  invites.forEach(function(invite) {
-    try {
-      var status = sanitizeText_(invite.status).toLowerCase();
-      if (status === "expired" || status === "disabled" || status === "used") return;
-
-      var expiresAt = toDateSafe_(getInviteExpireAtValue_(invite));
-      if (!expiresAt) return;
-      if (now.getTime() <= expiresAt.getTime()) return;
-
-      var updated = shallowClone_(invite);
-      updated.status = "expired";
-      updated.expired_at = sanitizeText_(updated.expired_at) || nowIso;
-      updated.updated_at = nowIso;
-
-      if (invite.__rowNum) {
-        pendingWrites.push({
-          rowNum: invite.__rowNum,
-          rowObj: updated
-        });
-      }
-
-      expired.push({
-        invite_code: sanitizeText_(updated.invite_code),
-        expire_at: getInviteExpireAtValue_(updated)
-      });
-    } catch (err) {
-      Logger.log("⚠️ runInviteExpireSweep error: " + err);
-    }
-  });
-
-  if (pendingWrites.length) {
-    updateRowsByNameBatch_("invite_db", pendingWrites);
-  }
-
-  Logger.log("🧹 runInviteExpireSweep executed");
-  return {
-    ok: true,
-    version: HSC_VERSION,
-    action: "runInviteExpireSweep",
-    delegated_to: "invite_db direct sweep",
-    expired_count: expired.length,
-    expired: expired
-  };
-}
-
 // ============================================================
 // Update limit override integration
 // ============================================================
@@ -10266,25 +9921,6 @@ function sanitizeText_(value) {
   return value == null ? "" : String(value).trim();
 }
 
-function normalizeCell_(value) {
-  if (value === null || value === undefined) return "";
-
-  if (Object.prototype.toString.call(value)
- === "[object Date]") {
-    return isNaN(value.getTime()) ? "" : toIso_(value);
-  }
-
-  if (typeof value === "number") {
-    return isFinite(value) ? String(value) : "";
-  }
-
-  if (typeof value === "boolean") {
-    return value ? "true" : "false";
-  }
-
-  return sanitizeText_(value);
-}
-
 const SCHEMA_DATE_FIELDS_MAP_ = {
   card_db: ["created_at","updated_at","activated_at","inactivated_at","expired_at","expires_at","form_ts","reserved_at","confirmed_at","update_token_created_at","update_token_expire","update_link_sent_at","payment_due_at","payment_paid_at","remind_at","reminded_at","delivered_at","update_unlimited_expires_at"],
   lead_db: ["created_at","updated_at","form_ts","converted_at"],
@@ -10435,11 +10071,6 @@ function isPlanUpgrade_(currentPlan, targetPlan) {
 function normalizeStatus_(value) {
   return sanitizeText_(value).toLowerCase();
 }
-function sanitizePhoneAsText_(value) {
-  var s = sanitizeText_(value);
-  return s ? s.replace(/\s+/g, "") : "";
-}
-
 function toBoolean_(value) {
   if (typeof value === "boolean") return value;
   var s = sanitizeText_(value).toLowerCase();
@@ -10560,79 +10191,6 @@ function generateInviteCode_() {
 
 function generateLeadId_() {
   return "LD" + Utilities.formatDate(new Date(), CONFIG.DEFAULT_TIMEZONE, "yyyyMMddHHmmss") + Math.floor(Math.random() * 900 + 100);
-}
-
-function generateCardId_() {
-  var lock = LockService.getScriptLock();
-  var hasLock = false;
-
-  try {
-    lock.waitLock(30000);
-    hasLock = true;
-  } catch (lockErr) {
-    clearSheetRowCache_("card_db");
-    var MAX_FALLBACK_TRIES = 5;
-    for (var attempt = 0; attempt < MAX_FALLBACK_TRIES; attempt++) {
-      var now = new Date();
-      var millis6 = String(now.getTime()).slice(-6);
-      var rand4 = String(Math.floor(Math.random() * 9000 + 1000));
-      var fallbackId = "TW" + millis6 + rand4.slice(0, 2);
-
-      if (!findRowByField_("card_db", "id", fallbackId)) {
-        Logger.log("generateCardId_ lock failed, using fallback: " + fallbackId + " ; detail=" + (lockErr && lockErr.message ? lockErr.message : String(lockErr)));
-        return fallbackId;
-      }
-    }
-
-    throw new Error("generateCardId_ fallback failed: unable to generate unique ID after " + MAX_FALLBACK_TRIES + " attempts");
-  }
-
-  try {
-    var props = PropertiesService.getScriptProperties();
-    var key = "HSC_CARD_SEQ_TW";
-    var currentSeq = Number(props.getProperty(key) || 0);
-    clearSheetRowCache_("card_db");
-    var rows = getSheetRowsByName_("card_db");
-    var maxNum = 0;
-    var existingIds = {};
-    var MAX_TRIES = 100;
-    var tries = 0;
-
-    rows.forEach(function(r) {
-      var cardId = sanitizeText_(r.id);
-      if (cardId) existingIds[cardId] = true;
-      var m = /^TW(\d{4,})$/.exec(cardId);
-      if (m) maxNum = Math.max(maxNum, Number(m[1]));
-    });
-
-    if (!isFinite(currentSeq) || currentSeq < maxNum) {
-      currentSeq = maxNum;
-    }
-
-    var nextSeq = currentSeq;
-    var nextId = "";
-
-    do {
-      nextSeq += 1;
-      nextId = "TW" + String(nextSeq).padStart(4, "0");
-      tries += 1;
-      if (tries > MAX_TRIES) {
-        throw new Error("generateCardId_ exceeded max tries (" + MAX_TRIES + ")");
-      }
-    } while (existingIds[nextId]);
-
-    props.setProperty(key, String(nextSeq));
-    return nextId;
-
-  } finally {
-    if (hasLock) {
-      try {
-        lock.releaseLock();
-      } catch (releaseErr) {
-        Logger.log("generateCardId_ lock release failed: " + (releaseErr && releaseErr.message ? releaseErr.message : String(releaseErr)));
-      }
-    }
-  }
 }
 
 function generatePaymentId_() {
@@ -15411,6 +14969,7 @@ function adminUpdateCardPhotoUrls_(req) {
     updatedFields.push(field);
   });
 
+  try { invalidateCacheOnWrite_("card_db"); } catch(e) {}
   try { invalidateCardPublicCache_(cardId); } catch(e) {}
 
   return {
@@ -15834,6 +15393,7 @@ function normalizeUpdateCardReqFields_(req) {
     "photo6_key","photo7_key","photo8_key","photo9_key","photo10_key",
     "cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3",
     "cta_limit","photo_limit",
+    "marquee_text","marquee_enabled",
     "features_json","color","style","paper","plan"
   ];
   fields.forEach(function(f) {
@@ -15853,6 +15413,7 @@ function normalizeUpdateCardReqFields_(req) {
       "photo6_key","photo7_key","photo8_key","photo9_key","photo10_key",
       "cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3",
       "cta_limit","photo_limit",
+      "marquee_text","marquee_enabled",
       "features_json"
     ];
     if (card.plan === "premium") {
@@ -15937,12 +15498,6 @@ function incrementInviteUsage_(inviteCode, usedById) {
     }
   }
 }
-
-function buildFormUrl_(inviteCode) {
-  var url = CONFIG.BASE_URL + "form.html?invite=" + encodeURIComponent(inviteCode);
-  return toLiffUrl_(url);
-}
-
 
 function generateRequestId_() {
   return "RQ" + Utilities.formatDate(new Date(), CONFIG.DEFAULT_TIMEZONE, "yyyyMMddHHmmss") + generateRandomCode_(4);
@@ -16915,7 +16470,7 @@ function assignPaymentToCard_(req) {
 // 原檔:
 //   const HSC_VERSION = "v7.12.2-payment-type-routing";
 // 改為:
-const HSC_VERSION = "v463";
+const HSC_VERSION = "v507";
 
 /* ============================================================
  * ======= [ADD] LIFF URL 轉換工具(v7.15 LINE 整合)==========
@@ -17046,71 +16601,6 @@ function normalizeCell_(value) {
 /* ============================================================
  * ============ [REPLACE] getSheetRowsByName_ =================
  * ============================================================ */
-// 加入:讀完 row 後,對 PHONE_COLUMNS_BY_SCHEMA_ 定義的欄位做前導零還原
-function getSheetRowsByName_(schemaName) {
-  if (_sheetRowCacheEnabled_ && _sheetRowCache_[schemaName]) {
-    return _sheetRowCache_[schemaName];
-  }
-
-  var useScriptCache = isSheetRowsScriptCacheable_(schemaName);
-  var scriptCache = useScriptCache ? CacheService.getScriptCache() : null;
-  var cacheKey = useScriptCache ? getSheetRowsScriptCacheKey_(schemaName) : "";
-
-  if (useScriptCache) {
-    var cached = scriptCache.get(cacheKey);
-    if (cached) {
-      try {
-        var parsed = JSON.parse(cached);
-        if (_sheetRowCacheEnabled_) _sheetRowCache_[schemaName] = parsed;
-        return parsed;
-      } catch (_e) {}
-    }
-  }
-
-  var sheet = getSheetByName_(schemaName);
-  var expectedHeaders = SCHEMA[schemaName];
-  if (!expectedHeaders) throw new Error("Schema not defined: " + schemaName);
-
-  var lastRow = sheet.getLastRow();
-  var lastCol = expectedHeaders.length;
-  var values = sheet.getRange(1, 1, Math.max(lastRow, 1), lastCol).getValues();
-  var actualHeaders = values[0] || [];
-  validateHeaders_(schemaName, actualHeaders);
-
-  if (lastRow <= 1) {
-    if (_sheetRowCacheEnabled_) _sheetRowCache_[schemaName] = [];
-    if (useScriptCache) {
-      try { scriptCache.put(cacheKey, JSON.stringify([]), 300); } catch (_e) {}
-    }
-    return [];
-  }
-
-  var phoneCols = PHONE_COLUMNS_BY_SCHEMA_[schemaName] || [];
-
-  var rows = [];
-  for (var r = 1; r < values.length; r++) {
-    var rowObj = {};
-    for (var c = 0; c < expectedHeaders.length; c++) {
-      rowObj[expectedHeaders[c]] = normalizeCell_(values[r][c]);
-    }
-    // === A1 修正:還原電話前導零 ===
-    for (var pi = 0; pi < phoneCols.length; pi++) {
-      var pcol = phoneCols[pi];
-      if (rowObj[pcol]) {
-        rowObj[pcol] = restorePhoneLeadingZero_(rowObj[pcol]);
-      }
-    }
-    rowObj = normalizeRowDateFieldsForSchema_(schemaName, rowObj);
-    rowObj.__rowNum = r + 1;
-    rows.push(rowObj);
-  }
-
-  if (_sheetRowCacheEnabled_) _sheetRowCache_[schemaName] = rows;
-  if (useScriptCache) {
-    try { scriptCache.put(cacheKey, JSON.stringify(rows), 300); } catch (_e) {}
-  }
-  return rows;
-}
 
 
 /* ============================================================
@@ -17332,23 +16822,6 @@ function normalizeRequest_(e, method) {
 /* ============================================================
  * ============ [REPLACE] invalidateCacheOnWrite_ =============
  * ============================================================ */
-// 一併清掉 request-scoped primary key index
-function invalidateCacheOnWrite_(schemaName) {
-  clearSheetRowCache_(schemaName);
-  // 清掉對應 schema 的 primary key index
-  if (schemaName) {
-    var prefix = schemaName + ":";
-    Object.keys(_requestIndexCache_).forEach(function(key) {
-      if (key.indexOf(prefix) === 0) {
-        delete _requestIndexCache_[key];
-      }
-    });
-  } else {
-    _requestIndexCache_ = {};
-  }
-}
-
-
 /* ============================================================
  * ============ [REPLACE] clearSheetRowCache_(瘦身) ==========
  * ============================================================ */
@@ -17471,25 +16944,17 @@ function deleteRowsByName_(sheetName, rows) {
       Logger.log("deleteRowsByName_ failed at row " + rowNum + ": " + e.message);
     }
   });
-  
+
+  if (deletedCount > 0) {
+    invalidateCacheOnWrite_(sheetName);
+  }
+
   return deletedCount;
 }
 
 /* ============================================================
  * ========== [REPLACE] isSheetRowsScriptCacheable_ ==========
  * ============================================================ */
-// B2:把更多熱門只讀表也納入 ScriptCache
-// 注意:card_db 是寫入最頻繁的表,不放 ScriptCache(避免 TTL 內看到舊資料)
-// agent_db 也寫得頻繁,不放
-function isSheetRowsScriptCacheable_(schemaName) {
-  return [
-    "plan_db",
-    "pricing_db",
-    "commission_rules",
-    "announcement_db",
-    "promo_rules"
-  ].indexOf(String(schemaName || "")) !== -1;
-}
 
 
 /* ============================================================
@@ -17509,12 +16974,6 @@ function markAllSchemasEnsuredForRequest_() {
 /* ============================================================
  * ========= [REPLACE] ensureAllSchemasOrThrow_(B4) ==========
  * ============================================================ */
-function ensureAllSchemasOrThrow_() {
-  if (_allSchemasEnsuredInRequest_) return [];
-  var results = ensureSchemasOrThrow_(Object.keys(SCHEMA));
-  _allSchemasEnsuredInRequest_ = true;
-  return results;
-}
 
 
 /* ============================================================
@@ -17864,6 +17323,21 @@ function triggerExpiryCheck_(req) {
 
   if (batch.length) {
     updateRowsByNameBatch_("card_db", batch);
+    batch.forEach(function(entry) {
+      var cardId = sanitizeText_(
+        entry && entry.rowObj && (entry.rowObj.id || entry.rowObj.card_id)
+      );
+      if (!cardId) return;
+
+      try {
+        invalidateCardPublicCache_(cardId);
+      } catch (cacheErr) {
+        Logger.log(
+          "[triggerExpiryCheck_] cache invalidation failed for " +
+          cardId + ": " + cacheErr.message
+        );
+      }
+    });
   }
 
   return { ok: true, version: HSC_VERSION, action: "triggerExpiryCheck", result: results };
@@ -18802,32 +18276,6 @@ function ensureSchemasOrThrow_(schemaNames) {
  * [REPLACE P5] invalidateCacheOnWrite_
  * 寫入時只清自己那張表,不要整個清
  * ============================================================ */
-function invalidateCacheOnWrite_(schemaName) {
-  if (!schemaName) {
-    _sheetRowCache_ = {};
-    _requestIndexCache_ = {};
-    return;
-  }
-
-  delete _sheetRowCache_[schemaName];
-  clearSchemaCheckCache_(schemaName);
-
-  try {
-    var cache = CacheService.getScriptCache();
-    cache.remove(getSheetRowsScriptCacheKey_(schemaName));
-  } catch (_e) {}
-
-  // 只清這張表的 primary key index
-  if (_requestIndexCache_) {
-    var prefix = schemaName + ":";
-    Object.keys(_requestIndexCache_).forEach(function(key) {
-      if (key.indexOf(prefix) === 0) {
-        delete _requestIndexCache_[key];
-      }
-    });
-  }
-}
-
 
 /* ============================================================
  * [REPLACE P6] getAdminCardDashboard_
@@ -18836,207 +18284,6 @@ function invalidateCacheOnWrite_(schemaName) {
  *   - 減少重複 filter/sort
  *   - 索引化 latest payment / update count
  * ============================================================ */
-function getAdminCardDashboard_(req) {
-  ensureSchemasOrThrow_(["card_db", "payment_db", "commission_db", "add_on_order_db", "renewal_db", "update_log_db"]);
-  req = req || {};
-  requireAdminKeyOrSystem_(req);
-
-  var tenant = getTenant_(req);
-  var nowMs = Date.now();
-
-  // === Step 1: 讀所有需要的表(快取生效時很快) ===
-  var allCards = getSheetRowsByName_("card_db");
-  var allPayments = getSheetRowsByName_("payment_db");
-  var allAddons = getSheetRowsByName_("add_on_order_db");
-  var allRenewals = getSheetRowsByName_("renewal_db");
-  var allUpdateLogs = getSheetRowsByName_("update_log_db");
-
-  // === Step 2: 一次 pass 過濾 + 排序 cards ===
-  var cards = [];
-  for (var i = 0; i < allCards.length; i++) {
-    if (sameTenant_(allCards[i].tenant, tenant)) cards.push(allCards[i]);
-  }
-  cards.sort(function(a, b) {
-    return sanitizeText_(b.created_at).localeCompare(sanitizeText_(a.created_at));
-  });
-
-  // === Step 3: 一次 pass 過濾 payments 並建索引 ===
-  var payments = [];
-  var latestPaymentMap = {};
-  for (var j = 0; j < allPayments.length; j++) {
-    var pay = allPayments[j];
-    if (!sameTenant_(pay.tenant, tenant)) continue;
-    payments.push(pay);
-
-    var payCardId = sanitizeText_(pay.card_id);
-    if (!payCardId) continue;
-
-    var payTs = toTimestampMs_(pay.updated_at || pay.created_at || pay.paid_at || pay.due_at);
-    var existing = latestPaymentMap[payCardId];
-    if (!existing || payTs >= existing.__ts) {
-      pay.__ts = payTs;
-      latestPaymentMap[payCardId] = pay;
-    }
-  }
-  // 清除 __ts
-  Object.keys(latestPaymentMap).forEach(function(k) { delete latestPaymentMap[k].__ts; });
-
-  // === Step 4: commissions ===
-  var commissions = [];
-  for (var k = 0; k < payments.length; k++) {
-    var p = payments[k];
-    if (sanitizeText_(p.status).toLowerCase() !== "paid") continue;
-    var pEvent = sanitizeText_(p.event_type);
-    var pOrder = sanitizeText_(p.order_type);
-    var pCommission = sanitizeText_(p.commission_status).toLowerCase();
-    var pRelevant = pEvent === "first_payment" || pEvent === "renewal" || pOrder === "renewal" || pEvent === "addon_payment";
-    if (!pRelevant) continue;
-    if (pCommission && pCommission !== "pending") continue;
-
-    commissions.push({
-      payment_id: sanitizeText_(p.payment_id),
-      card_id: sanitizeText_(p.card_id),
-      amount: Number(p.amount || 0),
-      event_type: pEvent,
-      order_type: pOrder,
-      commission_status: sanitizeText_(p.commission_status),
-      paid_at: sanitizeText_(p.paid_at),
-      created_at: sanitizeText_(p.created_at)
-    });
-  }
-  commissions.sort(function(a, b) {
-    return sanitizeText_(b.created_at).localeCompare(sanitizeText_(a.created_at));
-  });
-
-  // === Step 5: pending addons ===
-  var pendingAddons = [];
-  for (var m = 0; m < allAddons.length; m++) {
-    var ao = allAddons[m];
-    if (!sameTenant_(ao.tenant, tenant)) continue;
-    if (sanitizeText_(ao.status).toLowerCase() !== "pending") continue;
-    var countdown = buildAddonOrderCountdown_(ao, nowMs);
-    pendingAddons.push({
-      addon_order_id: sanitizeText_(ao.addon_order_id),
-      card_id: sanitizeText_(ao.card_id),
-      addon_type: sanitizeText_(ao.addon_type),
-      addon_key: sanitizeText_(ao.addon_key),
-      item_code: sanitizeText_(ao.item_code),
-      item_name: sanitizeText_(ao.item_name),
-      qty: Number(ao.qty || 0),
-      amount: Number(ao.amount || 0),
-      status: sanitizeText_(ao.status),
-      created_at: sanitizeText_(ao.created_at),
-      due_at: countdown.due_at,
-      countdown_label: countdown.label,
-      is_overdue: countdown.is_overdue,
-      is_today: countdown.is_today
-    });
-  }
-  pendingAddons.sort(function(a, b) {
-    return toTimestampMs_(a.due_at) - toTimestampMs_(b.due_at);
-  });
-
-  // === Step 6: pending renewals ===
-  var pendingRenewals = [];
-  for (var n = 0; n < allRenewals.length; n++) {
-    var rn = allRenewals[n];
-    if (!sameTenant_(rn.tenant, tenant)) continue;
-    var rnStatus = sanitizeText_(rn.status).toLowerCase();
-    var rnBilling = sanitizeText_(rn.billing_status).toLowerCase();
-    if (rnStatus === "paid" || rnBilling === "paid") continue;
-    if (rnStatus !== "pending" && rnStatus !== "overdue" && rnStatus !== "unpaid" && rnStatus) continue;
-
-    var rnInfo = buildRenewalCountdownInfo_(rn, nowMs);
-    pendingRenewals.push({
-      renewal_id: sanitizeText_(rn.renewal_id),
-      card_id: sanitizeText_(rn.card_id),
-      status: sanitizeText_(rn.status),
-      billing_status: sanitizeText_(rn.billing_status),
-      total_amount: toNumber_(rn.total_amount),
-      due_at: rnInfo.due_at || formatRenewalDateForDisplay_(rn.due_at),
-      countdown_label: rnInfo.label,
-      is_overdue: !!rnInfo.is_overdue,
-      is_today: !!rnInfo.is_today,
-      reminder_stage: resolveRenewalReminderStageByCountdown_(rnInfo),
-      last_reminded_at: formatRenewalDateForDisplay_(rn.last_reminded_at)
-    });
-  }
-  pendingRenewals.sort(function(a, b) {
-    return toTimestampMs_(a.due_at) - toTimestampMs_(b.due_at);
-  });
-
-  // === Step 7: update count map ===
-  var updateCountMap = buildUpdateCountMapFromRows_(allUpdateLogs, tenant);
-
-  // === Step 8: enrich cards + summary ===
-  var summary = {
-    cards_total: cards.length,
-    unpaid_cards: 0,
-    due_today_cards: 0,
-    overdue_cards: 0,
-    pending_commission_count: commissions.length,
-    pending_addon_count: pendingAddons.length,
-    pending_addon_due_today_count: 0,
-    pending_addon_overdue_count: 0,
-    renewal_pending_count: pendingRenewals.length,
-    renewal_due_today_count: 0,
-    renewal_overdue_count: 0
-  };
-
-  for (var ai = 0; ai < pendingAddons.length; ai++) {
-    if (pendingAddons[ai].is_today) summary.pending_addon_due_today_count++;
-    if (pendingAddons[ai].is_overdue) summary.pending_addon_overdue_count++;
-  }
-  for (var ri = 0; ri < pendingRenewals.length; ri++) {
-    if (pendingRenewals[ri].is_today) summary.renewal_due_today_count++;
-    if (pendingRenewals[ri].is_overdue) summary.renewal_overdue_count++;
-  }
-
-  var dueToday = [];
-  var overdue = [];
-  var enrichedCards = [];
-  for (var ci = 0; ci < cards.length; ci++) {
-    var card = cards[ci];
-    var latestPayment = latestPaymentMap[sanitizeText_(card.id)] || null;
-    var enriched = enrichAdminDashboardCard_(card, latestPayment, nowMs, updateCountMap);
-    var cardBillingStatus = sanitizeText_(enriched.billing_status).toLowerCase();
-    var latestPaymentStatus = sanitizeText_(enriched.latest_payment_status).toLowerCase();
-
-    if (cardBillingStatus !== "paid") summary.unpaid_cards++;
-
-    if (!enriched.renewal_payment_pending && latestPaymentStatus !== "paid") {
-      if (enriched.payment_countdown && enriched.payment_countdown.is_today) {
-        summary.due_today_cards++;
-        dueToday.push(buildAdminDashboardAlertItem_(card, latestPayment, enriched.payment_countdown.label, enriched));
-      }
-      if (isDashboardCardOverdue_(enriched)) {
-        summary.overdue_cards++;
-        overdue.push(buildAdminDashboardAlertItem_(card, latestPayment, resolveDashboardOverdueLabel_(enriched), enriched));
-      }
-    }
-    enrichedCards.push(enriched);
-  }
-
-  enrichedCards = sortDashboardCards_(enrichedCards);
-  dueToday = sortDashboardAlertItems_(dueToday);
-  overdue = sortDashboardAlertItems_(overdue);
-
-  return {
-    ok: true,
-    version: HSC_VERSION,
-    action: "getAdminCardDashboard",
-    summary: summary,
-    cards: enrichedCards,
-    alerts: {
-      due_today: dueToday,
-      overdue: overdue,
-      pending_commissions: commissions,
-      pending_addons: pendingAddons,
-      pending_renewals: pendingRenewals
-    }
-  };
-}
-
 
 /* ============================================================
  * [REPLACE P7] buildUpdateCountMapFromRows_
@@ -19783,6 +19030,9 @@ function routeAction_(e, method) {
       case "adminGrantAddon": result = adminGrantAddon_(req); break;
       case "adminGrantUnlimitedUpdate": result = adminGrantUnlimitedUpdate_(req); break;
       case "adminRepairCardLimits": result = adminRepairCardLimits_(req); break;
+      case "adminPreviewTestMarker": result = adminPreviewTestMarker_(req); break;
+      case "adminCleanupTestMarker": result = adminCleanupTestMarker_(req); break;
+      case "adminRecreatePermanentTestCards": result = adminRecreatePermanentTestCards_(req); break;
       case "adminReassignServiceAgent": result = adminReassignServiceAgent_(req); break;  
       case "adminBuildBindUrl": result = adminBuildBindUrl_(req); break;
       case "adminListTestCards": result = adminListTestCards_(req); break;
@@ -19863,6 +19113,7 @@ function routeAction_(e, method) {
       case "getPendingOfflinePayments": result = getPendingOfflinePayments_(req); break;
       case "runDailyOps": result = runDailyOps_(req); break;
       case "installCommercialTriggers": result = installCommercialTriggers_(req); break;
+      case "getTriggerStatus": result = getTriggerStatus_(req); break;
       case "getCommissions": result = getCommissions_(req); break;
       case "approveCommission": result = approveCommission_(req); break;
       case "markCommissionPaid": result = markCommissionPaid_(req); break;
@@ -19993,62 +19244,79 @@ case "adminDirectConfirmPayment": result = adminDirectConfirmPayment_(req);break
 
   var now = new Date();
 
-  // --- 3. 找現有 pending 單 ---
-  var payments = getSheetRowsByName_('payment_db');
-  var pendingRow = null;
-  for (var j = 0; j < payments.length; j++) {
-    if (sanitizeText_(payments[j].card_id).toUpperCase() === cardId &&
-        sanitizeText_(payments[j].status).toLowerCase() === 'pending') {
-      pendingRow = payments[j];
-      break;
-    }
+  // 🔒 鎖定：保護「找現有 pending 單／建立新 pending 單」這段，避免同一張卡被併發請求
+  // 重複建立兩筆 pending 付款。confirmPayment_ 自己有獨立的鎖，這裡的鎖在呼叫它之前就先釋放，
+  // 不做巢狀鎖定，兩段各自保護各自的關鍵區。
+  var paymentId;
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (lockErr) {
+    throw new Error('系統忙碌，無法完成付款確認，請稍後再試。');
   }
 
-  var paymentId;
-
-  if (pendingRow) {
-    // 有 pending 單：補金額和備註
-    paymentId = sanitizeText_(pendingRow.payment_id);
-    var updatedPending = shallowClone_(pendingRow);
-    updatedPending.amount = amount;
-    updatedPending.note   = mergeNote_(updatedPending.note, note);
-    updateRowByName_('payment_db', pendingRow.__rowNum, updatedPending);
-
-    // 🛡️ 把同卡其他 pending 單全部取消
-    for (var k = 0; k < payments.length; k++) {
-      var op = payments[k];
-      if (sanitizeText_(op.card_id).toUpperCase() === cardId &&
-          sanitizeText_(op.status).toLowerCase() === 'pending' &&
-          sanitizeText_(op.payment_id) !== paymentId) {
-        var cancelled = shallowClone_(op);
-        cancelled.status = 'cancelled';
-        cancelled.note   = mergeNote_(op.note, 'cancelled_by_admin_direct_confirm');
-        updateRowByName_('payment_db', op.__rowNum, cancelled);
-        Logger.log('adminDirectConfirmPayment_: cancelled pending ' + op.payment_id);
+  try {
+    // --- 3. 找現有 pending 單 ---
+    var payments = getSheetRowsByName_('payment_db');
+    var pendingRow = null;
+    for (var j = 0; j < payments.length; j++) {
+      if (sanitizeText_(payments[j].card_id).toUpperCase() === cardId &&
+          sanitizeText_(payments[j].status).toLowerCase() === 'pending') {
+        pendingRow = payments[j];
+        break;
       }
     }
 
-  } else {
-    // 沒有 pending 單：建一筆新的
-    paymentId = 'PAY-DIRECT-' + cardId + '-' + now.getTime();
-    var eventType = (paymentType === 'first_payment') ? 'first_payment' : 'renewal';
-    var newRow = {
-      payment_id:  paymentId,
-      card_id:     cardId,
-      amount:      amount,
-      status:      'pending',
-      event_type:  eventType,
-      order_type:  paymentType,
-      method:      'offline_transfer',
-      note:        note,
-      created_at:  toIso_(now),
-      operated_by: 'admin'
-    };
-    appendRowByName_('payment_db', newRow);
-    Logger.log('adminDirectConfirmPayment_: created new pending ' + paymentId);
+    if (pendingRow) {
+      // 有 pending 單：補金額和備註
+      paymentId = sanitizeText_(pendingRow.payment_id);
+      var updatedPending = shallowClone_(pendingRow);
+      updatedPending.amount = amount;
+      updatedPending.note   = mergeNote_(updatedPending.note, note);
+      updateRowByName_('payment_db', pendingRow.__rowNum, updatedPending);
+
+      // 🛡️ 把同卡其他 pending 單全部取消
+      for (var k = 0; k < payments.length; k++) {
+        var op = payments[k];
+        if (sanitizeText_(op.card_id).toUpperCase() === cardId &&
+            sanitizeText_(op.status).toLowerCase() === 'pending' &&
+            sanitizeText_(op.payment_id) !== paymentId) {
+          var cancelled = shallowClone_(op);
+          cancelled.status = 'cancelled';
+          cancelled.note   = mergeNote_(op.note, 'cancelled_by_admin_direct_confirm');
+          updateRowByName_('payment_db', op.__rowNum, cancelled);
+          Logger.log('adminDirectConfirmPayment_: cancelled pending ' + op.payment_id);
+        }
+      }
+
+    } else {
+      // 沒有 pending 單：建一筆新的
+      paymentId = 'PAY-DIRECT-' + cardId + '-' + now.getTime();
+      var eventType = (paymentType === 'first_payment') ? 'first_payment' : 'renewal';
+      var newRow = {
+        payment_id:  paymentId,
+        card_id:     cardId,
+        amount:      amount,
+        status:      'pending',
+        event_type:  eventType,
+        order_type:  paymentType,
+        method:      'offline_transfer',
+        note:        note,
+        created_at:  toIso_(now),
+        operated_by: 'admin'
+      };
+      appendRowByName_('payment_db', newRow);
+      Logger.log('adminDirectConfirmPayment_: created new pending ' + paymentId);
+    }
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (releaseErr) {
+      Logger.log('adminDirectConfirmPayment_ lock release failed: ' + (releaseErr && releaseErr.message ? releaseErr.message : String(releaseErr)));
+    }
   }
 
-  // --- 4. 統一走 confirmPayment_ ---
+  // --- 4. 統一走 confirmPayment_（confirmPayment_ 內部會自己再上鎖保護實際確認/開卡邏輯）---
   var result = confirmPayment_({
     payment_id:  paymentId,
     paid_at:     toIso_(now),
@@ -22048,24 +21316,6 @@ function diagnoseCR002() {
     Logger.log("  rule=" + r.rule_id + " agent_type=" + r.agent_type + " source_type=" + r.source_type);
   });
 }
-function diagnoseCR002() {
-  var payment = findRowByField_("payment_db", "payment_id", "TPMT_CR002");
-  Logger.log("payment.agent_id=" + payment.agent_id);
-  Logger.log("payment.share_agent_id=" + payment.share_agent_id);
-  Logger.log("payment.card_id=" + payment.card_id);
-  
-  var card = findRowByField_("card_db", "id", payment.card_id);
-  Logger.log("card.service_agent=" + (card ? card.service_agent : "card not found"));
-  
-  var agent = findRowByField_("agent_db", "agent_id", payment.agent_id);
-  Logger.log("agent.agent_type=" + (agent ? agent.agent_type : "agent not found"));
-  
-  var rules = getApplicableCommissionRules_(payment, { eventType: "first_payment", targetType: "card_plan", plan: "free", amount: 1000 });
-  Logger.log("matched rules count=" + rules.length);
-  rules.forEach(function(r) {
-    Logger.log("  rule=" + r.rule_id + " agent_type=" + r.agent_type + " source_type=" + r.source_type);
-  });
-}
 function diagnoseCR002Rules() {
   var rules = getSheetRowsByName_("commission_rules");
   Logger.log("總規則數=" + rules.length);
@@ -22087,6 +21337,119 @@ function diagnoseCR002Rules() {
     );
   });
 }
+
+// 🆕 依「備註關鍵字」預覽/清理測試資料（例如 Claude 測試腳本留下的 claude_test_ 開頭備註）
+// 只掃 payment_db / payment_inbox_db / ops_log_db 的 note 欄位，只讀不刪；
+// 實際刪除要另外呼叫 adminCleanupTestMarker_，且限定 marker 長度避免誤刪。
+function adminPreviewTestMarker_(req) {
+  req = req || {};
+  requireAdminKeyOrSystem_(req);
+  var marker = sanitizeText_(req.marker) || "claude_test_";
+
+  var result = { ok: true, version: HSC_VERSION, action: "adminPreviewTestMarker", marker: marker, matches: {} };
+
+  ["payment_db", "payment_inbox_db", "ops_log_db", "request_db"].forEach(function(sheetName) {
+    var rows = getSheetRowsByName_(sheetName) || [];
+    var matched = rows.filter(function(row) {
+      return sanitizeText_(row.note).indexOf(marker) !== -1;
+    });
+    result.matches[sheetName] = {
+      count: matched.length,
+      rows: matched.map(function(row) {
+        return {
+          __rowNum: row.__rowNum,
+          card_id: sanitizeText_(row.card_id || row.target_id),
+          note: sanitizeText_(row.note),
+          created_at: sanitizeText_(row.created_at)
+        };
+      })
+    };
+  });
+
+  return result;
+}
+
+function adminCleanupTestMarker_(req) {
+  req = req || {};
+  requireAdminKeyOrSystem_(req);
+  var marker = sanitizeText_(req.marker) || "claude_test_";
+  if (marker.length < 6) throw new Error("marker 太短，避免誤刪，請用更明確的標記");
+
+  var deleted = {};
+  ["payment_db", "payment_inbox_db", "ops_log_db", "request_db"].forEach(function(sheetName) {
+    var rows = getSheetRowsByName_(sheetName) || [];
+    var matched = rows.filter(function(row) {
+      return sanitizeText_(row.note).indexOf(marker) !== -1;
+    });
+    deleted[sheetName] = deleteRowsByName_(sheetName, matched);
+  });
+
+  try {
+    CacheService.getScriptCache().removeAll([
+      "hsc:sheet_rows:payment_db",
+      "hsc:sheet_rows:payment_inbox_db",
+      "hsc:sheet_rows:ops_log_db",
+      "hsc:sheet_rows:request_db"
+    ]);
+  } catch (e) { Logger.log("清快取失敗：" + e.message); }
+
+  return { ok: true, version: HSC_VERSION, action: "adminCleanupTestMarker", marker: marker, deleted: deleted };
+}
+
+// 🆕 補建常駐測試卡（TESTADMIN001 / PERFTEST001 / TESTREF，CLAUDE.md 文件記錄的固定測試工具）
+// 只在「查無此卡」時才建立，已存在就跳過，不會覆蓋既有資料。
+function adminRecreatePermanentTestCards_(req) {
+  req = req || {};
+  requireAdminKeyOrSystem_(req);
+
+  var now = new Date();
+  var defs = [
+    { id: "TESTADMIN001", name: "測試管理員卡", expires_at: "2030-12-31T23:59:59" },
+    { id: "PERFTEST001",  name: "效能基準測試卡", expires_at: "2030-12-31T23:59:59" },
+    { id: "TESTREF",      name: "推薦流程測試卡", expires_at: "2030-12-31T23:59:59" }
+  ];
+
+  var result = { ok: true, version: HSC_VERSION, action: "adminRecreatePermanentTestCards", created: [], skipped: [], healed: [] };
+
+  defs.forEach(function(def) {
+    var existing = findRowByField_("card_db", "id", def.id);
+    if (existing) {
+      // 自我修復：已存在但缺 plan（例如舊資料或補建時漏設），補上 premium 讓更新/續約等功能能正常測試
+      if (!sanitizeText_(existing.plan)) {
+        var healedCard = shallowClone_(existing);
+        healedCard.plan = "premium";
+        updateRowByName_("card_db", existing.__rowNum, healedCard);
+        result.healed.push(def.id);
+      }
+      result.skipped.push(def.id);
+      return;
+    }
+
+    var card = emptyRow_("card_db");
+    card.id = def.id;
+    card.token = Utilities.getUuid();
+    card.tenant = CONFIG.DEFAULT_TENANT;
+    card.status = "active";
+    card.billing_status = "paid";
+    card.created_at = toIso_(now);
+    card.updated_at = toIso_(now);
+    card.activated_at = toIso_(now);
+    card.expires_at = def.expires_at;
+    card.payment_paid_at = toIso_(now);
+    card.name = def.name;
+    card.plan = "premium";
+    card.is_test = "TRUE";
+    card.agent_type = "customer";
+    card.owner_agent_id = def.id;
+    card.owner_agent_type = "customer";
+
+    appendRowByName_("card_db", card);
+    result.created.push(def.id);
+  });
+
+  return result;
+}
+
 function resetTestCommissions() {
   // 清 ScriptCache
   var scriptCache = CacheService.getScriptCache();
@@ -22435,5 +21798,27 @@ function adminRepairCardLimits_(req) {
     action: "adminRepairCardLimits",
     fixed_count: fixed,
     message: "已修復 " + fixed + " 張卡片的 cta_limit / photo_limit"
+  };
+}
+
+// ─── 查詢目前 GAS 排程狀態（v463）─────────────────────────────────
+function getTriggerStatus_(req) {
+  requireAdminKey_(req);
+  var triggers = ScriptApp.getProjectTriggers();
+  var list = triggers.map(function(t) {
+    return {
+      handler:    t.getHandlerFunction(),
+      event_type: String(t.getEventType()),
+      trigger_id: t.getUniqueId()
+    };
+  });
+  var hasKeepWarm = list.some(function(t) { return t.handler === "keepWarmPing_"; });
+  return {
+    ok: true,
+    version: HSC_VERSION,
+    action: "getTriggerStatus",
+    keep_warm_active: hasKeepWarm,
+    total: list.length,
+    triggers: list
   };
 }
