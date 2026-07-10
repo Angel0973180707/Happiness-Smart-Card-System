@@ -585,7 +585,8 @@ const ACTIONS = [
   "adminRecreatePermanentTestCards",
   "getCardViewStats",
   "adminGetAllViewStats",
-  "adminFlushViewStats"
+  "adminFlushViewStats",
+  "adminCheckEnvironment"
 ];
 const ADMIN_PROTECTED_ACTIONS = [
   "getTrackingSummary",
@@ -718,7 +719,8 @@ const ADMIN_PROTECTED_ACTIONS = [
   "adminRecreatePermanentTestCards",
   "getCardViewStats",
   "adminGetAllViewStats",
-  "adminFlushViewStats"
+  "adminFlushViewStats",
+  "adminCheckEnvironment"
 ];
 // ============================================================
 // 主題欄位驗證與標準化 (清洗用)
@@ -8667,7 +8669,8 @@ function notifyAdminErrorWithThrottle_(errorId, action, message) {
     // 冷卻中：這次不推播，只把次數累加起來
     var count = Number(cache.get(countKey)) || 1;
     cache.put(countKey, String(count + 1), THROTTLE_SECONDS);
-    return;
+    // ★ 冷卻中被擋下也是一種明確結果，不能回傳 undefined 讓呼叫端誤以為送成功了
+    return { ok: false, reason: "throttled" };
   }
 
   var priorCount = Number(cache.get(countKey)) || 0;
@@ -8675,13 +8678,16 @@ function notifyAdminErrorWithThrottle_(errorId, action, message) {
     ? ("\n（冷卻期間內另外發生 " + priorCount + " 次同類錯誤，已合併只通知這一次）")
     : "";
 
-  notifyAdminLine_({
+  // ★ 接住 notifyAdminLine_ 的真實回傳結果，往上傳，不再讓它憑空消失
+  var lineResult = notifyAdminLine_({
     title: "🚨 系統例外警示",
     message: "Action: " + sanitizeText_(action) + "\n錯誤：" + sanitizeText_(message) + "\nerror_id: " + errorId + suffix
   });
 
   cache.put(throttleKey, "1", THROTTLE_SECONDS);
   cache.remove(countKey);
+
+  return lineResult; // { ok: boolean, reason?: string }
 }
 
 // 主入口：routeAction_ 的 catch 呼叫這個。整個函式絕對不能往外 throw，
@@ -8694,6 +8700,24 @@ function logSystemError_(err, action, req) {
     var stack = err && err.stack ? String(err.stack) : "";
     var errorName = err && err.name ? String(err.name) : "";
     var severity = classifyErrorSeverity_(message, errorName, action);
+
+    // ★ notified 欄位要講真話：normal 等級本來就不會嘗試通知，維持 "FALSE"；
+    // critical 等級依實際通知結果寫 "TRUE" 或 "FAILED: <原因>"，不再永遠寫死 "FALSE"。
+    // 這裡要在寫 Sheets 之前就先算出結果，才能一次寫進同一列，不用事後回頭補。
+    var notifiedValue = "FALSE";
+    if (severity === "critical") {
+      try {
+        var notifyResult = notifyAdminErrorWithThrottle_(errorId, action, message);
+        if (notifyResult && notifyResult.ok) {
+          notifiedValue = "TRUE";
+        } else {
+          notifiedValue = "FAILED: " + ((notifyResult && notifyResult.reason) ? notifyResult.reason : "unknown");
+        }
+      } catch (notifyErr) {
+        Logger.log("logSystemError_ 通知失敗: " + (notifyErr && notifyErr.message ? notifyErr.message : String(notifyErr)));
+        notifiedValue = "FAILED: exception";
+      }
+    }
 
     try {
       // 自己開表（跟 GAS_extTables.js / GAS_viewStats.js 同一套慣例），
@@ -8712,25 +8736,52 @@ function logSystemError_(err, action, req) {
         message,
         stack,
         severity,
-        "FALSE",
+        notifiedValue,
         sanitizeText_(req && req.tenant) || CONFIG.DEFAULT_TENANT
       ]);
     } catch (logErr) {
       Logger.log("logSystemError_ 寫入 system_error_db 失敗: " + (logErr && logErr.message ? logErr.message : String(logErr)));
-    }
-
-    if (severity === "critical") {
-      try {
-        notifyAdminErrorWithThrottle_(errorId, action, message);
-      } catch (notifyErr) {
-        Logger.log("logSystemError_ 通知失敗: " + (notifyErr && notifyErr.message ? notifyErr.message : String(notifyErr)));
-      }
     }
   } catch (fatalErr) {
     Logger.log("logSystemError_ 整體失敗（不影響主流程）: " + (fatalErr && fatalErr.message ? fatalErr.message : String(fatalErr)));
   }
 
   return errorId;
+}
+
+// ─────────────────────────────────────────
+//  環境自檢：一秒查驗 LINE 相關 Script Properties 到底有沒有設定，
+//  不明文吐出任何機密值，只回傳「存不存在／長度／遮蔽後的片段」。
+// ─────────────────────────────────────────
+function adminCheckEnvironment_(req) {
+  requireAdminKeyOrSystem_(req || {});
+
+  var props = PropertiesService.getScriptProperties();
+
+  function maskToken(value) {
+    if (!value) return "MISSING";
+    return "EXIST (Length: " + String(value).length + ")";
+  }
+
+  function maskUserId(value) {
+    if (!value) return "MISSING";
+    var v = String(value);
+    if (v.length <= 8) return "EXIST (too short to mask safely, length: " + v.length + ")";
+    return v.substring(0, 4) + "****" + v.substring(v.length - 4);
+  }
+
+  var lineToken = props.getProperty("LINE_CHANNEL_ACCESS_TOKEN");
+  var adminUserId = props.getProperty("LINE_ADMIN_USER_ID");
+  var notifyTo = props.getProperty("LINE_NOTIFY_TO");
+
+  return {
+    ok: true,
+    version: HSC_VERSION,
+    action: "adminCheckEnvironment",
+    LINE_CHANNEL_ACCESS_TOKEN: maskToken(lineToken),
+    LINE_ADMIN_USER_ID: maskUserId(adminUserId),
+    LINE_NOTIFY_TO: maskUserId(notifyTo)
+  };
 }
 
 function logAndNotifyEvent_(payload) {
@@ -19433,6 +19484,7 @@ case "adminDirectConfirmPayment": result = adminDirectConfirmPayment_(req);break
    case "getCardViewStats":     result = getCardViewStats_(req);     break;
   case "adminGetAllViewStats": result = adminGetAllViewStats_(req); break;
   case "adminFlushViewStats":  result = adminFlushViewStats_(req);  break;
+  case "adminCheckEnvironment": result = adminCheckEnvironment_(req); break;
   case "adminSetCardCtas": result = adminSetCardCtas_(req); break;
 
   case "adminBatchBankMatch":             result = adminBatchBankMatch_(req);             break;
