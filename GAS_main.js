@@ -8645,7 +8645,10 @@ function classifyErrorSeverity_(message, errorName, action) {
   // 不看訊息內容——就算訊息剛好含白名單關鍵字也不能放過。
   if (isNativeError || isCriticalAction) return "critical";
 
-  var lowerMsg = String(message || "").toLowerCase();
+  // ★ 這個系統裡的錯誤訊息混用兩種格式：人類可讀空格版（"Payment not found"）
+  // 跟底線代碼版（"CARD_NOT_FOUND: xxx"）。底線先轉空格，白名單才吃得到兩種格式，
+  // 避免正常的「卡號打錯」這種業務錯誤被誤判成 critical、引發 LINE 警示風暴。
+  var lowerMsg = String(message || "").toLowerCase().replace(/_/g, " ");
   var isKnownBusinessError = NORMAL_ERROR_KEYWORDS_.some(function(kw) {
     return lowerMsg.indexOf(kw) !== -1;
   });
@@ -8692,6 +8695,18 @@ function notifyAdminErrorWithThrottle_(errorId, action, message) {
 
 // 主入口：routeAction_ 的 catch 呼叫這個。整個函式絕對不能往外 throw，
 // 任何一段失敗都只記 log、不影響原本要回傳給前端的錯誤結果。
+// 斷路器：同一分鐘內累計寫入次數，超過 10 筆就跳過 Sheets 寫入（只留 Logger.log），
+// 避免高流量下大量例外把 Sheets 寫入配額/速率限制卡死，拖累主程序回應。
+// 用「分鐘桶」當 cache key，90 秒後自動過期歸零，不用額外清理邏輯。
+function checkErrorLogCircuitBreaker_() {
+  var cache = CacheService.getScriptCache();
+  var minuteBucket = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyyMMddHHmm");
+  var key = "HSC:syserr_count:" + minuteBucket;
+  var count = Number(cache.get(key)) || 0;
+  cache.put(key, String(count + 1), 90);
+  return count + 1; // 這是這一分鐘內的第幾筆
+}
+
 function logSystemError_(err, action, req) {
   var errorId = "ERR" + Utilities.formatDate(new Date(), "Asia/Taipei", "yyMMddHHmmss") + Math.floor(Math.random() * 900 + 100);
 
@@ -8720,25 +8735,33 @@ function logSystemError_(err, action, req) {
     }
 
     try {
-      // 自己開表（跟 GAS_extTables.js / GAS_viewStats.js 同一套慣例），
-      // 不透過 appendRowByName_，因為那個會在表不存在時直接 throw，
-      // 這裡要求「寫入失敗也不能讓主流程掛掉」，所以自己處理表不存在的情況。
-      var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-      var sheet = ss.getSheetByName("system_error_db");
-      if (!sheet) {
-        sheet = ss.insertSheet("system_error_db");
-        sheet.appendRow(["error_id", "occurred_at", "action", "error_message", "stack_trace", "severity", "notified", "tenant"]);
+      var writeCountThisMinute = checkErrorLogCircuitBreaker_();
+      if (writeCountThisMinute > 10) {
+        // 斷路器啟動：這一分鐘已經寫超過 10 筆，跳過 Sheets，只留 Logger.log，
+        // 保護主程序不被大量 appendRow 拖垮。
+        Logger.log("logSystemError_ 斷路器啟動（本分鐘第 " + writeCountThisMinute + " 筆，跳過 Sheets 寫入）: "
+          + "error_id=" + errorId + " action=" + sanitizeText_(action) + " message=" + message);
+      } else {
+        // 自己開表（跟 GAS_extTables.js / GAS_viewStats.js 同一套慣例），
+        // 不透過 appendRowByName_，因為那個會在表不存在時直接 throw，
+        // 這裡要求「寫入失敗也不能讓主流程掛掉」，所以自己處理表不存在的情況。
+        var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+        var sheet = ss.getSheetByName("system_error_db");
+        if (!sheet) {
+          sheet = ss.insertSheet("system_error_db");
+          sheet.appendRow(["error_id", "occurred_at", "action", "error_message", "stack_trace", "severity", "notified", "tenant"]);
+        }
+        sheet.appendRow([
+          errorId,
+          toIso_(new Date()),
+          sanitizeText_(action),
+          message,
+          stack,
+          severity,
+          notifiedValue,
+          sanitizeText_(req && req.tenant) || CONFIG.DEFAULT_TENANT
+        ]);
       }
-      sheet.appendRow([
-        errorId,
-        toIso_(new Date()),
-        sanitizeText_(action),
-        message,
-        stack,
-        severity,
-        notifiedValue,
-        sanitizeText_(req && req.tenant) || CONFIG.DEFAULT_TENANT
-      ]);
     } catch (logErr) {
       Logger.log("logSystemError_ 寫入 system_error_db 失敗: " + (logErr && logErr.message ? logErr.message : String(logErr)));
     }
