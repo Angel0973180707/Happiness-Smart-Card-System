@@ -2067,6 +2067,19 @@ async function requestRenewQuote() {
     }
   }
 
+  // ★ 客戶更新成功後，主動清掉本機（index.html/app.js）針對這張卡的快取，
+  // 避免更新完回到名片頁還看到 5 分鐘內的舊資料。key 命名跟 app.js 的
+  // getCardCacheKey_("HSC_" + type + "_" + normalizeId_(cardId)) 對齊。
+  function clearCardLocalCache_(cardId) {
+    try {
+      const id = String(cardId || "").trim().toUpperCase();
+      if (!id) return;
+      ["shell", "lite", "full"].forEach((type) => {
+        localStorage.removeItem("HSC_" + type + "_" + id);
+      });
+    } catch (_) {}
+  }
+
   async function submitUpdate() {
     if (!validateUpdateBeforeSubmit()) return;
 
@@ -2167,6 +2180,7 @@ async function requestRenewQuote() {
       const updatePayload = buildUpdatePayload();
       const updateRes = await postToGas({ action: CONFIG.UPDATE_SUBMIT_ACTION, card_id: cardId, update_token: token, ...updatePayload });
       if (!updateRes.ok) throw new Error(updateRes.error || "更新失敗");
+      clearCardLocalCache_(cardId); // ★ 更新成功，立刻清掉本機快取，避免名片頁看到舊資料
       const result = {
         cardId, updatedCard: updateRes.card || updateRes,
         deductFreeCount: state.updateFlow.deductFreeCount,
@@ -2397,7 +2411,9 @@ const pointsToApply = (useChecked && pointsBalance >= originalAmount && original
     }
     if (els["success-preview-row"]) {
       els["success-preview-row"].classList.remove("hidden");
-      const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(result.cardId)}&view=1`;
+      // ★ 帶 v=時間戳當 cache-bust，強迫瀏覽器/SW 繞過快取直接抓最新資料，
+      // 不影響 index.html 原本的 ?id=&view=1 邏輯，只是多一個查詢參數
+      const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(result.cardId)}&view=1&v=${Date.now()}`;
       if (els["progress-preview-link"]) {
         els["progress-preview-link"].href = previewUrl;
         els["progress-preview-link"].textContent = previewUrl;

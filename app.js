@@ -1044,8 +1044,38 @@ async function renderPersonalCard_(cardId){
   let shell;
   if(cachedShell){
     shell = cachedShell;
-    // 快取命中，背景更新 shell
-    shellFetchPromise.catch(() => {});
+    // ★ 快取命中：背景重新抓最新 shell，如果內容跟目前畫面不同就主動重繪，
+    // 不再像過去那樣直接把 fetch 到的新資料丟掉（只存進快取給下次用）。
+    // 這樣客戶自己更新完名片後，其他分頁/裝置在快取過期(5分鐘)前也能自動追上。
+    shellFetchPromise.then(freshShell => {
+      if(!freshShell || typeof freshShell !== "object" || !Object.keys(freshShell).length) return;
+      if(JSON.stringify(freshShell) === JSON.stringify(cachedShell)) return; // 沒有變化，不用重繪
+
+      const freshP = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(freshShell)));
+      const freshShareUrl = buildTrackedShareUrl_(freshP);
+      freshShell.card_url = freshShareUrl;
+      freshShell.share_url = freshShareUrl;
+      freshShell.preview_url = freshShareUrl;
+      const normalizedFresh = buildNormalizedPayload_(normalizeCardFeatures(normalizeForRenderer_(freshShell)));
+
+      const renderOpts = { mode:"index", root, useExistingDom:true, qrMode:"card", allowActions:true, cardUrl:freshShareUrl, shareUrl:freshShareUrl, previewUrl:freshShareUrl };
+      if(typeof rendererApi.mergeCardData === "function"){
+        rendererApi.mergeCardData(normalizedFresh, renderOpts);
+      }else{
+        rendererApi.renderCard(normalizedFresh, renderOpts);
+      }
+
+      currentRow = normalizedFresh;
+      facadeCurrentRow = normalizedFresh;
+      window.__CARD_DATA__ = normalizedFresh;
+      window.cardData = normalizedFresh;
+      renderShellUiFriendly_(normalizedFresh, root);
+
+      const freshBlockService = root.querySelector("#block-service") || qs("block-service");
+      const freshBlockExp = root.querySelector("#block-exp") || qs("block-exp");
+      renderExpandableInfoBlock_(freshBlockService, "服務項目", pick(normalizedFresh, ["services","服務項目","service"]), 2);
+      renderExpandableInfoBlock_(freshBlockExp, "經歷 / 品牌故事", pick(normalizedFresh, ["experience","經歷","exp"]), 3);
+    }).catch(() => {});
   }else{
     shell = await shellFetchPromise;
     if(!shell || typeof shell !== "object" || !Object.keys(shell).length){
