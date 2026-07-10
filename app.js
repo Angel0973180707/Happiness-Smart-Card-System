@@ -159,10 +159,39 @@ function getIdFromUrl_(){
   }
 }
 
+// ★ 推薦追蹤持久化：進站時網址列有 ?ref= 就立刻記到 localStorage，
+// 避免客戶重新整理、換分頁/瀏覽器後追蹤斷掉。30 天效期。
+const REF_TRACK_KEY = "HSC_referral_track";
+const REF_TRACK_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 天
+
+function writeRefTrack_(ref){
+  try{
+    localStorage.setItem(REF_TRACK_KEY, JSON.stringify({ ts: Date.now(), ref: text(ref) }));
+  }catch(_){}
+}
+
+function readRefTrack_(){
+  try{
+    const raw = localStorage.getItem(REF_TRACK_KEY);
+    if(!raw) return "";
+    const parsed = JSON.parse(raw);
+    if(!parsed || !parsed.ref) return "";
+    if(Date.now() - Number(parsed.ts || 0) > REF_TRACK_MAX_AGE_MS) return "";
+    return text(parsed.ref);
+  }catch(_){
+    return "";
+  }
+}
+
 function getRefFromUrl_(){
   try{
     const sp = getSearchParams_();
-    return text(sp.get("ref") || "");
+    const urlRef = text(sp.get("ref") || "");
+    // ★ 系統保護卡（門面展示用的樣品卡）絕不當成真實推薦來源，也不寫進持久化記錄
+    if(urlRef && urlRef !== FACADE_SAMPLE_ID){
+      writeRefTrack_(urlRef);
+    }
+    return urlRef;
   }catch{
     return "";
   }
@@ -507,8 +536,15 @@ function getActiveCardPayload_(){
 }
 
 function getReferralSourceCode_(p){
+  // ★ 門面展示用的樣品卡（FACADE_SAMPLE_ID）在任何一層都不能被當成真實推薦來源，
+  // 否則首頁沒帶 ?ref= 進站時，會把推薦業績誤歸到這張系統保護卡（歷史上真的發生過，
+  // CLAUDE.md 才會特別註記「禁用 ?ref=TW0001 測試」）。
   const urlRef = getRefFromUrl_();
-  if(urlRef) return urlRef;
+  if(urlRef && urlRef !== FACADE_SAMPLE_ID) return urlRef;
+
+  const trackedRef = readRefTrack_();
+  if(trackedRef && trackedRef !== FACADE_SAMPLE_ID) return trackedRef;
+
   const active = p || getActiveCardPayload_();
   if(active){
     const code =
@@ -516,9 +552,12 @@ function getReferralSourceCode_(p){
       text(pick(active, ["service_agent"])) ||
       text(pick(active, ["referrer"])) ||
       text(pick(active, ["id"]));
-    if(code) return code;
+    if(code && code !== FACADE_SAMPLE_ID) return code;
   }
-  return FACADE_SAMPLE_ID;
+
+  // ★ 真的找不到來源：回傳空字串，讓後台清楚知道「這筆是無推薦來源的自然流量」，
+  // 不再 fallback 回 FACADE_SAMPLE_ID（TW0001）誤植分潤對象。
+  return "";
 }
 
 function getCardIdForShare_(p){
