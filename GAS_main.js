@@ -19051,10 +19051,7 @@ function routeAction_(e, method) {
       return jsonOutput_({
         ok: false,
         version: HSC_VERSION,
-        error: "Missing action",
-        req: req,
-        parameter: e && e.parameter ? e.parameter : {},
-        postData: e && e.postData && e.postData.contents ? e.postData.contents : ""
+        error: "Missing action"
       });
     }
 
@@ -19331,8 +19328,7 @@ case "adminDirectConfirmPayment": result = adminDirectConfirmPayment_(req);break
     return jsonOutput_({
       ok: false,
       version: HSC_VERSION,
-      error: err && err.message ? err.message : String(err),
-      stack: err && err.stack ? String(err.stack) : ""
+      error: err && err.message ? err.message : String(err)
     });
   }
 }
