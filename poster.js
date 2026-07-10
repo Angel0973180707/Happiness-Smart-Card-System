@@ -328,7 +328,8 @@
    * 後端若有 update_token 就帶入，否則以 card_id 代替
    */
 function buildUpdateFormUrl(item) {
-    const cardId = txt(item?.id) || id;
+    // ★ 卡號一律轉大寫，跟後端 updateCardByToken_ 的比對標準一致，避免大小寫不一致查不到卡
+    const cardId = (txt(item?.id) || id).toUpperCase();
     const token  = txt(item?.update_token) || cardId;
     const url = new URL("form.html", DEFAULT_BASE);
     url.searchParams.set("mode", "update");
@@ -340,7 +341,8 @@ function buildUpdateFormUrl(item) {
    * buildRenewalFormUrl：自動組帶 mode=renew 參數的表單 URL
    */
 function buildRenewalFormUrl(item) {
-    const cardId = txt(item?.id) || id;
+    // ★ 卡號一律轉大寫，理由同 buildUpdateFormUrl
+    const cardId = (txt(item?.id) || id).toUpperCase();
     const token  = txt(item?.renew_token) || cardId;
     const url = new URL("form.html", DEFAULT_BASE);
     url.searchParams.set("mode", "renew");

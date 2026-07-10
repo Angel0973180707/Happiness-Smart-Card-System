@@ -70,7 +70,8 @@ function adminBatchCreateCards_(params) {
   for (var i = 0; i < cards.length; i++) {
     var card = cards[i];
     try {
-      var cardId = "TW" + pad4_(nextNum++);
+      // ★ 卡號來源固定強制大寫，就算未來改成允許人工輸入卡號，也不會產生小寫卡號污染資料庫
+      var cardId = ("TW" + pad4_(nextNum++)).toUpperCase();
       var plan   = (String(card.plan || "premium")).toLowerCase() === "free" ? "free" : "premium";
       var isPrem = plan === "premium";
       var color  = String(card.color || "").trim() || (isPrem ? "p1" : "c1");

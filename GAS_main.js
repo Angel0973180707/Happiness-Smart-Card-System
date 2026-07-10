@@ -2986,7 +2986,9 @@ function createUpdateFeePayment_(req) {
   function updateCardByToken_(req) {
     var now = new Date();
     var token = sanitizeText_(req.update_token || req.token);
-    var cardId = sanitizeText_(req.card_id);
+    // ★ 卡號一律轉大寫再比對，避免交付連結/表單傳入大小寫不一致時查不到卡
+    // （真正的 update_token 是系統產生的 UUID，維持原樣比對，不受影響）
+    var cardId = sanitizeText_(req.card_id).toUpperCase();
     if (!token) throw new Error("Missing update token");
 
     // 🔒 鎖定：保護「讀卡片 → clone → 套用欄位 → 寫回 card_db」整段，
@@ -3003,7 +3005,7 @@ function createUpdateFeePayment_(req) {
 
     try {
       var card = findRowByField_("card_db", "update_token", token);
-      if (!card && cardId && token === cardId) {
+      if (!card && cardId && token.toUpperCase() === cardId) {
         card = findRowByField_("card_db", "id", cardId);
       }
       if (!card) throw new Error("Card not found for update token");
@@ -3332,7 +3334,8 @@ function confirmPayment_locked_(req, paymentId, now) {
 
 
   var cardResult = { card: null, agent_updates: [], renewal: null };
-  var cardId = sanitizeText_(updatedPayment.card_id);
+  // ★ 卡號一律轉大寫再比對，跟 updateCardByToken_ 同一套防呆標準
+  var cardId = sanitizeText_(updatedPayment.card_id).toUpperCase();
 
   if (cardId) {
     var card = findRowByField_("card_db", "id", cardId);
