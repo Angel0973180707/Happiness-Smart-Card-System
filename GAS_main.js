@@ -240,6 +240,13 @@ update_pending_db: [
     "log_id","module","action","target_id","before_status","after_status","operator","created_at","note","tenant"
   ],
 
+  // ★ 子任務 2 新增：系統例外紀錄表，跟 ops_log_db 分開（ops_log_db 記商業狀態變化，
+  // 這張記程式例外），logSystemError_ 目前用自己的 SpreadsheetApp 呼叫直接寫入
+  // （會自動建表），這裡的 SCHEMA 定義是給未來要用 getSheetRowsByName_ 查詢時對齊欄位用
+  system_error_db: [
+    "error_id","occurred_at","action","error_message","stack_trace","severity","notified","tenant"
+  ],
+
   agent_settlement_report: [
     "settlement_id","settlement_month","agent_id","agent_name","tenant","currency","commission_count","gross_commission_amount","reversal_amount","frozen_amount","adjustment_amount","net_payable_amount","status","batch_id","calculated_at","approved_at","paid_at","paid_by","note"
 
@@ -8604,6 +8611,128 @@ function escapeHtmlForEmail_(s) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+// ─────────────────────────────────────────
+//  系統錯誤監控（子任務 2）
+//  routeAction_ 發生例外時呼叫 logSystemError_，把完整 stack trace 留在
+//  伺服器端（system_error_db），前端只拿得到 error_id。
+// ─────────────────────────────────────────
+
+// 高風險 action 清單：就算錯誤訊息長得像「正常業務錯誤」，只要發生在這些地方
+// 一律視為 critical，不能因為訊息剛好含白名單關鍵字就被放過（錢的問題不能賭）。
+// ★ 這份清單是初版，建議 Angel-X 審查後視需要擴充。
+var CRITICAL_ACTIONS_ = [
+  "confirmPayment", "adminDirectConfirmPayment", "adminConfirmBankImport",
+  "updateCardByToken", "createCard", "createLead",
+  "confirmUpdateFeePaid", "adminBatchDirectConfirmPayment", "adminBatchRenewCards"
+];
+
+// 白名單關鍵字：符合其中之一，且不是發生在高風險 action、也不是原生執行期錯誤，
+// 才會被歸類成「常態業務錯誤」（只記錄不通知）。
+// ★ 這份清單是初版，建議 Angel-X 審查後視需要擴充。
+var NORMAL_ERROR_KEYWORDS_ = [
+  "not found", "already", "required", "missing",
+  "invalid", "token mismatch", "unauthorized", "expired", "duplicate"
+];
+
+function classifyErrorSeverity_(message, errorName, action) {
+  var isNativeError = (errorName === "TypeError" || errorName === "ReferenceError" || errorName === "RangeError");
+  var isCriticalAction = CRITICAL_ACTIONS_.indexOf(sanitizeText_(action)) !== -1;
+
+  // 原生執行期錯誤、或發生在付款/開卡/續約這幾個高風險 action，一律視為 critical，
+  // 不看訊息內容——就算訊息剛好含白名單關鍵字也不能放過。
+  if (isNativeError || isCriticalAction) return "critical";
+
+  var lowerMsg = String(message || "").toLowerCase();
+  var isKnownBusinessError = NORMAL_ERROR_KEYWORDS_.some(function(kw) {
+    return lowerMsg.indexOf(kw) !== -1;
+  });
+
+  return isKnownBusinessError ? "normal" : "critical";
+}
+
+// 防錯誤風暴：同一個 action + 同一種錯誤訊息，20 分鐘內只推播一次，
+// 冷卻期間內又發生的次數會累加，冷卻結束後下一次通知會一併帶出「這段期間又發生了幾次」。
+function notifyAdminErrorWithThrottle_(errorId, action, message) {
+  var THROTTLE_SECONDS = 1200; // 20 分鐘
+  var cache = CacheService.getScriptCache();
+
+  var fingerprint = Utilities.base64EncodeWebSafe(
+    Utilities.newBlob(sanitizeText_(action) + "|" + sanitizeText_(message)).getBytes()
+  ).substring(0, 40);
+  var throttleKey = "HSC:err_throttle:" + fingerprint;
+  var countKey = "HSC:err_throttle_count:" + fingerprint;
+
+  if (cache.get(throttleKey)) {
+    // 冷卻中：這次不推播，只把次數累加起來
+    var count = Number(cache.get(countKey)) || 1;
+    cache.put(countKey, String(count + 1), THROTTLE_SECONDS);
+    return;
+  }
+
+  var priorCount = Number(cache.get(countKey)) || 0;
+  var suffix = priorCount > 0
+    ? ("\n（冷卻期間內另外發生 " + priorCount + " 次同類錯誤，已合併只通知這一次）")
+    : "";
+
+  notifyAdminLine_({
+    title: "🚨 系統例外警示",
+    message: "Action: " + sanitizeText_(action) + "\n錯誤：" + sanitizeText_(message) + "\nerror_id: " + errorId + suffix
+  });
+
+  cache.put(throttleKey, "1", THROTTLE_SECONDS);
+  cache.remove(countKey);
+}
+
+// 主入口：routeAction_ 的 catch 呼叫這個。整個函式絕對不能往外 throw，
+// 任何一段失敗都只記 log、不影響原本要回傳給前端的錯誤結果。
+function logSystemError_(err, action, req) {
+  var errorId = "ERR" + Utilities.formatDate(new Date(), "Asia/Taipei", "yyMMddHHmmss") + Math.floor(Math.random() * 900 + 100);
+
+  try {
+    var message = err && err.message ? err.message : String(err);
+    var stack = err && err.stack ? String(err.stack) : "";
+    var errorName = err && err.name ? String(err.name) : "";
+    var severity = classifyErrorSeverity_(message, errorName, action);
+
+    try {
+      // 自己開表（跟 GAS_extTables.js / GAS_viewStats.js 同一套慣例），
+      // 不透過 appendRowByName_，因為那個會在表不存在時直接 throw，
+      // 這裡要求「寫入失敗也不能讓主流程掛掉」，所以自己處理表不存在的情況。
+      var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+      var sheet = ss.getSheetByName("system_error_db");
+      if (!sheet) {
+        sheet = ss.insertSheet("system_error_db");
+        sheet.appendRow(["error_id", "occurred_at", "action", "error_message", "stack_trace", "severity", "notified", "tenant"]);
+      }
+      sheet.appendRow([
+        errorId,
+        toIso_(new Date()),
+        sanitizeText_(action),
+        message,
+        stack,
+        severity,
+        "FALSE",
+        sanitizeText_(req && req.tenant) || CONFIG.DEFAULT_TENANT
+      ]);
+    } catch (logErr) {
+      Logger.log("logSystemError_ 寫入 system_error_db 失敗: " + (logErr && logErr.message ? logErr.message : String(logErr)));
+    }
+
+    if (severity === "critical") {
+      try {
+        notifyAdminErrorWithThrottle_(errorId, action, message);
+      } catch (notifyErr) {
+        Logger.log("logSystemError_ 通知失敗: " + (notifyErr && notifyErr.message ? notifyErr.message : String(notifyErr)));
+      }
+    }
+  } catch (fatalErr) {
+    Logger.log("logSystemError_ 整體失敗（不影響主流程）: " + (fatalErr && fatalErr.message ? fatalErr.message : String(fatalErr)));
+  }
+
+  return errorId;
+}
+
 function logAndNotifyEvent_(payload) {
   try {
     var logResult = writeOpsLog_(payload);
@@ -19325,10 +19454,12 @@ case "adminDirectConfirmPayment": result = adminDirectConfirmPayment_(req);break
     return jsonOutput_(result);
 
   } catch (err) {
+    var errorId = logSystemError_(err, action, req);
     return jsonOutput_({
       ok: false,
       version: HSC_VERSION,
-      error: err && err.message ? err.message : String(err)
+      error: err && err.message ? err.message : String(err),
+      error_id: errorId
     });
   }
 }
