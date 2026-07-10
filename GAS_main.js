@@ -575,7 +575,10 @@ const ACTIONS = [
   "adminRepairCardLimits",
   "adminPreviewTestMarker",
   "adminCleanupTestMarker",
-  "adminRecreatePermanentTestCards"
+  "adminRecreatePermanentTestCards",
+  "getCardViewStats",
+  "adminGetAllViewStats",
+  "adminFlushViewStats"
 ];
 const ADMIN_PROTECTED_ACTIONS = [
   "getTrackingSummary",
@@ -705,7 +708,10 @@ const ADMIN_PROTECTED_ACTIONS = [
   "adminRepairCardLimits",
   "adminPreviewTestMarker",
   "adminCleanupTestMarker",
-  "adminRecreatePermanentTestCards"
+  "adminRecreatePermanentTestCards",
+  "getCardViewStats",
+  "adminGetAllViewStats",
+  "adminFlushViewStats"
 ];
 // ============================================================
 // 主題欄位驗證與標準化 (清洗用)
@@ -1722,6 +1728,10 @@ function getCardPublicShell_(req) {
   if (rawCached) {
     try {
       var cached = JSON.parse(rawCached);
+      // ★ 快取命中也要記瀏覽次數：recordCardView_ 現在走 CacheService，很快，
+      // 不會拖慢回應。之前這裡直接 return，快取熱的時候瀏覽數完全不會被記到，
+      // 熱門名片反而統計最不準。
+      try { recordCardView_(targetCardId); } catch(_e) {}
       return { ok: true, version: HSC_VERSION, action: "getCardPublicShell", card_id: targetCardId, cached: true, card: cached };
     } catch (_e) {}
   }
@@ -3531,6 +3541,28 @@ if (eventType === "renewal" && cardResult.card) {
           } else {
             customerFailReason = "no_line_user_id";
             Logger.log("confirmPayment_ no line_user_id for card: " + targetId);
+          }
+
+          // ── 1.5 雙軌並發：付款確認是最關鍵的一則通知，客戶只要有留信箱，
+          //     不管 LINE 有沒有成功都額外寄一封 Email，不是等 LINE 失敗才寄 ──
+          try {
+            var customerEmailForNotify = sanitizeText_(cardForNotify.email || cardForNotify.owner_email);
+            if (customerEmailForNotify) {
+              var dualEmailHtml = buildBackupEmailHtml_(
+                "✅ 付款確認完成，感謝 " + customerName + " 的信任",
+                "服務使用期限：" + expiresAt + " 到期\n\n" +
+                "【您的專屬交付卡】\n" + deliveryUrl + "\n（個人管理入口，請勿轉傳）\n\n" +
+                "【您的智慧名片】\n" + cardUrl + "\n（可分享給朋友認識您）"
+              );
+              var dualEmailResult = sendBackupEmailNotification_(
+                customerEmailForNotify,
+                "✅ 付款確認完成 - 您的智慧名片已開通",
+                dualEmailHtml
+              );
+              Logger.log("confirmPayment_ 雙軌 Email 通知結果: " + JSON.stringify(dualEmailResult));
+            }
+          } catch (dualEmailErr) {
+            Logger.log("confirmPayment_ 雙軌 Email 通知失敗: " + (dualEmailErr && dualEmailErr.message ? dualEmailErr.message : String(dualEmailErr)));
           }
 
           // ── 2. 推管理員摘要(不論客戶有沒有綁 LINE 都推) ──
@@ -5492,6 +5524,7 @@ const OFFLINE_PAYMENT_INFO = {
 
 const COMMERCIAL_TRIGGER_PLAN = [
   { fn: "keepWarmPing_",        type: "minutes", every: 5 },
+  { fn: "flushCachedViewStatsToSheet_", type: "minutes", every: 10 },
   { fn: "triggerExpiryCheck_", type: "daily", hour: 1 },
   { fn: "triggerOverdueLock_", type: "daily", hour: 1, minute: 10 },
   { fn: "adminCheckSchemaStatus_", type: "daily", hour: 2 },
@@ -8418,14 +8451,34 @@ function checkAndNotifyUpgradeEligible_(agentId) {
 }
 /**
  * 推播 LINE 訊息
- * @param {object} payload - { 
- *     title: "標題", 
+ * @param {object} payload - {
+ *     title: "標題",
  *     message: "內容",
- *     to: "收件人 user_id(選填,不填則推給管理員)"
+ *     to: "收件人 user_id(選填,不填則推給管理員)",
+ *     backup_email: "LINE 送不出去時的備援 Email(選填)"
  *   }
  * @return {object} { ok: boolean, reason?: string }
  */
 function notifyAdminLine_(payload) {
+  var title = sanitizeText_(payload && payload.title);
+  var message = sanitizeText_(payload && payload.message);
+  var backupEmail = sanitizeText_(payload && payload.backup_email);
+
+  // ★ LINE 送失敗時（配額用盡、token 失效等）自動觸發 Email 備援，避免整條通知斷線
+  function tryEmailBackup(reason) {
+    if (!backupEmail) return;
+    try {
+      var emailResult = sendBackupEmailNotification_(
+        backupEmail,
+        title || "幸福教養概念館 智慧名片系統通知",
+        buildBackupEmailHtml_(title, message)
+      );
+      Logger.log("notifyAdminLine_ LINE 失敗(" + reason + ")，已觸發 Email 備援：" + JSON.stringify(emailResult));
+    } catch (emailErr) {
+      Logger.log("notifyAdminLine_ Email 備援也失敗: " + (emailErr && emailErr.message ? emailErr.message : String(emailErr)));
+    }
+  }
+
   try {
     var token = PropertiesService.getScriptProperties().getProperty("LINE_CHANNEL_ACCESS_TOKEN");
     var adminUserId = PropertiesService.getScriptProperties().getProperty("LINE_ADMIN_USER_ID");
@@ -8437,6 +8490,7 @@ function notifyAdminLine_(payload) {
 
     if (!token) {
       Logger.log("notifyAdminLine_ skipped: missing LINE_CHANNEL_ACCESS_TOKEN");
+      tryEmailBackup("missing_token");
       return { ok: false, reason: "missing_token" };
     }
     if (!to) {
@@ -8450,8 +8504,6 @@ function notifyAdminLine_(payload) {
       return { ok: false, reason: "invalid_user_id" };
     }
 
-    var title = sanitizeText_(payload && payload.title);
-    var message = sanitizeText_(payload && payload.message);
     if (!title && !message) {
       Logger.log("notifyAdminLine_ skipped: empty title and message");
       return { ok: false, reason: "empty_content" };
@@ -8480,13 +8532,77 @@ function notifyAdminLine_(payload) {
     var responseCode = response.getResponseCode();
     if (responseCode !== 200) {
       Logger.log("notifyAdminLine_ error (to=" + to + "): " + response.getContentText());
+      // ★ 429 = 超過配額，其他非 200 也一律視為送達失敗，觸發 Email 備援
+      tryEmailBackup("http_" + responseCode);
       return { ok: false, reason: "http_" + responseCode };
     }
     return { ok: true };
   } catch (err) {
     Logger.log("notifyAdminLine_ failed: " + (err && err.message ? err.message : String(err)));
+    tryEmailBackup("exception");
     return { ok: false, reason: "exception" };
   }
+}
+
+// ─────────────────────────────────────────
+//  Email 備援通知：LINE 送不出去時的最後一道防線
+//  用 GAS 內建免費的 MailApp，跟 LINE 配額完全獨立
+// ─────────────────────────────────────────
+function sendBackupEmailNotification_(toEmail, subject, htmlBody) {
+  try {
+    var to = sanitizeText_(toEmail);
+    if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      Logger.log("sendBackupEmailNotification_ skipped: invalid email: " + to);
+      return { ok: false, reason: "invalid_email" };
+    }
+
+    var remaining = 0;
+    try {
+      remaining = MailApp.getRemainingDailyQuota();
+    } catch (quotaErr) {
+      Logger.log("sendBackupEmailNotification_ 讀取配額失敗: " + quotaErr.message);
+    }
+    if (remaining <= 0) {
+      Logger.log("sendBackupEmailNotification_ skipped: 今日 Email 配額已用完");
+      return { ok: false, reason: "quota_exhausted" };
+    }
+
+    MailApp.sendEmail({
+      to: to,
+      subject: sanitizeText_(subject) || "幸福教養概念館 - 系統通知",
+      htmlBody: htmlBody || "",
+      name: "幸福教養概念館 智慧名片系統"
+    });
+    return { ok: true };
+  } catch (e) {
+    Logger.log("sendBackupEmailNotification_ failed: " + (e && e.message ? e.message : String(e)));
+    return { ok: false, reason: "exception", error: e.message };
+  }
+}
+
+function buildBackupEmailHtml_(title, message) {
+  var safeTitle = escapeHtmlForEmail_(title || "幸福教養概念館 智慧名片系統通知");
+  var safeMessage = escapeHtmlForEmail_(message || "").replace(/\n/g, "<br>");
+  return (
+    '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Microsoft JhengHei\',sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#fff8f0;border-radius:12px;">' +
+      '<div style="text-align:center;padding-bottom:16px;border-bottom:2px solid #f5b942;margin-bottom:16px;">' +
+        '<div style="font-size:20px;font-weight:900;color:#8a5a2b;">幸福教養概念館</div>' +
+        '<div style="font-size:12px;color:#a08060;">智慧名片系統通知</div>' +
+      '</div>' +
+      '<div style="padding:0 4px 12px;font-size:16px;font-weight:700;color:#333;">' + safeTitle + '</div>' +
+      '<div style="padding:0 4px 8px;font-size:14px;color:#555;line-height:1.8;">' + safeMessage + '</div>' +
+      '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#999;text-align:center;">此為系統自動發送的備援通知（LINE 暫時無法送達時啟用）</div>' +
+    '</div>'
+  );
+}
+
+function escapeHtmlForEmail_(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 function logAndNotifyEvent_(payload) {
   try {
@@ -19190,6 +19306,7 @@ case "adminDirectConfirmPayment": result = adminDirectConfirmPayment_(req);break
   case "adminGetCardCtas": result = adminGetCardCtas_(req); break;
    case "getCardViewStats":     result = getCardViewStats_(req);     break;
   case "adminGetAllViewStats": result = adminGetAllViewStats_(req); break;
+  case "adminFlushViewStats":  result = adminFlushViewStats_(req);  break;
   case "adminSetCardCtas": result = adminSetCardCtas_(req); break;
 
   case "adminBatchBankMatch":             result = adminBatchBankMatch_(req);             break;

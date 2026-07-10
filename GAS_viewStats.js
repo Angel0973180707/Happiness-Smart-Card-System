@@ -16,54 +16,182 @@
  *     case "adminGetAllViewStats": result = adminGetAllViewStats_(req); break;
  */
 
+// ★ view_date 欄位寫入 "yyyy-MM-dd" 字串時，Google Sheets 常會自動判斷成日期格式，
+// 讀回來變成 JS Date 物件（不是字串），直接 String() 會變成
+// "Fri Jul 10 2026 00:00:00 GMT+0800..." 這種完整格式，跟 "today" 字串比對永遠對不上。
+// 統一透過這個函式轉換，兩種情況都正確處理。
+function normalizeViewDateCell_(value) {
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, "Asia/Taipei", "yyyy-MM-dd");
+  }
+  return String(value || "").trim();
+}
+
 // ─────────────────────────────────────────
-//  寫入：每日累加（不新增列，只更新 count）
+//  寫入：瀏覽當下只動 CacheService，不碰 Sheets
+//  （原本每次瀏覽都同步讀寫整張表，高併發下會互相打架、拖慢名片載入；
+//   改成瀏覽時只在快取裡 +1，實際落地寫進 Sheets 交給 flushCachedViewStatsToSheet_
+//   這個排程批次處理）
+//
+//  CacheService 沒有原生的「原子遞增」操作，這裡用短時間 LockService(1.5秒)
+//  包住「讀快取→+1→寫回」這段，讓它接近原子操作；搶不到鎖就直接放棄這次計數，
+//  寧可少算一次瀏覽，也不要讓客戶等名片載入。
 // ─────────────────────────────────────────
 function recordCardView_(cardId) {
   if (!cardId) return;
   try {
-    var ss    = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-    var sheet = ss.getSheetByName("view_stats_db");
-
-    // 自動建立（第一次使用時）
-    if (!sheet) {
-      sheet = ss.insertSheet("view_stats_db");
-      sheet.appendRow(["id", "view_date", "count", "updated_at"]);
-    }
-
     var today = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd");
-    var data  = sheet.getDataRange().getValues();
-    var h     = data[0].map(function(x){ return String(x).trim(); });
-    var idCol      = h.indexOf("id");
-    var dateCol    = h.indexOf("view_date");
-    var countCol   = h.indexOf("count");
-    var updatedCol = h.indexOf("updated_at");
-    var now        = new Date().toISOString();
+    var cache = CacheService.getScriptCache();
+    var countKey = "HSC:views:" + cardId + ":" + today;
+    var dirtyKey = "HSC:views:dirty:" + today;
 
-    // 找今天這張卡的那一列 → 直接 +1
-    for (var r = 1; r < data.length; r++) {
-      if (String(data[r][idCol])   === String(cardId) &&
-          String(data[r][dateCol]) === today) {
-        var newCount = (Number(data[r][countCol]) || 0) + 1;
-        sheet.getRange(r + 1, countCol + 1).setValue(newCount);
-        if (updatedCol >= 0) {
-          sheet.getRange(r + 1, updatedCol + 1).setValue(now);
-        }
-        return; // 找到就結束，不新增
-      }
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(1500);
+    } catch (lockErr) {
+      return; // 短鎖搶不到就放棄，不影響名片載入速度
     }
 
-    // 今天還沒有這張卡的記錄 → 新增一列
-    var newRow = new Array(h.length).fill("");
-    if (idCol      >= 0) newRow[idCol]      = cardId;
-    if (dateCol    >= 0) newRow[dateCol]    = today;
-    if (countCol   >= 0) newRow[countCol]   = 1;
-    if (updatedCol >= 0) newRow[updatedCol] = now;
-    sheet.appendRow(newRow);
+    try {
+      var current = Number(cache.get(countKey)) || 0;
+      // CacheService 單一 key 最長只能存 6 小時（21600 秒），
+      // 但排程每 10 分鐘就會 flush 一次，遠遠用不到這個上限
+      cache.put(countKey, String(current + 1), 21600);
 
+      // 記錄「今天有哪些卡有待寫入的瀏覽數」，flush 時才知道要撈哪些 key
+      // （CacheService 沒有「列出所有 key」的功能，只能靠這份清單追蹤）
+      var dirtyRaw = cache.get(dirtyKey);
+      var dirtyList = dirtyRaw ? JSON.parse(dirtyRaw) : [];
+      if (dirtyList.indexOf(cardId) === -1) {
+        dirtyList.push(cardId);
+        cache.put(dirtyKey, JSON.stringify(dirtyList), 21600);
+      }
+    } finally {
+      try { lock.releaseLock(); } catch (releaseErr) {}
+    }
   } catch(e) {
     console.warn("[viewStats] recordCardView_ 失敗:", e.message);
   }
+}
+
+// ─────────────────────────────────────────
+//  批次寫入：把快取裡累積的瀏覽數一次性沖進 view_stats_db
+//  建議設定每 10 分鐘一次的時間觸發器（COMMERCIAL_TRIGGER_PLAN 已內建這筆設定，
+//  呼叫一次 installCommercialTriggers_ 就會自動裝上）
+// ─────────────────────────────────────────
+function flushCachedViewStatsToSheet_() {
+  try {
+    var today = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd");
+    var cache = CacheService.getScriptCache();
+    var dirtyKey = "HSC:views:dirty:" + today;
+
+    // 🔒 鎖定：全程鎖住，避免 flush 進行中，recordCardView_ 又在同一批 key 上動作
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(30000);
+    } catch (lockErr) {
+      Logger.log("[viewStats] flushCachedViewStatsToSheet_ 取得鎖失敗，跳過這次批次寫入");
+      return { ok: false, reason: "lock_timeout" };
+    }
+
+    try {
+      var dirtyRaw = cache.get(dirtyKey);
+      var dirtyList = dirtyRaw ? JSON.parse(dirtyRaw) : [];
+      if (!dirtyList.length) return { ok: true, flushed: 0 };
+
+      var pending = {};
+      dirtyList.forEach(function(cardId) {
+        var count = Number(cache.get("HSC:views:" + cardId + ":" + today)) || 0;
+        if (count > 0) pending[cardId] = count;
+      });
+
+      if (!Object.keys(pending).length) {
+        cache.remove(dirtyKey);
+        return { ok: true, flushed: 0 };
+      }
+
+      var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+      var sheet = ss.getSheetByName("view_stats_db");
+      if (!sheet) {
+        sheet = ss.insertSheet("view_stats_db");
+        sheet.appendRow(["id", "view_date", "count", "updated_at"]);
+      }
+
+      var data = sheet.getDataRange().getValues();
+      var h = data[0].map(function(x){ return String(x).trim(); });
+      var idCol = h.indexOf("id");
+      var dateCol = h.indexOf("view_date");
+      var countCol = h.indexOf("count");
+      var updatedCol = h.indexOf("updated_at");
+      var now = new Date().toISOString();
+
+      // 先找出今天已經有列的卡（記行號），沒有的之後統一 setValues 批次寫入
+      var existingRowByCardId = {};
+      for (var r = 1; r < data.length; r++) {
+        if (normalizeViewDateCell_(data[r][dateCol]) === today) {
+          existingRowByCardId[String(data[r][idCol])] = r + 1;
+        }
+      }
+
+      var newRows = [];
+      Object.keys(pending).forEach(function(cardId) {
+        var addCount = pending[cardId];
+        var rowNum = existingRowByCardId[cardId];
+        if (rowNum) {
+          // 已有今天的列：讀 Sheets 上目前的值，累加這批快取裡的量再寫回
+          var sheetCurrent = Number(sheet.getRange(rowNum, countCol + 1).getValue()) || 0;
+          sheet.getRange(rowNum, countCol + 1).setValue(sheetCurrent + addCount);
+          if (updatedCol >= 0) sheet.getRange(rowNum, updatedCol + 1).setValue(now);
+        } else {
+          var newRow = new Array(h.length).fill("");
+          if (idCol      >= 0) newRow[idCol]      = cardId;
+          if (dateCol    >= 0) newRow[dateCol]    = today;
+          if (countCol   >= 0) newRow[countCol]   = addCount;
+          if (updatedCol >= 0) newRow[updatedCol] = now;
+          newRows.push(newRow);
+        }
+      });
+
+      // ★ 新卡一次性批次寫入，不要一列一列 appendRow
+      if (newRows.length) {
+        var startRow = sheet.getLastRow() + 1;
+        sheet.getRange(startRow, 1, newRows.length, h.length).setValues(newRows);
+      }
+
+      // 清掉這批已經落地的快取 key，避免下次重複計算
+      dirtyList.forEach(function(cardId) {
+        cache.remove("HSC:views:" + cardId + ":" + today);
+      });
+      cache.remove(dirtyKey);
+
+      try {
+        CacheService.getScriptCache().remove("hsc:sheet_rows:view_stats_db");
+      } catch(_) {}
+
+      Logger.log("[viewStats] flushCachedViewStatsToSheet_ 完成，寫入 " + Object.keys(pending).length + " 張卡");
+      return { ok: true, flushed: Object.keys(pending).length };
+    } finally {
+      try { lock.releaseLock(); } catch (releaseErr) {}
+    }
+  } catch(e) {
+    Logger.log("[viewStats] flushCachedViewStatsToSheet_ 失敗: " + e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+/**
+ * 手動測試用：在 GAS 編輯器點「執行」測試 flushCachedViewStatsToSheet_
+ */
+function testFlushCachedViewStats() {
+  Logger.log(JSON.stringify(flushCachedViewStatsToSheet_()));
+}
+
+/**
+ * 後台可呼叫版本：手動觸發一次批次寫入（測試/緊急情況用，不用等排程）
+ */
+function adminFlushViewStats_(req) {
+  requireAdminKeyOrSystem_(req || {});
+  return Object.assign({ version: HSC_VERSION, action: "adminFlushViewStats" }, flushCachedViewStatsToSheet_());
 }
 
 // ─────────────────────────────────────────
@@ -160,7 +288,7 @@ function _queryViewStats_(cardId) {
 
   for (var r = 1; r < data.length; r++) {
     if (String(data[r][idCol]).trim() !== String(cardId).trim()) continue;
-    var date  = String(data[r][dateCol]  || "").trim();
+    var date  = normalizeViewDateCell_(data[r][dateCol]);
     var count = Number(data[r][countCol]) || 0;
     total += count;
     if (date === today)    todayCount = count;
