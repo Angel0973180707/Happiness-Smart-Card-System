@@ -586,7 +586,8 @@ const ACTIONS = [
   "getCardViewStats",
   "adminGetAllViewStats",
   "adminFlushViewStats",
-  "adminCheckEnvironment"
+  "adminCheckEnvironment",
+  "adminGetCachedSystemError"
 ];
 const ADMIN_PROTECTED_ACTIONS = [
   "getTrackingSummary",
@@ -720,7 +721,8 @@ const ADMIN_PROTECTED_ACTIONS = [
   "getCardViewStats",
   "adminGetAllViewStats",
   "adminFlushViewStats",
-  "adminCheckEnvironment"
+  "adminCheckEnvironment",
+  "adminGetCachedSystemError"
 ];
 // ============================================================
 // 主題欄位驗證與標準化 (清洗用)
@@ -8681,16 +8683,45 @@ function notifyAdminErrorWithThrottle_(errorId, action, message) {
     ? ("\n（冷卻期間內另外發生 " + priorCount + " 次同類錯誤，已合併只通知這一次）")
     : "";
 
+  var alertTitle = "🚨 系統例外警示";
+  var alertBody = "Action: " + sanitizeText_(action) + "\n錯誤：" + sanitizeText_(message) + "\nerror_id: " + errorId + suffix;
+
   // ★ 接住 notifyAdminLine_ 的真實回傳結果，往上傳，不再讓它憑空消失
-  var lineResult = notifyAdminLine_({
-    title: "🚨 系統例外警示",
-    message: "Action: " + sanitizeText_(action) + "\n錯誤：" + sanitizeText_(message) + "\nerror_id: " + errorId + suffix
-  });
+  var lineResult = notifyAdminLine_({ title: alertTitle, message: alertBody });
+
+  // ★ 雙軌並發：不是「LINE 失敗才寄」的備援，是「兩條通道一定都會走」的真雙軌。
+  // 收件人刻意不沿用 LINE_NOTIFY_TO——那個 Property 存的是 LINE 使用者 ID
+  // （例如 "U045..."），不是 Email 地址，直接拿去寄信格式不合法會失敗。
+  // 改用一個獨立的 Script Property "ADMIN_ALERT_EMAIL"，沒設定就跳過寄信、只記 log，
+  // 不會硬塞一個不是 email 的值進去。
+  try {
+    var adminAlertEmail = sanitizeText_(PropertiesService.getScriptProperties().getProperty("ADMIN_ALERT_EMAIL"));
+    if (adminAlertEmail) {
+      var lineFailed = !(lineResult && lineResult.ok);
+      var warnPrefix = "";
+      var emailSubject = alertTitle + " - " + sanitizeText_(action);
+      if (lineFailed) {
+        var lineReason = (lineResult && lineResult.reason) ? lineResult.reason : "unknown";
+        warnPrefix = "【⚠️ LINE 警報通道已失效/爆配額，自動觸發 Email 真雙軌容災（LINE 失敗原因：" + lineReason + "）】\n\n";
+        emailSubject = "【⚠️ LINE 失效容災】" + emailSubject;
+      }
+      var emailResult = sendBackupEmailNotification_(
+        adminAlertEmail,
+        emailSubject,
+        buildBackupEmailHtml_(alertTitle, warnPrefix + alertBody)
+      );
+      Logger.log("notifyAdminErrorWithThrottle_ Email 雙軌結果: " + JSON.stringify(emailResult));
+    } else {
+      Logger.log("notifyAdminErrorWithThrottle_ 沒有設定 ADMIN_ALERT_EMAIL，跳過 Email 雙軌");
+    }
+  } catch (emailErr) {
+    Logger.log("notifyAdminErrorWithThrottle_ Email 雙軌失敗: " + (emailErr && emailErr.message ? emailErr.message : String(emailErr)));
+  }
 
   cache.put(throttleKey, "1", THROTTLE_SECONDS);
   cache.remove(countKey);
 
-  return lineResult; // { ok: boolean, reason?: string }
+  return lineResult; // { ok: boolean, reason?: string }（雙軌是否成功不影響這個回傳值，notified 欄位仍以 LINE 結果為準）
 }
 
 // 主入口：routeAction_ 的 catch 呼叫這個。整個函式絕對不能往外 throw，
@@ -8739,8 +8770,26 @@ function logSystemError_(err, action, req) {
       if (writeCountThisMinute > 10) {
         // 斷路器啟動：這一分鐘已經寫超過 10 筆，跳過 Sheets，只留 Logger.log，
         // 保護主程序不被大量 appendRow 拖垮。
-        Logger.log("logSystemError_ 斷路器啟動（本分鐘第 " + writeCountThisMinute + " 筆，跳過 Sheets 寫入）: "
+        Logger.log("logSystemError_ 斷路器啟動（本分鐘第 " + writeCountThisMinute + " 筆，跳過 Sheets 寫入，改存快取備援）: "
           + "error_id=" + errorId + " action=" + sanitizeText_(action) + " message=" + message);
+
+        // ★ 不能讓這筆錯誤資料完全消失：存進 CacheService 備援 1 小時，
+        // 讓客服/管理員之後可以打 adminGetCachedSystemError_ 用 error_id 精準撈出來。
+        try {
+          var backupPayload = JSON.stringify({
+            error_id: errorId,
+            occurred_at: toIso_(new Date()),
+            action: sanitizeText_(action),
+            error_message: message,
+            stack_trace: stack,
+            severity: severity,
+            notified: notifiedValue,
+            tenant: sanitizeText_(req && req.tenant) || CONFIG.DEFAULT_TENANT
+          });
+          CacheService.getScriptCache().put("HSC:syserr_backup:" + errorId, backupPayload, 3600);
+        } catch (backupErr) {
+          Logger.log("logSystemError_ 斷路器快取備援也失敗: " + (backupErr && backupErr.message ? backupErr.message : String(backupErr)));
+        }
       } else {
         // 自己開表（跟 GAS_extTables.js / GAS_viewStats.js 同一套慣例），
         // 不透過 appendRowByName_，因為那個會在表不存在時直接 throw，
@@ -8770,6 +8819,34 @@ function logSystemError_(err, action, req) {
   }
 
   return errorId;
+}
+
+// ★ 斷路器擋下的錯誤只存在 CacheService，不會進 system_error_db，
+// 這個 action 是唯一能撈回來的管道，客服/管理員拿 error_id 查。
+// 只有 1 小時內查得到（跟 logSystemError_ 寫入時設的 TTL 一致），過了就真的沒了。
+function adminGetCachedSystemError_(req) {
+  requireAdminKeyOrSystem_(req || {});
+  var errorId = sanitizeText_(req && req.error_id);
+  if (!errorId) throw new Error("Missing error_id");
+
+  var raw = CacheService.getScriptCache().get("HSC:syserr_backup:" + errorId);
+  if (!raw) {
+    return {
+      ok: false,
+      version: HSC_VERSION,
+      action: "adminGetCachedSystemError",
+      error: "查無此 error_id 的快取備援資料（可能已超過 1 小時過期，或這筆錯誤當時沒有觸發斷路器、本來就直接寫進 system_error_db 了，請改查那張表）"
+    };
+  }
+
+  var parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    return { ok: false, version: HSC_VERSION, action: "adminGetCachedSystemError", error: "快取資料格式異常" };
+  }
+
+  return { ok: true, version: HSC_VERSION, action: "adminGetCachedSystemError", source: "cache_backup", data: parsed };
 }
 
 // ─────────────────────────────────────────
@@ -19508,6 +19585,7 @@ case "adminDirectConfirmPayment": result = adminDirectConfirmPayment_(req);break
   case "adminGetAllViewStats": result = adminGetAllViewStats_(req); break;
   case "adminFlushViewStats":  result = adminFlushViewStats_(req);  break;
   case "adminCheckEnvironment": result = adminCheckEnvironment_(req); break;
+  case "adminGetCachedSystemError": result = adminGetCachedSystemError_(req); break;
   case "adminSetCardCtas": result = adminSetCardCtas_(req); break;
 
   case "adminBatchBankMatch":             result = adminBatchBankMatch_(req);             break;
