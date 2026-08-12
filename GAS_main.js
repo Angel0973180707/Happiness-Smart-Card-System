@@ -54,6 +54,7 @@ const CONFIG = {
     TRACKING: "tracking_log",
     RECOGNITION: "recognition_db",
     PAYMENT_INBOX: "payment_inbox_db",
+    SYSTEM_ERROR: "system_error_db",
      CARD_CTA_EXT: "card_cta_ext",
      CARD_PHOTO_EXT: "card_photo_ext"
   }
@@ -297,6 +298,27 @@ update_pending_db: [
   payment_inbox_db: [
     "inbox_id", "created_at", "source", "card_id", "amount", "last5",
   "matched", "matched_card_id", "matched_payment_id", "status", "note"
+],
+
+  system_error_db: [
+    "id",
+    "error_id",
+    "created_at",
+    "updated_at",
+    "level",
+    "module",
+    "action",
+    "target_id",
+    "message",
+    "error",
+    "stack",
+    "request_json",
+    "context_json",
+    "user_agent",
+    "ip",
+    "tenant",
+    "is_test",
+    "note"
 ]
 
 };
@@ -343,6 +365,7 @@ const SHEET_HEADERS = {
     tracking_log: SCHEMA.tracking_log,
   recognition_db: SCHEMA.recognition_db,
   payment_inbox_db: SCHEMA.payment_inbox_db,
+  system_error_db: SCHEMA.system_error_db,
   card_cta_ext: SCHEMA.card_cta_ext,
   card_photo_ext: SCHEMA.card_photo_ext
 };
@@ -389,6 +412,18 @@ function saveCardMarquee_(req) {
     },
     card: updated
   };
+}
+
+function __initSystemErrorDb() {
+  try {
+    var result = repairSchemaHeaders_("system_error_db");
+    Logger.log("system_error_db initialized: " + JSON.stringify(result, null, 2));
+    return { ok: true, result: result };
+  } catch (err) {
+    Logger.log("system_error_db init failed: " + err.message);
+    Logger.log(err.stack);
+    return { ok: false, error: err.message };
+  }
 }
 
 const ACTIONS = [
@@ -6174,8 +6209,8 @@ function buildCardAccessUrls_(card) {
   var base = normalizeBaseUrl_(CONFIG.BASE_URL);
   return {
     card_id: cardId,
-    preview_url: base + "card.html?id=" + encodeURIComponent(cardId) + "&mode=preview",
-    delivery_url: base + "card.html?id=" + encodeURIComponent(cardId),
+    preview_url: base + "index.html?id=" + encodeURIComponent(cardId) + "&view=1",
+    delivery_url: base + "poster.html?id=" + encodeURIComponent(cardId),
     update_url: sanitizeText_(card.update_token)
       ? (base + "form.html?mode=update&token=" + encodeURIComponent(sanitizeText_(card.update_token)))
       : (base + "form.html?mode=update&card_id=" + encodeURIComponent(cardId)),
@@ -7449,11 +7484,11 @@ function buildAdminDashboardAlertItem_(card, payment, label, enrichedCard) {
 }
 
 function buildDashboardPreviewUrl_(cardId) {
-  return normalizeBaseUrl_(CONFIG.BASE_URL) + "card.html?id=" + encodeURIComponent(sanitizeText_(cardId)) + "&mode=preview";
+  return normalizeBaseUrl_(CONFIG.BASE_URL) + "index.html?id=" + encodeURIComponent(sanitizeText_(cardId)) + "&view=1";
 }
 
 function buildDashboardDeliveryUrl_(cardId) {
-  return normalizeBaseUrl_(CONFIG.BASE_URL) + "card.html?id=" + encodeURIComponent(sanitizeText_(cardId));
+  return normalizeBaseUrl_(CONFIG.BASE_URL) + "poster.html?id=" + encodeURIComponent(sanitizeText_(cardId));
 }
 
 function buildDashboardUpdateUrl_(cardId) {
@@ -19121,6 +19156,7 @@ function schemaNameToConfigKey_(schemaName) {
     "tracking_log": "TRACKING",
     "recognition_db": "RECOGNITION",
     "payment_inbox_db": "PAYMENT_INBOX",
+    "system_error_db": "SYSTEM_ERROR",
     "card_cta_ext": "CARD_CTA_EXT",
     "card_photo_ext": "CARD_PHOTO_EXT"
   };

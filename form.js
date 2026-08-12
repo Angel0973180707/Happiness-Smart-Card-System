@@ -742,6 +742,16 @@ function calcQuantityAddon(qty, config) {
       setStatus("缺少更新所需資料,無法載入表單。", "error");
       return;
     }
+    // 🔧 修正「目前無法判斷更新資格」誤報:送出按鈕原本從頁面一開始就可以按,若使用者在
+    // 這裡的更新資格資料還沒查回來之前就搶先送出,state.updateFlow 還停在預設值(兩個資格
+    // 旗標都是 false),會誤跳出「無法判斷」錯誤,其實只是還在查、不是卡片真的有問題。
+    // 查詢期間先鎖住按鈕,查完(不論成功或失敗)一定會解鎖,不影響其他既有邏輯。
+    const submitBtn = els["btn-submit-form"];
+    const submitBtnOriginalText = submitBtn ? submitBtn.textContent : "";
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "資料載入中,請稍候…";
+    }
     try {
       const [cardRes, eligRes] = await Promise.all([
         postToGas({ action: CONFIG.UPDATE_LOAD_ACTION, card_id: cardId, update_token: token }),
@@ -757,6 +767,11 @@ function calcQuantityAddon(qty, config) {
     } catch (err) {
       console.error(err);
       setStatus(`載入更新資料失敗:${err.message}`, "error");
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = submitBtnOriginalText;
+      }
     }
   }
 

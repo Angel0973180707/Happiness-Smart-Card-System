@@ -10,7 +10,7 @@
  * - GAS shell/lite API 走 stale-while-revalidate（即時回傳快取 + 背景更新）
  * ========================================= */
 
-const SW_VERSION = "v1.7.4";
+const SW_VERSION = "v1.7.5";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
 const CORE_ASSETS = [
