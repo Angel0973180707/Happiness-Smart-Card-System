@@ -1764,6 +1764,28 @@ window.__getHubShareUrl = buildHubShareUrl_;
 window.__getCardShareUrl = function(){ return buildTrackedShareUrl_(getActiveCardPayload_()); };
 window.__getTrackedShareUrl = function(){ return buildTrackedShareUrl_(getActiveCardPayload_()); };
 
+// 智慧名片分享預覽修復（技術長 Codex 已確認根因，2026-08-13）：只給「分享這張名片」按鈕用的
+// 新網址——先進 share/{card_id}.html 這個純靜態中繼頁（該頁 <head> 寫死這張卡專屬的 OG 大
+// 頭照/姓名/slogan，分享爬蟲不需要執行 JS 就讀得到），真人點進來會被那頁的 JS 立刻導轉回這裡
+// 算出來的 targetUrl。刻意不動 buildTrackedShareUrl_() 本身——QR Code／card_url／續約／更新
+// 網址都還在用它，這裡只是另外多一個「分享按鈕專用」的入口，兩者用同一組追蹤參數
+// （share_card_id/share_agent_id/share_source/share_channel/share_visit_id），分潤/推薦
+// 追蹤邏輯不受影響，只是分享出去的第一個網址換成有預覽圖的那個。
+function buildShareOgUrl_(p){
+  const cardId = getCardIdForShare_(p);
+  try{
+    const trackedU = new URL(buildTrackedShareUrl_(p));
+    const ogU = new URL(CONFIG.HUB_URL + "share/" + encodeURIComponent(cardId) + ".html");
+    trackedU.searchParams.forEach((v, k) => {
+      if (k !== "id" && k !== "view" && v) ogU.searchParams.set(k, v);
+    });
+    return ogU.toString();
+  }catch{
+    return CONFIG.HUB_URL + "share/" + encodeURIComponent(cardId) + ".html";
+  }
+}
+window.__getCardShareOgUrl = function(){ return buildShareOgUrl_(getActiveCardPayload_()); };
+
 function bindQrSlots_(){
   HSC_QR.bindSlot("facadeQrGrid");
   HSC_QR.bindSlot("featureQrGrid");

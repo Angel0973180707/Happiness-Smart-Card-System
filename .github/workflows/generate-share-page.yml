@@ -1,0 +1,74 @@
+name: Generate Card Share Page
+
+# 智慧名片分享預覽修復（技術長 Codex 已確認根因，2026-08-13）：update-card-cache.yml 只固定
+# 維護 TW0001 這張卡的 cache／分享頁（既有既定架構，非本輪新增），其他卡片沒有排程機制。
+# 這支 workflow 提供「任何一張卡」的分享頁按需產生入口：手動輸入 card_id，抓這張卡最新的
+# 公開資料、產生 share/{card_id}.html，跟 update-card-cache.yml 用同一支產生器
+# （scripts/generate-share-page.js），確保兩條路徑產生出來的分享頁格式完全一致。
+#
+# 不新增「列出所有卡片」這種批次後端 action——那是本輪範圍外的後端複雜度；需要分享哪張卡，
+# 就手動對那張卡跑一次這個 workflow 即可，跟 update-card-cache.yml 對 TW0001 做的事完全同一種模式。
+
+on:
+  workflow_dispatch:
+    inputs:
+      card_id:
+        description: '要產生分享頁的卡號（例如 TW0056）'
+        required: true
+        type: string
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate card_id format
+        run: |
+          CARD_ID="${{ inputs.card_id }}"
+          if ! echo "$CARD_ID" | grep -Eq '^[A-Za-z0-9_-]+$'; then
+            echo "::error::card_id 格式不合法（只允許英數字、底線、連字號）：$CARD_ID"
+            exit 1
+          fi
+          echo "CARD_ID=$CARD_ID" >> "$GITHUB_ENV"
+
+      - name: Fetch card data from GAS
+        run: |
+          mkdir -p api/cards
+          curl -L --fail --show-error --max-time 30 \
+            "https://angel-namecard.letssyncus.com/gas-proxy/exec?action=getCardPublicShell&id=${CARD_ID}&tenant=angel" \
+            -o "api/cards/${CARD_ID}-shell.json" || { echo "Shell fetch failed"; exit 1; }
+          curl -L --fail --show-error --max-time 30 \
+            "https://angel-namecard.letssyncus.com/gas-proxy/exec?action=getCardPublicLite&id=${CARD_ID}&tenant=angel" \
+            -o "api/cards/${CARD_ID}.json" || { echo "Lite fetch failed"; exit 1; }
+          echo "Done: $(date)"
+
+      - name: Validate JSON
+        run: |
+          python3 -c "import json; json.load(open('api/cards/${CARD_ID}-shell.json'))" || { echo "Shell JSON invalid"; exit 1; }
+          python3 -c "import json; json.load(open('api/cards/${CARD_ID}.json'))" || { echo "Lite JSON invalid"; exit 1; }
+          python3 -c "import json,sys; d=json.load(open('api/cards/${CARD_ID}.json')); sys.exit(0 if d.get('ok') and d.get('card') else 1)" || { echo "卡片資料不完整或不存在：${CARD_ID}"; exit 1; }
+          echo "JSON validation passed"
+
+      - name: Generate share page
+        run: node scripts/generate-share-page.js "$CARD_ID"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "api/cards/${CARD_ID}.json" "api/cards/${CARD_ID}-shell.json" "share/${CARD_ID}.html"
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: generate share page for ${CARD_ID} $(date -u '+%Y-%m-%d %H:%M')"
+            git push
+          fi

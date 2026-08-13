@@ -1190,6 +1190,50 @@
         }
       }
 
+      // 智慧名片分享預覽修復（技術長 Codex 已確認根因，2026-08-13）：share/{card_id}.html
+      // 這個有專屬 OG 大頭照預覽的分享頁，目前只有跑過產生流程的卡片才存在（見
+      // scripts/generate-share-page.js），不是每張卡都有。分享按鈕點下去前，先用 HEAD
+      // 探測那個檔案在不在——存在才改分享它，不存在（或探測逾時／失敗）一律照舊分享
+      // buildCardShareUrlFallback() 原本的網址，確保還沒產生分享頁的卡片分享功能完全不受
+      // 影響，不會分享出一個 404 連結。
+      function buildCardShareOgUrlCandidate(){
+        try{
+          if(typeof window.__getCardShareOgUrl === "function"){
+            var u = window.__getCardShareOgUrl();
+            if (u) return u;
+          }
+        }catch(e){}
+        try{
+          return BASE_URL + "share/" + encodeURIComponent(getCurrentCardId()) + ".html";
+        }catch(e){
+          return null;
+        }
+      }
+
+      // 探測結果先背景存起來，不要等使用者按下分享按鈕那一刻才查。navigator.share() 必須在
+      // 「使用者這次點擊」的同一個事件處理裡同步呼叫，中間如果插一段 await fetch()，部分瀏覽器
+      // （尤其 iOS Safari）事後呼叫 navigator.share() 會直接被拒絕（user activation 已過期）。
+      // 所以改成頁面載入時就先背景探測好，按鈕點下去當下只讀已經算好的結果，全程同步。
+      var __resolvedShareUrl = null;
+      function prefetchCardShareUrl(){
+        var ogCandidate = buildCardShareOgUrlCandidate();
+        if (!ogCandidate) return;
+        try{
+          var controller = new AbortController();
+          var timer = setTimeout(function(){ controller.abort(); }, 2500);
+          var probeUrl = ogCandidate.split("?")[0]; // HEAD 探測檔案本身在不在，不用帶追蹤參數
+          fetch(probeUrl, { method: "HEAD", cache: "no-store", signal: controller.signal })
+            .then(function(res){
+              clearTimeout(timer);
+              if (res && res.ok) __resolvedShareUrl = ogCandidate;
+            })
+            .catch(function(){ clearTimeout(timer); });
+        }catch(e){}
+      }
+      function resolveCardShareUrlSync(){
+        return __resolvedShareUrl || buildCardShareUrlFallback();
+      }
+
       function buildFacadeHubQrUrl(){
         // 固定用持卡人自己的 card_id 當 ref
         try{
@@ -1407,13 +1451,14 @@
         bindInstall();
         bindHiddenAdminEntry();
         renderFacadeQr();
+        prefetchCardShareUrl();
 
         var fab = qs("cleanShareFab");
         if(fab){
           fab.addEventListener("click", function(e){
             e.preventDefault();
             shareUrl(
-              buildCardShareUrlFallback(),
+              resolveCardShareUrlSync(),
               "天使幸福智慧名片",
               "分享這張名片",
               "✅ 已複製這張名片連結"

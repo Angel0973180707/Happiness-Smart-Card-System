@@ -14,6 +14,11 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Fetch card data from GAS
         run: |
           mkdir -p api/cards
@@ -31,11 +36,18 @@ jobs:
           python3 -c "import json,sys; json.load(open('api/cards/TW0001.json'))" || { echo "Lite JSON invalid"; exit 1; }
           echo "JSON validation passed"
 
+      # 智慧名片分享預覽修復（技術長 Codex 已確認根因，2026-08-13）：卡片 cache 更新後，
+      # 同步重新產生這張卡的靜態分享頁 share/TW0001.html（含這張卡專屬的 OG 大頭照/姓名/
+      # slogan meta，見 scripts/generate-share-page.js 開頭的完整說明），確保分享預覽內容
+      # 跟卡片資料同步，不會停留在舊版大頭照或舊版 slogan。
+      - name: Generate share page
+        run: node scripts/generate-share-page.js TW0001
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add api/cards/
+          git add api/cards/ share/
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
