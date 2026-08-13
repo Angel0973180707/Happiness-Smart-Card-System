@@ -48,6 +48,54 @@
     var GAS_URL = "https://angel-namecard.letssyncus.com/gas-proxy/exec";
     var BASE_URL = "https://angel-namecard.letssyncus.com/";
 
+    // P0 修復（並發 getCardPublicShell 造成間歇性名片載入失敗，2026-08-14）：這段 manifest
+    // 注入腳本，跟 app.js 的 boot_()/renderPersonalCard_()，過去各自獨立打一次
+    // getCardPublicShell，同一次頁面載入對同一個 GAS 部署發出兩筆重複請求，跟另外兩筆
+    // （getAnnouncements/getMaintenanceStatus）幾乎同時抵達，Apps Script 對同一部署的並發
+    // 處理能力有限，會讓其中幾筆請求長時間沒有回應，導致姓名/大頭照沒有載入出來（A/B 測試
+    // 已排除是分享預覽功能造成的 regression，三個版本失敗率一致）。
+    // 改成 single-flight：全站只有這個函式會真的發 getCardPublicShell 的 network request，
+    // 用 window.__HSC_CARD_SHELL_PROMISE__ 存住那個進行中/已完成的 Promise——不管是這裡的
+    // manifest 邏輯先跑（目前文件順序上一定是這裡先跑），還是之後 app.js 的 boot_() 先跑，
+    // 只要 window.__HSC_CARD_SHELL_PROMISE__ 已經存在，第二個呼叫方就直接 await 同一個
+    // Promise，不會再發一次 request。
+    //
+    // 刻意不做失敗重試：這裡的根因正是「同一時間對同一 GAS 部署發出多筆並發請求，Apps
+    // Script 處理不過來」，如果這個共用 Promise 本身失敗又自動重試，等於在同一次頁面生命
+    // 週期裡又真的多發一次 network request，不管兩個呼叫方有沒有互相協調好，Network 面板
+    // 一樣會看到 2 筆 getCardPublicShell，直接違反「同一頁生命週期只能出現 1 次」的驗收
+    // 標準，也可能讓本來就吃緊的並發狀況更嚴重。單次嘗試失敗就直接讓錯誤往上拋，走既有的
+    // 失敗處理路徑（manifest 端 fallback 到預設 icon；app.js 端維持原有「名片載入失敗」
+    // 訊息與後續操作，這條路徑本身完全沒有被這次修改動到）。
+    //
+    // 逾時設為 15 秒：實測拿掉重試迴圈、逾時仍維持在 9 秒時，20 次壓測成功率從 19/20 掉到
+    // 13/20——不是重試機制本身有魔法，是「重試」隱含把單次可等待的總時間從 7 秒延長到
+    // 7+520+7≈14.5 秒，而 GAS 在並發下經常需要那麼久才回應（非真正丟棄請求，只是慢）。
+    // 改成單次嘗試、但逾時拉到 15 秒，等於保留原本的等待總預算，同時仍然嚴格滿足「同一頁
+    // 生命週期只能發 1 次 request」的驗收標準。
+    window.__hscFetchCardShellSingleFlight = function(cardId, gasBaseUrl){
+      if (window.__HSC_CARD_SHELL_PROMISE__) return window.__HSC_CARD_SHELL_PROMISE__;
+
+      var url = gasBaseUrl + "?action=getCardPublicShell&id=" + encodeURIComponent(cardId) +
+        "&tenant=angel&v=v8.3.9&with_tracked_cta=false";
+
+      window.__HSC_CARD_SHELL_PROMISE__ = new Promise(function(resolve, reject){
+        var controller = new AbortController();
+        var timer = setTimeout(function(){ controller.abort(); }, 15000);
+        fetch(url, { method: "GET", cache: "default", signal: controller.signal })
+          .then(function(res){ return res.text(); })
+          .then(function(text){
+            clearTimeout(timer);
+            var json;
+            try { json = JSON.parse(text); } catch(e) { reject(e); return; }
+            resolve(json);
+          })
+          .catch(function(err){ clearTimeout(timer); reject(err); });
+      });
+
+      return window.__HSC_CARD_SHELL_PROMISE__;
+    };
+
     function getParams(){
       try { return new URLSearchParams(location.search || ""); }
       catch(e){ return new URLSearchParams(); }
@@ -159,11 +207,8 @@
         }
       } catch(_){}
 
-      var url = GAS_URL + "?action=getCardPublicShell&id=" + encodeURIComponent(cardId) + "&tenant=angel&v=" + VERSION;
       try {
-        var res = await fetch(url, { method: "GET", cache: "default" });
-        var text = await res.text();
-        var data = JSON.parse(text);
+        var data = await window.__hscFetchCardShellSingleFlight(cardId, GAS_URL);
         var card = data.item || data.card || data.row || data.data || data;
         if (card && (card.name || card.avatar_url)){
           await buildCardManifest(cardId, card);

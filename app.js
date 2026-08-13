@@ -1031,11 +1031,20 @@ async function renderPersonalCard_(cardId){
   // ── ★ cache-first：有快取立即渲染，同時並行發起 shell fetch ──
   const cachedShell = readCardCache_("shell", cardId, CONFIG.CACHE_SHELL_MS);
 
+  // P0 修復（並發 getCardPublicShell 造成間歇性名片載入失敗，2026-08-14）：index.html 的
+  // manifest 注入腳本（<head>，一定比這裡先執行）已經改成 single-flight，第一個需要
+  // getCardPublicShell 的呼叫方才會真的發 request，存進 window.__HSC_CARD_SHELL_PROMISE__。
+  // 這裡改成優先重用那個共用 Promise，不再自己另外發一次一模一樣的請求——同一次頁面載入，
+  // getCardPublicShell 只會有一筆 network request。window.__hscFetchCardShellSingleFlight
+  // 不存在時（理論上不會發生，防禦性寫法），才退回原本各自獨立呼叫 fetchJsonRobust_ 的行為，
+  // 完全不影響既有可靠度。
   // shell fetch 與 announcements 並行發起（不互相等待）
   const shellFetchPromise = cachedShell
     ? Promise.resolve(cachedShell)
-    : fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" })
-        .then(p => {
+    : (typeof window.__hscFetchCardShellSingleFlight === "function"
+        ? window.__hscFetchCardShellSingleFlight(cardId, CONFIG.GAS)
+        : fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" })
+      ).then(p => {
           const r = extractCardRow_(p);
           if(r && Object.keys(r).length) writeCardCache_("shell", cardId, r);
           return r;
