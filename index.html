@@ -1190,12 +1190,18 @@
         }
       }
 
-      // 智慧名片分享預覽修復（技術長 Codex 已確認根因，2026-08-13）：share/{card_id}.html
-      // 這個有專屬 OG 大頭照預覽的分享頁，目前只有跑過產生流程的卡片才存在（見
-      // scripts/generate-share-page.js），不是每張卡都有。分享按鈕點下去前，先用 HEAD
-      // 探測那個檔案在不在——存在才改分享它，不存在（或探測逾時／失敗）一律照舊分享
+      // 智慧名片分享預覽修復（技術長 Codex 已確認根因，2026-08-13；HEAD 探測改法，2026-08-13）：
+      // share/{card_id}.html 這個有專屬 OG 大頭照預覽的分享頁，目前只有跑過產生流程的卡片才
+      // 存在（見 scripts/generate-share-page.js），不是每張卡都有。分享按鈕點下去前，先探測那個
+      // 檔案在不在——存在才改分享它，不存在（或探測逾時／失敗）一律照舊分享
       // buildCardShareUrlFallback() 原本的網址，確保還沒產生分享頁的卡片分享功能完全不受
       // 影響，不會分享出一個 404 連結。
+      //
+      // 改用 GET，不用 HEAD：診斷分享失效問題時發現 script.google.com／nginx 代理對 HEAD
+      // 方法會回 403（Google Apps Script 前端層本身不接受 HEAD，跟這個探測邏輯本來要打的
+      // 靜態檔案是不同的問題，但為了不讓「探測方式本身用了一個平台層級不穩定的方法」變成
+      // 未來排查問題時的干擾變數，這裡直接統一改成 GET，跟 app.js／form.js 真正的資料請求
+      // 用同一種方法，不再依賴 HEAD。
       function buildCardShareOgUrlCandidate(){
         try{
           if(typeof window.__getCardShareOgUrl === "function"){
@@ -1221,8 +1227,8 @@
         try{
           var controller = new AbortController();
           var timer = setTimeout(function(){ controller.abort(); }, 2500);
-          var probeUrl = ogCandidate.split("?")[0]; // HEAD 探測檔案本身在不在，不用帶追蹤參數
-          fetch(probeUrl, { method: "HEAD", cache: "no-store", signal: controller.signal })
+          var probeUrl = ogCandidate.split("?")[0]; // 探測檔案本身在不在，不用帶追蹤參數
+          fetch(probeUrl, { method: "GET", cache: "no-store", signal: controller.signal })
             .then(function(res){
               clearTimeout(timer);
               if (res && res.ok) __resolvedShareUrl = ogCandidate;
