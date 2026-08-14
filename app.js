@@ -1086,7 +1086,21 @@ async function renderPersonalCard_(cardId){
       renderExpandableInfoBlock_(freshBlockExp, "經歷 / 品牌故事", pick(normalizedFresh, ["experience","經歷","exp"]), 3);
     }).catch(() => {});
   }else{
-    shell = await shellFetchPromise;
+    try{
+      shell = await shellFetchPromise;
+    }catch(firstErr){
+      // P0 續作修復（2026-08-14b）：共用的 single-flight 若失敗，index.html 內部已經把
+      // window.__HSC_CARD_SHELL_FLIGHT__ 清空，這裡是唯一允許重新建立一次新 flight 的
+      // consumer（manifest 端不重試，維持原本 fallback icon 行為，避免兩邊各自重試造成
+      // 同時併發）。只重試這一次，再失敗就照原本邏輯往下丟「名片 shell 資料為空」，走既有
+      // 「名片載入失敗」UI，不會無限重試、不會 request storm。
+      const retryPromise = (typeof window.__hscFetchCardShellSingleFlight === "function")
+        ? window.__hscFetchCardShellSingleFlight(cardId, CONFIG.GAS)
+        : fetchJsonRobust_(buildCardPublicShellUrl_(cardId), { cacheMode: "default" });
+      const retryRow = extractCardRow_(await retryPromise);
+      if(retryRow && Object.keys(retryRow).length) writeCardCache_("shell", cardId, retryRow);
+      shell = retryRow;
+    }
     if(!shell || typeof shell !== "object" || !Object.keys(shell).length){
       throw new Error("名片 shell 資料為空，id=" + cardId);
     }

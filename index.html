@@ -54,32 +54,38 @@
     // （getAnnouncements/getMaintenanceStatus）幾乎同時抵達，Apps Script 對同一部署的並發
     // 處理能力有限，會讓其中幾筆請求長時間沒有回應，導致姓名/大頭照沒有載入出來（A/B 測試
     // 已排除是分享預覽功能造成的 regression，三個版本失敗率一致）。
-    // 改成 single-flight：全站只有這個函式會真的發 getCardPublicShell 的 network request，
-    // 用 window.__HSC_CARD_SHELL_PROMISE__ 存住那個進行中/已完成的 Promise——不管是這裡的
+    // 改成 single-flight：同一時間點只會有 1 筆 getCardPublicShell 的 network request 在飛，
+    // 用 window.__HSC_CARD_SHELL_FLIGHT__ = { cardId, promise } 存住目前這筆——不管是這裡的
     // manifest 邏輯先跑（目前文件順序上一定是這裡先跑），還是之後 app.js 的 boot_() 先跑，
-    // 只要 window.__HSC_CARD_SHELL_PROMISE__ 已經存在，第二個呼叫方就直接 await 同一個
-    // Promise，不會再發一次 request。
+    // 只要 cardId 相同且這筆 flight 還在，第二個呼叫方就直接沿用同一個 Promise，不會再發一次
+    // request。
     //
-    // 刻意不做失敗重試：這裡的根因正是「同一時間對同一 GAS 部署發出多筆並發請求，Apps
-    // Script 處理不過來」，如果這個共用 Promise 本身失敗又自動重試，等於在同一次頁面生命
-    // 週期裡又真的多發一次 network request，不管兩個呼叫方有沒有互相協調好，Network 面板
-    // 一樣會看到 2 筆 getCardPublicShell，直接違反「同一頁生命週期只能出現 1 次」的驗收
-    // 標準，也可能讓本來就吃緊的並發狀況更嚴重。單次嘗試失敗就直接讓錯誤往上拋，走既有的
-    // 失敗處理路徑（manifest 端 fallback 到預設 icon；app.js 端維持原有「名片載入失敗」
-    // 訊息與後續操作，這條路徑本身完全沒有被這次修改動到）。
+    // P0 續作修復（2026-08-14b）：原本這個 Promise 失敗（timeout/網路錯誤）後永遠不會被清掉，
+    // 導致「manifest 先發出唯一一次請求 → 剛好那次失敗 → app.js 緊接著拿到的是同一個已經
+    // rejected 的 Promise → 連帶名片本體也死掉」——把原本各自獨立、其中一次失敗還有機會被
+    // 另一次救回來的設計，換成一次失敗就兩邊一起死，在真實（較差）網路環境下反而更容易觸發
+    // 「名片載入失敗」。現在失敗後會清空 window.__HSC_CARD_SHELL_FLIGHT__（只清「還是自己」
+    // 的那筆，避免誤清後面已經開始的新 flight），讓下一個真正需要資料的 consumer（app.js）
+    // 可以建立新的一筆 single-flight 重新嘗試；manifest 端本身不重試，維持原本 fallback 到
+    // 預設 icon 的行為，避免兩邊各自重試造成同時併發。flight 額外記 cardId，確保不同卡號
+    // （例如同頁切換 TW0001→TW0110、或 bfcache/PWA resume）不會誤用前一張卡的 Promise。
+    // 任一時刻仍然最多只有 1 筆 in-flight，不是「整個頁面生命週期只能發 1 次」。
     //
     // 逾時設為 15 秒：實測拿掉重試迴圈、逾時仍維持在 9 秒時，20 次壓測成功率從 19/20 掉到
     // 13/20——不是重試機制本身有魔法，是「重試」隱含把單次可等待的總時間從 7 秒延長到
     // 7+520+7≈14.5 秒，而 GAS 在並發下經常需要那麼久才回應（非真正丟棄請求，只是慢）。
-    // 改成單次嘗試、但逾時拉到 15 秒，等於保留原本的等待總預算，同時仍然嚴格滿足「同一頁
-    // 生命週期只能發 1 次 request」的驗收標準。
+    // 單次嘗試逾時拉到 15 秒，等於保留原本的等待總預算，同時仍然嚴格滿足「同一時刻最多 1 筆
+    // in-flight」的驗收標準。
     window.__hscFetchCardShellSingleFlight = function(cardId, gasBaseUrl){
-      if (window.__HSC_CARD_SHELL_PROMISE__) return window.__HSC_CARD_SHELL_PROMISE__;
+      var flight = window.__HSC_CARD_SHELL_FLIGHT__;
+      if (flight && flight.cardId === cardId && flight.promise){
+        return flight.promise;
+      }
 
       var url = gasBaseUrl + "?action=getCardPublicShell&id=" + encodeURIComponent(cardId) +
         "&tenant=angel&v=v8.3.9&with_tracked_cta=false";
 
-      window.__HSC_CARD_SHELL_PROMISE__ = new Promise(function(resolve, reject){
+      var promise = new Promise(function(resolve, reject){
         var controller = new AbortController();
         var timer = setTimeout(function(){ controller.abort(); }, 15000);
         fetch(url, { method: "GET", cache: "default", signal: controller.signal })
@@ -93,7 +99,16 @@
           .catch(function(err){ clearTimeout(timer); reject(err); });
       });
 
-      return window.__HSC_CARD_SHELL_PROMISE__;
+      window.__HSC_CARD_SHELL_FLIGHT__ = { cardId: cardId, promise: promise };
+      window.__HSC_CARD_SHELL_PROMISE__ = promise; // 純觀測用（console 檢查用），不參與邏輯
+
+      promise.catch(function(){
+        if (window.__HSC_CARD_SHELL_FLIGHT__ && window.__HSC_CARD_SHELL_FLIGHT__.promise === promise){
+          window.__HSC_CARD_SHELL_FLIGHT__ = { cardId: null, promise: null };
+        }
+      });
+
+      return promise;
     };
 
     function getParams(){
