@@ -1,0 +1,66 @@
+name: 快取版本戳檢查
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 檢查改過的檔案有沒有同步更新版本戳
+        shell: bash
+        run: |
+          set -uo pipefail
+          BEFORE=$(git rev-parse HEAD~1)
+          AFTER=$(git rev-parse HEAD)
+          echo "比對 $BEFORE → $AFTER"
+
+          mapfile -t STAMPED < <(grep -oE '\./[A-Za-z0-9._-]+\?v=[^"]+' index.html \
+                                 | sed 's|^\./||' | sort -u)
+
+          if [ ${#STAMPED[@]} -eq 0 ]; then
+            echo "::error::index.html 裡找不到任何 ?v= 版本戳 —— 這個檢查失效了，請修正本 workflow"
+            exit 1
+          fi
+
+          echo "受版本戳管理的檔案：${#STAMPED[@]} 個"
+
+          FAIL=0
+
+          for entry in "${STAMPED[@]}"; do
+            file="${entry%%\?v=*}"
+            stamp="${entry##*\?v=}"
+
+            if ! git diff --name-only "$BEFORE" "$AFTER" -- "$file" | grep -q .; then
+              continue
+            fi
+
+            prev=$(git show "$BEFORE:index.html" 2>/dev/null \
+                   | grep -oE "\./${file//./\\.}\?v=[^\"]+" \
+                   | head -1 \
+                   | sed 's|.*?v=||')
+
+            if [ "$stamp" = "$prev" ]; then
+              echo "::error file=index.html::$file 這次有修改，但 index.html 裡的 ?v=$stamp 沒有跟著更新 —— 使用者的瀏覽器會繼續用舊版（最長 1 小時）"
+              FAIL=1
+            else
+              echo "✅ $file 有改，版本戳 $prev → $stamp 也跟著更新了"
+            fi
+          done
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo ""
+            echo "───────────────────────────────────────────────"
+            echo "修法：把 index.html 裡那個檔案的 ?v=... 換成一個新值"
+            echo "     （日期或流水號都可以，只要跟上一版不一樣）"
+            echo "───────────────────────────────────────────────"
+            exit 1
+          fi
+
+          echo "全部通過。"
