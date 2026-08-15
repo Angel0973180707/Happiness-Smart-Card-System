@@ -19,29 +19,65 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Fetch card data from GAS
+      # HSC LINE 分享收尾（2026-08-15）：這一步之前是寫死只處理 TW0001，其他卡片完全沒有
+      # 自動排程，只能靠人工對 generate-share-page.yml 一張一張手動 workflow_dispatch。
+      # 改成先呼叫既有的 getCards（admin-protected，本來就支援分頁/狀態篩選，card_db 這張
+      # 表本來就是 source of truth，不新增任何新的 GAS action），取得目前所有卡的
+      # id／status／is_test，篩出「正式、非測試、非停用/草稿/刪除」的卡號清單，寫進
+      # valid_card_ids.txt。實作見 scripts/list-valid-cards.py（篩選條件跟
+      # getCardPublicShell_ 既有的公開讀取判斷完全一致，同一份 exclusion list
+      # inactive/draft/deleted，不是另外發明一套「有效卡」定義）。
+      - name: List all valid production card IDs
+        env:
+          HSC_ADMIN_KEY: ${{ secrets.HSC_ADMIN_KEY }}
+        run: python3 scripts/list-valid-cards.py
+
+      # 逐張卡：抓 shell/lite cache、產生 share page。單張卡失敗（暫時性網路問題、資料還沒
+      # 齊全等）只記警告跳過，不讓一張卡卡住其他所有卡——反正每 10 分鐘會再跑一次，下次排程
+      # 自然會重試，不需要在這裡做額外的重試機制。
+      - name: Fetch each card's cache and regenerate its share page
         run: |
+          set -uo pipefail
           mkdir -p api/cards
-          curl -L --fail --show-error --max-time 30 \
-            "https://angel-namecard.letssyncus.com/gas-proxy/exec?action=getCardPublicShell&id=TW0001&tenant=angel" \
-            -o api/cards/TW0001-shell.json || { echo "Shell fetch failed"; exit 1; }
-          curl -L --fail --show-error --max-time 30 \
-            "https://angel-namecard.letssyncus.com/gas-proxy/exec?action=getCardPublicLite&id=TW0001&tenant=angel" \
-            -o api/cards/TW0001.json || { echo "Lite fetch failed"; exit 1; }
-          echo "Done: $(date)"
+          FAILED=""
+          COUNT=0
+          while IFS= read -r CARD_ID; do
+            [ -z "$CARD_ID" ] && continue
+            COUNT=$((COUNT + 1))
 
-      - name: Validate JSON
-        run: |
-          python3 -c "import json,sys; json.load(open('api/cards/TW0001-shell.json'))" || { echo "Shell JSON invalid"; exit 1; }
-          python3 -c "import json,sys; json.load(open('api/cards/TW0001.json'))" || { echo "Lite JSON invalid"; exit 1; }
-          echo "JSON validation passed"
+            if ! curl -sL --fail --show-error --max-time 30 \
+              "https://angel-namecard.letssyncus.com/gas-proxy/exec?action=getCardPublicShell&id=${CARD_ID}&tenant=angel" \
+              -o "api/cards/${CARD_ID}-shell.json"; then
+              echo "::warning::${CARD_ID} shell 抓取失敗，這次跳過，下次排程自動重試"
+              FAILED="$FAILED $CARD_ID"
+              continue
+            fi
 
-      # 智慧名片分享預覽修復（技術長 Codex 已確認根因，2026-08-13）：卡片 cache 更新後，
-      # 同步重新產生這張卡的靜態分享頁 share/TW0001.html（含這張卡專屬的 OG 大頭照/姓名/
-      # slogan meta，見 scripts/generate-share-page.js 開頭的完整說明），確保分享預覽內容
-      # 跟卡片資料同步，不會停留在舊版大頭照或舊版 slogan。
-      - name: Generate share page
-        run: node scripts/generate-share-page.js TW0001
+            if ! curl -sL --fail --show-error --max-time 30 \
+              "https://angel-namecard.letssyncus.com/gas-proxy/exec?action=getCardPublicLite&id=${CARD_ID}&tenant=angel" \
+              -o "api/cards/${CARD_ID}.json"; then
+              echo "::warning::${CARD_ID} lite 抓取失敗，這次跳過，下次排程自動重試"
+              FAILED="$FAILED $CARD_ID"
+              continue
+            fi
+
+            if ! python3 -c "import json,sys; d=json.load(open('api/cards/${CARD_ID}.json')); sys.exit(0 if d.get('ok') and d.get('card') else 1)"; then
+              echo "::warning::${CARD_ID} 資料不完整（ok=false 或缺 card），這次跳過"
+              FAILED="$FAILED $CARD_ID"
+              continue
+            fi
+
+            if ! node scripts/generate-share-page.js "$CARD_ID"; then
+              echo "::warning::${CARD_ID} share page 產生失敗，這次跳過"
+              FAILED="$FAILED $CARD_ID"
+              continue
+            fi
+          done < valid_card_ids.txt
+
+          echo "本次處理 $COUNT 張正式卡"
+          if [ -n "$FAILED" ]; then
+            echo "以下卡片這次同步失敗，下次排程（10 分鐘後）會自動重試：$FAILED"
+          fi
 
       - name: Commit and push
         run: |
@@ -51,6 +87,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: update card cache $(date -u '+%Y-%m-%d %H:%M')"
+            git commit -m "chore: sync card cache + share pages $(date -u '+%Y-%m-%d %H:%M')"
             git push
           fi
