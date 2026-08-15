@@ -1234,23 +1234,53 @@
         }
       }
 
-      function buildCardShareUrlFallback(){
+      // P0 修復（個人名片浮動分享鈕第一次分享出 TW0001，2026-08-15）：這裡跟下面的
+      // buildCardShareOgUrlCandidate() 原本會先問 app.js 的 window.__getCardShareUrl／
+      // __getCardShareOgUrl，而那兩個函式是用 facadeCurrentRow || currentRow ||
+      // facadeBaseData 這幾個「非同步載入完成後才會有值」的全域變數決定要分享哪張卡，
+      // 在 index.html?id=TW0110&view=1 這種個人成品卡模式下，這幾個變數要等 app.js 自己
+      // 的 GAS 讀卡請求跑完才會被設值——使用者在那之前點分享，拿到的 payload 是
+      // null，兩邊都會落回 FACADE_SAMPLE_ID（也就是寫死的 "TW0001"），分享出去的變成
+      // 別人的名片，而且 buildCardShareOgUrlCandidate() 的錯誤結果還會被
+      // prefetchCardShareUrl() 存進 __resolvedShareUrl 那個不會再重算的全域快取，導致
+      // 錯誤結果被永久記住，不是「等一下就會自動修正」（真人測試也證實：等 app.js 資料
+      // 載入完成後再點，拿到的還是同一個已經被錯誤快取住的結果）。
+      //
+      // 個人成品卡模式下，「這次要分享哪張卡」這件事網址本身早就百分之百確定
+      // （getCurrentCardId() 直接讀 ?id=，同步、不需要等任何非同步資料），完全不需要問
+      // app.js 現在載入到哪張卡的資料。改成兩邊都直接用 getCurrentCardId()，追蹤參數
+      // （share_card_id／share_agent_id／share_source／share_channel／share_visit_id／
+      // ref）改成直接從目前網址本身轉發（跟 share/{card_id}.html 產生器裡的轉發邏輯是
+      // 同一個模式），share_card_id 一律強制等於這次真正分享出去的卡號，不會再受任何
+      // 非同步載入時機影響。
+      function forwardShareTrackingParams_(targetUrl, cardId){
         try{
-          if(typeof window.__getCardShareUrl === "function"){
-            return window.__getCardShareUrl();
-          }
+          var incoming = sp();
+          var forwardKeys = ["share_card_id", "share_agent_id", "share_source", "share_channel", "share_visit_id", "ref"];
+          forwardKeys.forEach(function(k){
+            var v = incoming.get(k);
+            if (v !== null && v !== "") targetUrl.searchParams.set(k, v);
+          });
+          // share_card_id 一定要等於「這次真正分享出去的卡」，不能沿用網址上可能殘留的
+          // 舊值（例如這頁本身是別人分享連結轉進來的，帶著上一輪的 share_card_id）。
+          targetUrl.searchParams.set("share_card_id", cardId);
         }catch(e){}
+      }
+
+      function buildCardShareUrlFallback(){
+        var cardId = getCurrentCardId();
         try{
           var u = new URL(BASE_URL + "index.html");
-          u.searchParams.set("id", getCurrentCardId());
+          u.searchParams.set("id", cardId);
           u.searchParams.set("view", "1");
+          forwardShareTrackingParams_(u, cardId);
           return u.toString();
         }catch(e){
-          return BASE_URL + "index.html?id=" + encodeURIComponent(getCurrentCardId()) + "&view=1";
+          return BASE_URL + "index.html?id=" + encodeURIComponent(cardId) + "&view=1";
         }
       }
 
-      // 智慧名片分享預覽修復（技術長 Codex 已確認根因，2026-08-13；HEAD 探測改法，2026-08-13）：
+      // 分享預覽修復（技術長 Codex 已確認根因，2026-08-13；HEAD 探測改法，2026-08-13）：
       // share/{card_id}.html 這個有專屬 OG 大頭照預覽的分享頁，目前只有跑過產生流程的卡片才
       // 存在（見 scripts/generate-share-page.js），不是每張卡都有。分享按鈕點下去前，先探測那個
       // 檔案在不在——存在才改分享它，不存在（或探測逾時／失敗）一律照舊分享
@@ -1263,14 +1293,11 @@
       // 未來排查問題時的干擾變數，這裡直接統一改成 GET，跟 app.js／form.js 真正的資料請求
       // 用同一種方法，不再依賴 HEAD。
       function buildCardShareOgUrlCandidate(){
+        var cardId = getCurrentCardId();
         try{
-          if(typeof window.__getCardShareOgUrl === "function"){
-            var u = window.__getCardShareOgUrl();
-            if (u) return u;
-          }
-        }catch(e){}
-        try{
-          return BASE_URL + "share/" + encodeURIComponent(getCurrentCardId()) + ".html";
+          var u = new URL(BASE_URL + "share/" + encodeURIComponent(cardId) + ".html");
+          forwardShareTrackingParams_(u, cardId);
+          return u.toString();
         }catch(e){
           return null;
         }
