@@ -131,6 +131,7 @@
   let currentItem     = null;
   let currentWallet   = null;
   let currentCardUrl  = "";
+  let currentShareUrl = "";
   let currentRefUrl   = "";
   let currentUpdateUrl  = "";
   let currentRenewalUrl = "";
@@ -153,6 +154,7 @@
       currentItem = rawPayload.card;
 
       currentCardUrl    = buildCardUrl(currentItem);
+      currentShareUrl   = buildCardShareUrl(currentItem);
       currentRefUrl     = buildRefUrl(rawPayload, currentItem);
       currentUpdateUrl  = resolveUpdateUrl(rawPayload, currentItem);
       currentRenewalUrl = resolveRenewalUrl(rawPayload, currentItem);
@@ -239,13 +241,13 @@
 
     // 荷包分享按鈕
     el.copyCardLinkBtn2?.addEventListener("click", async () => {
-      if (!currentCardUrl) { setStatus("名片連結尚未建立", true); return; }
-      const ok = await copyText(currentCardUrl);
+      if (!currentShareUrl) { setStatus("名片連結尚未建立", true); return; }
+      const ok = await copyText(currentShareUrl);
       setStatus(ok ? "名片連結已複製" : "複製失敗", !ok);
       clearStatusSoon();
     });
     el.shareCardLinkBtn2?.addEventListener("click", () => {
-      _nativeShare(currentCardUrl,
+      _nativeShare(currentShareUrl,
         txt(currentItem?.name) + " 的智慧名片",
         "這是我的智慧名片，歡迎認識我。",
         "名片連結已複製");
@@ -295,6 +297,23 @@
   }
 
   // ── URL 建構函式 ──────────────────────────────────────────────
+
+  /**
+   * buildCardShareUrl：「分享名片」／「複製名片連結」這兩個會被貼到 LINE 等社群平台的
+   * 出口專用，指到 share/{cardId}.html（LINE 真人驗收已確認這個頁面能正確帶出本人大頭照
+   * 當 OG 預覽圖，2026-08-15）。刻意跟 buildCardUrl 分開、不共用同一個網址：QR 碼掃描／
+   * 「開啟名片」按鈕走的是 buildCardUrl 那個互動名片本尊，掃碼／站內開卡不會經過社群
+   * crawler，不需要、也不該多繞一層 share page 的轉址。
+   *
+   * 目前只有 TW0001／TW0110 有預先產生 share/{cardId}.html（由
+   * scripts/generate-share-page.js 產生）；其他卡號的 share 頁面還沒建立，分享出去的
+   * 連結在那張卡的 share 頁補齊之前，會被 nginx SPA fallback 接成通用 index.html
+   * （等同今天分享的效果，不會比現在更差，但也還沒解決那張卡的專屬 OG）。
+   */
+  function buildCardShareUrl(item) {
+    const cardId = txt(item?.id) || id;
+    return buildUrl("share/" + encodeURIComponent(cardId) + ".html");
+  }
 
   /**
    * buildCardUrl：個人成品名片頁（?id=...）
@@ -514,8 +533,8 @@ function buildRenewalFormUrl(item) {
 
     show(q("walletNavHint"), !isTrial);
 
-    // 名片連結
-    const cardLink = currentCardUrl || "";
+    // 名片連結（分享出去用 currentShareUrl，跟 QR／開啟名片用的 currentCardUrl 分開）
+    const cardLink = currentShareUrl || "";
     setText(q("cardLinkDisplay"), cardLink || "連結尚未建立");
     _setLinkBtns("copyCardLinkBtn2", "shareCardLinkBtn2", !!cardLink);
 
@@ -956,13 +975,13 @@ function buildRenewalFormUrl(item) {
   }
 
   function onShareCard() {
-    setText(el.shareCardLinkDisplay, currentCardUrl || "連結尚未建立");
-    if (navigator.share && currentCardUrl) {
+    setText(el.shareCardLinkDisplay, currentShareUrl || "連結尚未建立");
+    if (navigator.share && currentShareUrl) {
       const name = txt(currentItem?.name) || "我";
       navigator.share({
         title: `${name} 的智慧名片`,
         text:  "這是我的智慧名片，歡迎認識我。",
-        url:   currentCardUrl
+        url:   currentShareUrl
       }).catch(err => {
         if (err?.name !== "AbortError") openDialog(el.shareCardDialog);
       });
@@ -972,8 +991,8 @@ function buildRenewalFormUrl(item) {
   }
 
   async function onCopyCardLink() {
-    if (!currentCardUrl) { setStatus("名片連結尚未建立", true); return; }
-    const ok = await copyText(currentCardUrl);
+    if (!currentShareUrl) { setStatus("名片連結尚未建立", true); return; }
+    const ok = await copyText(currentShareUrl);
     setStatus(ok ? "名片連結已複製" : "複製失敗", !ok);
     if (ok) closeDialog(el.shareCardDialog);
     clearStatusSoon();
