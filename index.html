@@ -1256,14 +1256,21 @@
       function forwardShareTrackingParams_(targetUrl, cardId){
         try{
           var incoming = sp();
-          var forwardKeys = ["share_card_id", "share_agent_id", "share_source", "share_channel", "share_visit_id", "ref"];
-          forwardKeys.forEach(function(k){
+          // share_agent_id／share_visit_id：如果這頁本身是從別的分享連結轉進來的，沿用網址
+          // 上原本帶的值；沒有就維持空白，不去問還沒載入完成的卡片資料算「這張卡的服務業務員
+          // 是誰」——那正是這次要修的問題根源（依賴非同步 payload），不能走回頭路。跟原本
+          // app.js buildTrackedShareUrl_() 拿不到 agent 時本來就會留空的行為一致，不是新的
+          // 資料遺失。
+          ["share_agent_id", "share_visit_id"].forEach(function(k){
             var v = incoming.get(k);
             if (v !== null && v !== "") targetUrl.searchParams.set(k, v);
           });
-          // share_card_id 一定要等於「這次真正分享出去的卡」，不能沿用網址上可能殘留的
-          // 舊值（例如這頁本身是別人分享連結轉進來的，帶著上一輪的 share_card_id）。
+          // share_card_id／share_source／share_channel 是「這次分享動作」本身的固定屬性，
+          // 對應原本 app.js buildTrackedShareUrl_() 一律寫死的同一組值，不看網址上可能殘留
+          // 的舊值（例如這頁本身是別人分享連結轉進來的，帶著上一輪的 share_card_id）。
           targetUrl.searchParams.set("share_card_id", cardId);
+          targetUrl.searchParams.set("share_source", "card_share");
+          targetUrl.searchParams.set("share_channel", "product_card");
         }catch(e){}
       }
 
