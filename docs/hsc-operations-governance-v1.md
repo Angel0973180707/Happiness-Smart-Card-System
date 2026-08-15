@@ -172,7 +172,7 @@ CI 至少應驗證：
 | C | 非 stamp 管理檔案修改 | PASS |
 | D | index.html 完全抓不到任何 `?v=` | FAIL |
 
-> **狀態：Pending** — 這份 workflow 尚未實際建立於 repo 內，內容需先經安全審查（不得含外部不可信腳本、不得洩漏 secret、不得自動修改 production、不得自動 deploy）才能納入 `.github/workflows/`。
+> **狀態：Done**（2026-08-15）— 已建立並通過安全審查（無外部不可信腳本、無 secret 洩漏、不自動修改 production、不自動 deploy），四個情境 A/B/C/D 都用真的 GitHub Actions 執行驗證過（本機 git plumbing 建構合成 commit 測試，不污染 main）。已正式上線於 `main`，push 到 main／PR 都會跑。
 
 ---
 
@@ -247,7 +247,42 @@ direct GAS 與 nginx gas-proxy 行為一致。
 
 ---
 
-## 九、正式名片 P0 驗收標準
+## 九、個人名片分享 URL 建構原則（2026-08-15 新增，真人驗收通過）
+
+### 事故摘要
+
+CEO 真人測試發現：打開 `index.html?id=TW0110&view=1` 後**第一次**直接按浮動分享按鈕，分享出去的卻是 `share/TW0001.html`（別人的卡）；再按第二次才會變成 `share/TW0110.html`。其他非 TW0001 的正式卡都有同樣現象，且經真的 `navigator.share()`/`clipboard` 攔截證實：問題不只發生在「第一次」，錯誤結果甚至可能被永久快取住，不會自動修正。
+
+### Root cause
+
+`index.html` 的分享 URL 建構函式（`buildCardShareUrlFallback()`／`buildCardShareOgUrlCandidate()`）原本會問 app.js 的 `window.__getCardShareUrl`／`__getCardShareOgUrl`，這兩個函式用 `facadeCurrentRow || currentRow || facadeBaseData`（app.js 自己的 GAS 讀卡請求跑完才會有值）決定要分享哪張卡。使用者在資料載入完成前點分享，這幾個變數是 `null`，程式就落回寫死的 `FACADE_SAMPLE_ID`（`"TW0001"`）。更嚴重的是，這個錯誤結果會被背景 prefetch 存進一個不會重算的全域快取變數，導致錯誤結果被永久記住，不是「等一下就會自動修正」。
+
+### 正式規則（往後任何分享/複製連結功能都適用）
+
+> **「分享哪張名片」必須以當前網址的 card ID 為準（`?id=` 直接同步讀取），不得依賴尚未完成的非同步卡片資料（GAS 回傳、`currentRow`、`facadeCurrentRow` 等任何要等網路請求完成才有值的狀態）。**
+
+原因：在個人成品卡模式（`view=1`）下，「這次要分享哪張卡」這件事，網址本身早就百分之百確定，不需要、也不應該問任何還在載入中的非同步資料。這條原則跟第八節「Card Shell Single-Flight」是同一種精神：**同步、確定的資訊來源，不能被非同步狀態污染或取代。**
+
+### 正式修復
+
+`index.html` 的分享 URL 一律直接用 `getCurrentCardId()`（同步讀 URL `?id=`）建構，不再問 app.js 那兩個依賴非同步 payload 的函式。追蹤參數（`share_card_id`／`share_source`／`share_channel`）改為這次分享動作的固定屬性，一律用目前卡號跟固定值覆蓋，不受載入時機影響；`share_agent_id`／`share_visit_id` 沿用網址上原本帶的值（跟原本邏輯一致，允許為空）。
+
+Commit：`f177f78`（主要修復）、`4286c4c`（追蹤參數修正）。
+
+### 回歸測試清單（往後改分享/複製連結相關功能，必須重跑）
+
+用真的 `navigator.share()`/`clipboard.writeText` 攔截（不能只看程式碼推論）：
+
+1. 至少 5 張正式卡（含 TW0001 本身），**全新開頁、完全不等待、立即按分享**，`share_card_id` 一律等於該卡自己。
+2. 同一頁再按第二次，結果仍須一致正確。
+3. 模擬慢網路／逾時（探測請求延遲 0ms／500ms／2.5s／永遠不回應），任何一種情境第一次點擊都必須正確，不得因網路時機退化成預設卡。
+4. 追蹤參數（`share_card_id`／`share_source`／`share_channel`）確認存在且正確。
+
+> **狀態：Resolved — Production Accepted**（2026-08-15，CEO 真人手機實測不同名片，第一次直接分享即正確顯示該張名片，不再跳成 TW0001）。
+
+---
+
+## 十、正式名片 P0 驗收標準
 
 主名片 `TW0001`，正式站驗收至少包含：
 
@@ -262,7 +297,7 @@ direct GAS 與 nginx gas-proxy 行為一致。
 
 ---
 
-## 十、LINE / Open Graph 分享規則
+## 十一、LINE / Open Graph 分享規則
 
 LINE 分享問題必須與「主名片載入 / 正式部署 / GAS」分開診斷。
 
@@ -274,9 +309,11 @@ LINE 分享問題必須與「主名片載入 / 正式部署 / GAS」分開診斷
 
 最終完成標準是**真人 LINE 分享**，必須真的出現姓名、大頭照/OG 圖、描述。如果真人 LINE 仍只有 URL，不得宣稱完成。
 
+> **狀態：Resolved — Production Accepted**（2026-08-15）。CEO 真人電腦版 LINE 分享 `share/TW0001.html`／`share/TW0110.html` 都正確顯示本人大頭照。後續發現且已修復的是「分享入口有沒有正確指到 `share/{cardId}.html`」這個獨立問題，見第九節。
+
 ---
 
-## 十一、LINE A/B 診斷方式
+## 十二、LINE A/B 診斷方式
 
 已建立完全獨立的純靜態測試頁：
 
@@ -297,21 +334,21 @@ LINE 分享問題必須與「主名片載入 / 正式部署 / GAS」分開診斷
 
 不要在 A/B 前持續疊新架構。
 
-> **狀態：Under Investigation** — A/B 兩條網址已建立並可供真人測試，尚未取得真人 LINE 分享結果。
+> **狀態：Resolved**（2026-08-15）— 真人結果：**A、B 都有預覽，而且 B 正確顯示本人大頭照**。依判讀規則，代表原本的「LINE 完全不分享這個網域」假設是錯的；真正的問題後來定位在「分享入口網址有沒有指到 `share/{cardId}.html`」（見第九節），不是 OG 架構或圖片規格本身。
 
 ---
 
-## 十二、LINE OG 圖片規格
+## 十三、LINE OG 圖片規格
 
 目前 TW0001 avatar：JPEG、512×512、約 28 KB、HTTP 200、`Content-Type: image/jpeg`，crawler 可直接 GET，不需 Cookie / 登入。
 
-但 512×512 與常見 OG 建議 1200×630 存在差異。
+512×512 與常見 OG 建議 1200×630 存在差異，曾列為候選根因。
 
-> **狀態：Candidate** — 這目前只能列為候選因素，不能未驗證就當 root cause。
+> **狀態：Resolved（非根因）**（2026-08-15）— 真人驗收證實 512×512 的 TW0001 avatar 本身可以被 LINE 正常抓取並顯示，**圖片尺寸不是造成分享失敗的原因**。真正問題是分享入口網址（見第九節）。1200×630 規格仍建議作為長期最佳實務保留（風險更低、跨平台相容性更好），但不再視為本次事故的必要修復項目。
 
 ---
 
-## 十三、團隊責任分界
+## 十四、團隊責任分界
 
 | 角色 | 負責範圍 |
 |---|---|
@@ -325,7 +362,7 @@ Empryon 不修改 HSC repo 程式碼。repo 仍是唯一 source of truth。
 
 ---
 
-## 十四、P0 標準診斷順序
+## 十五、P0 標準診斷順序
 
 未來遇到任何「正式站沒更新 / 名片壞掉 / 載入失敗」，一律按照：
 
@@ -340,7 +377,7 @@ Empryon 不修改 HSC repo 程式碼。repo 仍是唯一 source of truth。
 
 ---
 
-## 十五、正式發布 Gate
+## 十六、正式發布 Gate
 
 今後 HSC production release 固定走：
 
@@ -370,7 +407,7 @@ assets fingerprint 必要時核對
 
 ---
 
-## 十六、已證明無效／容易誤導的診斷方式（Lessons Learned）
+## 十七、已證明無效／容易誤導的診斷方式（Lessons Learned）
 
 1. **`curl -I GAS`** — HEAD 403 不代表 GAS 壞掉。
 2. **單看 GitHub push** — push 成功不代表使用者已拿到新版。
@@ -380,10 +417,11 @@ assets fingerprint 必要時核對
 6. **本機 20/20** — 不代表真人 Production Accepted。
 7. **第三方 OG debugger 正常** — 不代表 LINE 真人分享正常。
 8. **清 cache 後成功** — 不能直接當 root cause，可能只是把證據洗掉。
+9. **非同步資料當成「目前狀態」的來源** — 只要「這次要用哪個 ID／哪筆資料」這件事，網址或呼叫當下就已經百分之百確定，就不能改問一個要等網路請求才會有值的變數（`currentRow`／`facadeCurrentRow`／`facadeBaseData` 這類）。這類變數在請求完成前是 `null`，程式一旦在這個空窗期被使用者觸發，就會落回寫死的預設值（例如 `FACADE_SAMPLE_ID = "TW0001"`），而且錯誤結果還可能被背景 prefetch 存進不會重算的快取變數，變成「看起來已經修好，其實只是暫時沒被踩到」。判斷原則：同步、確定的資訊來源（URL 參數）優先於任何非同步狀態；只有在同步來源本身無法回答問題時，才允許退回非同步資料。詳見第九節。
 
 ---
 
-## 十七、文件維護規則
+## 十八、文件維護規則
 
 未來每次有新的 Production P0 / 部署事故 / 快取事故 / 分享事故 / GAS 行為差異 / 真人驗收 lesson，只有在**已驗證**之後，才更新這份文件。
 
