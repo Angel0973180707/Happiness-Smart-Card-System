@@ -421,7 +421,42 @@ assets fingerprint 必要時核對
 
 ---
 
-## 十八、文件維護規則
+## 十八、GAS 正式部署 Source of Truth 治理（2026-08-16 新增，真人驗收通過）
+
+### 事故摘要
+
+CEO 真人回報「一般文字欄位（服務項目／品牌故事等）清空後，內容還是會留著」的 P0。技術長／開發長追查後發現這不只是單一 bug，還牽出一個更大的既有風險：**正式站 GAS（Apps Script HEAD／deployment #506）跟 GitHub main 早就存在實質落差**——正式站程式碼裡有 27 個以上的函式因為過去有人直接在 Apps Script Editor 上編輯、沒有透過 `clasp push` 回存 repo，被重複宣告（含 `BankImport.js`／`BatchCreate.js`／`CtaManager.js` 這幾個舊檔名殘留檔案）；同時正式站缺少已經寫好、但從未真正部署的：LockService 併發鎖（`confirmPayment_`／`updateCardByToken_`／Ext表寫入）、v500 安全修復（`routeAction_` 錯誤處理曾外洩 stack trace 與原始 request）、system_error_db 錯誤監控＋斷路器＋Email雙軌備援、`resolveValidatedRequestRef_`（ref 防髒資料）、`GAS_batchMaster.js`（雲端主檔儲存）等一整批已完成但沒上線的修復。
+
+### 逐項驗證，不是憑印象判斷
+
+依技術長指令，逐函式（不是逐行）比對正式站實際生效版本跟 repo：確認**沒有任何一個正式站正在使用的活躍功能，會因為改用 repo 覆蓋而遺失**（production-only 函式清單為零）；27 個重複函式裡，26 個「正式站真正生效的那一份（後面宣告蓋掉前面）」跟 repo 逐字相同，純粹是清理不乾淨的死碼。
+
+### 正式結案
+
+1. **一般文字欄位無法清空 P0**：Root cause 是 `shouldApplyUpdateValue_`（`GAS_main.js`）把「欄位沒送」跟「欄位送了空字串」當成同一件事，一般文字欄位只要送空字串就被跳過、舊值原封不動——不是內容復活，是從一開始就沒被真正清空過。修正比照既有照片／CTA 欄位的正確語意（一律允許套用，不新增第二套規則）。Commit `663a672`。Case A～E（欄位未送／清空／改新值／原值已空／多欄互不干擾）**全部直接對 `card_db` 真值驗證**，不是只看 API 回傳 success。
+2. **GAS Production Baseline Catch-up**：部署前跑完整 Gate（名片讀寫／快取失效、付款 LockService 併發不死鎖、referral ref 驗證、`routeAction_` 安全性、663a672 Case A-E），全數通過、零 Blocker，才正式：`clasp push` 清掉舊檔名孤兒檔案 → 建立新 immutable version #507 → 既有正式 deployment（`AKfycbycjN-...`，deployment ID 不變，nginx 代理設定不用改）改指向 #507。部署後 smoke test（ping／getCardPublicShell TW0001／getCardPublicLite TW0110／測試卡更新清空／前台立即反映）全數通過。
+
+> **狀態：Resolved — Production Accepted**（2026-08-16，CEO 正式收下：663a672 已實際進入 GAS #507，Case A-E 對 `card_db` 真值驗證；GAS Production Baseline Catch-up 部署前後 Gate 都驗證過，不是整包直接覆蓋）。
+
+### 正式規則（往後任何 GAS 部署都適用）
+
+> **GAS 正式部署以 GitHub main 為唯一程式來源；不得再直接在 Apps Script Editor 做正式功能修改後不回存 repo。Apps Script deployment version、`HSC_VERSION`、Git commit hash 是三種獨立編號，不可互相取代判斷「正式站現在到底在跑什麼」——Git commit hash 才是主要 source trace。**
+
+原因：這次「正式站跟 repo 分岔」的根源，就是曾經有人繞過 `clasp push` 直接在 Apps Script Editor 上動正式程式碼，導致修改沒有回存 git，長期累積成一批「repo 不知道、正式站默默在跑」的內容，也讓 `HSC_VERSION` 字串（人工維護的標記）跟實際部署內容脫鉤（正式站曾經回報 `HSC_VERSION="v465"`，但實際內容已經包含後續好幾輪修復）。往後每次要改 GAS，一律：改 `GAS_main.js`／`GAS_*.js` → commit → `clasp push` → 驗證 → `clasp deploy`／`redeploy` 更新既有 deployment，不允許任何「先在 Apps Script Editor 上改、之後有空再回補 git」的操作順序。
+
+### Rollback 點記錄
+
+- 舊 deployment version：**#506**（immutable，內容已在本機備份保存，一行指令即可切回：`clasp update-deployment AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E --versionNumber 506`）
+- 新 deployment version：**#507**（= GitHub main，含 commit `663a672`）
+
+### Cleanup / Must Remove（收尾追蹤，不影響業務但不該長期留著）
+
+1. **LINE 系統例外警示（誤報說明，非事故）**：Gate F 驗收時故意觸發 `updateCardByToken` 錯誤來測試安全修復，該 action 在 `CRITICAL_ACTIONS_` 名單內，會觸發真的 LINE 警示推播。**這則警示是這次驗收測試造成的，不是正式事故**，往後看到同一時間點的警示可以對照這份記錄排除。
+2. **`request_db` 測試資料待人工清除**：3 筆備註為 `HSC_BASELINE_GATE_TEST_DELETE_ME` 的申請記錄，狀態 pending、沒有連結任何邀請碼或卡片，不影響任何業務邏輯或分潤計算。目前沒有對應的刪除 API，需要後台人工從試算表刪除。
+
+---
+
+## 十九、文件維護規則
 
 未來每次有新的 Production P0 / 部署事故 / 快取事故 / 分享事故 / GAS 行為差異 / 真人驗收 lesson，只有在**已驗證**之後，才更新這份文件。
 
