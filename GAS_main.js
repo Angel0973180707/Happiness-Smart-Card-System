@@ -15875,7 +15875,18 @@ function shouldApplyUpdateValue_(field, value) {
     return true;
   }
 
-  return s !== "";
+  // HSC P0（一般文字欄位無法清空，2026-08-16）：這個函式的呼叫端
+  // updateCardByToken_ 是用 Object.keys(normalizedInput).forEach(...) 逐一呼叫，
+  // 而 normalizedInput 本身（normalizeUpdateCardReqFields_）已經只保留
+  // req[f] !== undefined 的欄位——換句話說，能走到這裡的欄位，一定是「使用者這次
+  // 真的有送這個欄位」，不會是「欄位根本沒出現在 payload 裡」的情況（那種情況
+  // forEach 根本不會呼叫到這個函式，不需要在這裡另外判斷）。
+  // 舊寫法 `return s !== "";` 把「欄位沒送」跟「欄位送了空字串（使用者主動清空）」
+  // 誤判成同一種「沒有新值」，導致服務項目／品牌故事等一般文字欄位永遠無法被清空
+  // ——不是被舊表單資料復活，是從一開始就沒有被真正寫成空字串過。
+  // 修正：只要走到這裡就代表欄位確實有送，一律允許套用（含空字串），跟上面
+  // 照片／CTA 欄位既有的正確語意一致，不新增第二套規則、不新增任何 sentinel。
+  return true;
 }
 
 function normalizeUpdateValue_(field, value) {
