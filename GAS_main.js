@@ -3118,6 +3118,8 @@ function createUpdateFeePayment_(req) {
     saveOverflowPhotos_(_extCardId, req);
 
     invalidateCardPublicCache_(updatedCard.id || updatedCard.card_id);
+    // 新卡分享修復（2026-10-11）：客戶改了姓名／大頭照／標語後，分享預覽也要跟著更新
+    requestSharePageRegen_(updatedCard.id || updatedCard.card_id, "updateCardByToken");
     logCardUpdate_(updatedCard, req, eligibility.charge_required, eligibility.charge_amount, eligibility.payment_id);
     if (eligibility.charge_required) {
       closePaidUpdateFeePayment_(updatedCard.id, now);
@@ -3336,8 +3338,9 @@ function confirmPayment_(req) {
     throw new Error("系統忙碌，無法完成付款確認，請稍後再試。");
   }
 
+  var result;
   try {
-    return confirmPayment_locked_(req, paymentId, now);
+    result = confirmPayment_locked_(req, paymentId, now);
   } finally {
     try {
       lock.releaseLock();
@@ -3345,6 +3348,14 @@ function confirmPayment_(req) {
       Logger.log("confirmPayment_ lock release failed: " + (releaseErr && releaseErr.message ? releaseErr.message : String(releaseErr)));
     }
   }
+
+  // 新卡分享修復（2026-10-11）：付款確認後立刻請 GitHub 產生這張卡的分享頁，
+  // 刻意放在鎖釋放「之後」，不讓對外 HTTP 呼叫拉長付款鎖的持有時間；內部失敗只記錄，
+  // 絕不影響付款結果（排程 update-card-cache.yml 仍會補上）。
+  if (result && result.card) {
+    requestSharePageRegen_(result.card_id, "confirmPayment");
+  }
+  return result;
 }
 
 // confirmPayment_ 的實際邏輯，全程在 LockService 保護下執行，不對外直接呼叫
@@ -4590,6 +4601,61 @@ function invalidateCardPublicCache_(cardId) {
   var cache = CacheService.getScriptCache();
   cache.remove(getPublicCardCacheKey_(id));     // Lite 快取
   cache.remove("hsc:card_shell:" + id);         // ← v8.4.3:Shell 快取
+}
+
+// ============================================================
+// 新卡分享修復（2026-10-11）：請 GitHub Actions 立刻產生 share/{卡號}.html
+// ------------------------------------------------------------
+// 原本分享頁只靠 update-card-cache.yml 排程產生，GitHub 實際 3～4 小時才跑一次，
+// 新開通的卡（例如 TW0192／TW0193）在那之前分享出去會落到名片館首頁。
+// 這裡改成付款確認／客戶更新名片後，直接觸發既有的 generate-share-page.yml
+// （workflow_dispatch，輸入 card_id）。不新增任何 GAS action、不改資料表。
+//
+// - token 存在指令碼屬性 GITHUB_SHARE_DISPATCH_TOKEN（fine-grained PAT，只授權本 repo
+//   的 Actions: Read and write），沒設定就直接跳過，行為等同修改前。
+// - 只處理正式卡號格式 TW+數字，跟 scripts/list-valid-cards.py 同一套規則。
+// - 同一張卡 120 秒內只觸發一次，避免連續存檔洗爆 Actions。
+// - 永不 throw：任何失敗只寫 Logger，呼叫端的付款／更新結果完全不受影響。
+// ============================================================
+var SHARE_PAGE_DISPATCH_URL_ =
+  "https://api.github.com/repos/Angel0973180707/Happiness-Smart-Card-System/actions/workflows/generate-share-page.yml/dispatches";
+
+function requestSharePageRegen_(cardId, reason) {
+  try {
+    var id = String(cardId || "").trim().toUpperCase();
+    if (!/^TW\d+$/.test(id)) return { ok: false, skipped: "not_production_card_id" };
+
+    var token = PropertiesService.getScriptProperties().getProperty("GITHUB_SHARE_DISPATCH_TOKEN");
+    if (!token) return { ok: false, skipped: "no_token" };
+
+    var cache = CacheService.getScriptCache();
+    var throttleKey = "hsc:share_regen:" + id;
+    if (cache.get(throttleKey)) return { ok: false, skipped: "throttled" };
+    cache.put(throttleKey, "1", 120);
+
+    var res = UrlFetchApp.fetch(SHARE_PAGE_DISPATCH_URL_, {
+      method: "post",
+      contentType: "application/json",
+      muteHttpExceptions: true,
+      headers: {
+        Authorization: "Bearer " + token,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      payload: JSON.stringify({ ref: "main", inputs: { card_id: id } })
+    });
+    var code = res.getResponseCode();
+    if (code !== 204) {
+      Logger.log("[requestSharePageRegen_] " + id + " (" + reason + ") GitHub 回應 " + code + "：" +
+        String(res.getContentText() || "").slice(0, 300));
+      return { ok: false, status: code };
+    }
+    return { ok: true };
+  } catch (err) {
+    Logger.log("[requestSharePageRegen_] " + cardId + " (" + reason + ") 失敗：" +
+      (err && err.message ? err.message : String(err)));
+    return { ok: false, error: "exception" };
+  }
 }
 
 function mapAgentTypeToTier_(agentType) {
@@ -16915,7 +16981,7 @@ function assignPaymentToCard_(req) {
 // 原檔:
 //   const HSC_VERSION = "v7.12.2-payment-type-routing";
 // 改為:
-const HSC_VERSION = "v507";
+const HSC_VERSION = "v508";
 
 /* ============================================================
  * ======= [ADD] LIFF URL 轉換工具(v7.15 LINE 整合)==========

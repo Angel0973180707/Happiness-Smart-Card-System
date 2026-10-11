@@ -1322,10 +1322,26 @@
           var controller = new AbortController();
           var timer = setTimeout(function(){ controller.abort(); }, 2500);
           var probeUrl = ogCandidate.split("?")[0]; // 探測檔案本身在不在，不用帶追蹤參數
+          // 新卡分享修復（2026-10-11）：不能只看 res.ok——nginx 對不存在的檔案會走 SPA
+          // fallback 回傳 index.html 並且一樣是 200，新卡（分享頁還沒產生）因此被誤判成
+          // 「分享頁存在」，分享出去的連結打開變成名片館首頁（TW0192／TW0193 實例）。
+          // 改成確認回來的內容真的是「這張卡」的分享頁：產生器（scripts/generate-share-page.js）
+          // 產出的頁面一定含有 id="fallbackLink" 且指向 index.html?id={卡號}&amp;view=1，
+          // index.html 本身不含這兩個特徵。確認不到就維持 buildCardShareUrlFallback()
+          // 的直接名片網址，新卡開通後立刻可以分享到正確的名片。
+          var expectTarget = "index.html?id=" + encodeURIComponent(getCurrentCardId()) + "&amp;view=1\"";
           fetch(probeUrl, { method: "GET", cache: "no-store", signal: controller.signal })
             .then(function(res){
+              if (!res || !res.ok) return null;
+              return res.text();
+            })
+            .then(function(body){
               clearTimeout(timer);
-              if (res && res.ok) __resolvedShareUrl = ogCandidate;
+              if (typeof body === "string" &&
+                  body.indexOf('id="fallbackLink"') !== -1 &&
+                  body.indexOf(expectTarget) !== -1) {
+                __resolvedShareUrl = ogCandidate;
+              }
             })
             .catch(function(){ clearTimeout(timer); });
         }catch(e){}

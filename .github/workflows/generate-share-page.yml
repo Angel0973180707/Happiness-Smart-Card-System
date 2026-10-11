@@ -70,5 +70,15 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "chore: generate share page for ${CARD_ID} $(date -u '+%Y-%m-%d %H:%M')"
-            git push
+            # 新卡分享修復（2026-10-11）：GAS 付款確認／更新名片後會自動觸發本 workflow，
+            # 可能跟 update-card-cache.yml 排程或另一張卡的觸發同時推送；遠端先被推進時
+            # 直接 git push 會被拒絕，這裡先 rebase 到最新再推，最多重試 3 次。
+            for i in 1 2 3; do
+              if git push; then exit 0; fi
+              echo "push 被拒絕（第 $i 次），rebase 到最新 main 後重試"
+              sleep $((i * 5))
+              git pull --rebase origin main || { echo "::error::rebase 失敗"; exit 1; }
+            done
+            echo "::error::push 重試 3 次仍失敗"
+            exit 1
           fi
