@@ -18,7 +18,19 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=v1.7" />
+  <!-- 分享預覽修復（2026-10-16）：LINE／Facebook 只認完整網址的 og:image，原本的相對路徑
+       og-card.png 抓不到圖，名片館（/?ref=…）和尚未產生分享頁的名片（index.html?id=…）
+       分享出去都只剩網址。改成絕對網址，並補上圖片尺寸與網站資訊。
+       刻意不加 og:url：固定成首頁會讓 Facebook 把分享連結改寫成首頁，弄丟 ?ref= 推薦碼。 -->
+  <meta property="og:site_name" content="天使幸福智慧名片館" />
+  <meta property="og:locale" content="zh_TW" />
+  <meta property="og:image" content="https://angel-namecard.letssyncus.com/og-card.png?v=v1.7" />
+  <meta property="og:image:secure_url" content="https://angel-namecard.letssyncus.com/og-card.png?v=v1.7" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://angel-namecard.letssyncus.com/og-card.png?v=v1.7" />
 
   <link rel="preconnect" href="https://angel-namecard.letssyncus.com" crossorigin />
   <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin />
@@ -1314,10 +1326,34 @@
       // 「使用者這次點擊」的同一個事件處理裡同步呼叫，中間如果插一段 await fetch()，部分瀏覽器
       // （尤其 iOS Safari）事後呼叫 navigator.share() 會直接被拒絕（user activation 已過期）。
       // 所以改成頁面載入時就先背景探測好，按鈕點下去當下只讀已經算好的結果，全程同步。
+      //
+      // 分享預覽修復（2026-10-16，TW0200 實例）：新卡開通後分享頁要等正式站同步（約 15 分鐘）
+      // 才會上線；原本只在頁面載入時探測一次，頁面若在分享頁上線前就打開，之後怎麼分享都是
+      // 沒有預覽圖的直接名片網址。改成：還沒探測到就每 60 秒背景重試（最多 30 次），頁面從
+      // 背景切回前景時也立刻再探測一次。按鈕點下去當下仍然只讀已算好的結果，維持全程同步。
       var __resolvedShareUrl = null;
+      var __shareProbeInFlight = false;
+      var __shareProbeAttempts = 0;
+      var __shareProbeRetryTimer = null;
+      var SHARE_PROBE_MAX_ATTEMPTS = 30;
+      var SHARE_PROBE_RETRY_MS = 60000;
+      function scheduleShareProbeRetry_(){
+        if (__resolvedShareUrl || __shareProbeRetryTimer) return;
+        if (__shareProbeAttempts >= SHARE_PROBE_MAX_ATTEMPTS) return;
+        __shareProbeRetryTimer = setTimeout(function(){
+          __shareProbeRetryTimer = null;
+          prefetchCardShareUrl();
+        }, SHARE_PROBE_RETRY_MS);
+      }
+      document.addEventListener("visibilitychange", function(){
+        if (document.visibilityState === "visible" && !__resolvedShareUrl) prefetchCardShareUrl();
+      });
       function prefetchCardShareUrl(){
+        if (__resolvedShareUrl || __shareProbeInFlight) return;
         var ogCandidate = buildCardShareOgUrlCandidate();
         if (!ogCandidate) return;
+        __shareProbeInFlight = true;
+        __shareProbeAttempts++;
         try{
           var controller = new AbortController();
           var timer = setTimeout(function(){ controller.abort(); }, 2500);
@@ -1343,8 +1379,15 @@
                 __resolvedShareUrl = ogCandidate;
               }
             })
-            .catch(function(){ clearTimeout(timer); });
-        }catch(e){}
+            .catch(function(){ clearTimeout(timer); })
+            .then(function(){
+              __shareProbeInFlight = false;
+              scheduleShareProbeRetry_();
+            });
+        }catch(e){
+          __shareProbeInFlight = false;
+          scheduleShareProbeRetry_();
+        }
       }
       function resolveCardShareUrlSync(){
         return __resolvedShareUrl || buildCardShareUrlFallback();
