@@ -8737,7 +8737,10 @@ var CRITICAL_ACTIONS_ = [
 // ★ 這份清單是初版，建議 Angel-X 審查後視需要擴充。
 var NORMAL_ERROR_KEYWORDS_ = [
   "not found", "already", "required", "missing",
-  "invalid", "token mismatch", "unauthorized", "expired", "duplicate"
+  "invalid", "token mismatch", "unauthorized", "expired", "duplicate",
+  // 2026-10-30：停用卡被訪客點開（"Card unavailable"）是預期中的業務狀況，不是系統故障，
+  // 跟 "Card not found" 一樣只記錄不推 LINE（ERR261027084602221／ERR261030105640827 誤報）。
+  "unavailable"
 ];
 
 function classifyErrorSeverity_(message, errorName, action) {
@@ -8761,7 +8764,7 @@ function classifyErrorSeverity_(message, errorName, action) {
 
 // 防錯誤風暴：同一個 action + 同一種錯誤訊息，20 分鐘內只推播一次，
 // 冷卻期間內又發生的次數會累加，冷卻結束後下一次通知會一併帶出「這段期間又發生了幾次」。
-function notifyAdminErrorWithThrottle_(errorId, action, message) {
+function notifyAdminErrorWithThrottle_(errorId, action, message, targetId) {
   var THROTTLE_SECONDS = 1200; // 20 分鐘
   var cache = CacheService.getScriptCache();
 
@@ -8785,7 +8788,9 @@ function notifyAdminErrorWithThrottle_(errorId, action, message) {
     : "";
 
   var alertTitle = "🚨 系統例外警示";
-  var alertBody = "Action: " + sanitizeText_(action) + "\n錯誤：" + sanitizeText_(message) + "\nerror_id: " + errorId + suffix;
+  // 對象ID（通常是卡號）只放進通知內文，不放進 fingerprint，節流行為維持不變
+  var targetLine = targetId ? ("\n對象ID：" + sanitizeText_(targetId)) : "";
+  var alertBody = "Action: " + sanitizeText_(action) + "\n錯誤：" + sanitizeText_(message) + targetLine + "\nerror_id: " + errorId + suffix;
 
   // ★ 接住 notifyAdminLine_ 的真實回傳結果，往上傳，不再讓它憑空消失
   var lineResult = notifyAdminLine_({ title: alertTitle, message: alertBody });
@@ -8847,6 +8852,10 @@ function logSystemError_(err, action, req) {
     var stack = err && err.stack ? String(err.stack) : "";
     var errorName = err && err.name ? String(err.name) : "";
     var severity = classifyErrorSeverity_(message, errorName, action);
+    // 2026-10-30：記下這次請求的對象ID（通常是卡號），之後查 error_id 才知道是哪張卡。
+    // system_error_db 實際表頭跟 SCHEMA 有兩版定義，不新增欄位，改附加在訊息文字後面。
+    var targetId = sanitizeText_(req && (req.card_id || req.cardId || req.id));
+    var loggedMessage = targetId ? (message + " | target_id=" + targetId) : message;
 
     // ★ notified 欄位要講真話：normal 等級本來就不會嘗試通知，維持 "FALSE"；
     // critical 等級依實際通知結果寫 "TRUE" 或 "FAILED: <原因>"，不再永遠寫死 "FALSE"。
@@ -8854,7 +8863,7 @@ function logSystemError_(err, action, req) {
     var notifiedValue = "FALSE";
     if (severity === "critical") {
       try {
-        var notifyResult = notifyAdminErrorWithThrottle_(errorId, action, message);
+        var notifyResult = notifyAdminErrorWithThrottle_(errorId, action, message, targetId);
         if (notifyResult && notifyResult.ok) {
           notifiedValue = "TRUE";
         } else {
@@ -8881,7 +8890,7 @@ function logSystemError_(err, action, req) {
             error_id: errorId,
             occurred_at: toIso_(new Date()),
             action: sanitizeText_(action),
-            error_message: message,
+            error_message: loggedMessage,
             stack_trace: stack,
             severity: severity,
             notified: notifiedValue,
@@ -8905,7 +8914,7 @@ function logSystemError_(err, action, req) {
           errorId,
           toIso_(new Date()),
           sanitizeText_(action),
-          message,
+          loggedMessage,
           stack,
           severity,
           notifiedValue,
@@ -16981,7 +16990,7 @@ function assignPaymentToCard_(req) {
 // 原檔:
 //   const HSC_VERSION = "v7.12.2-payment-type-routing";
 // 改為:
-const HSC_VERSION = "v508";
+const HSC_VERSION = "v509";
 
 /* ============================================================
  * ======= [ADD] LIFF URL 轉換工具(v7.15 LINE 整合)==========

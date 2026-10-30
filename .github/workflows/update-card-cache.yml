@@ -79,6 +79,34 @@ jobs:
             echo "以下卡片這次同步失敗，下次排程（10 分鐘後）會自動重試：$FAILED"
           fi
 
+      # 停用卡下架（2026-10-30）：卡片被停用/草稿/刪除後不會再出現在 valid_card_ids.txt，
+      # 但它之前產生的 api/cards/{卡號}*.json、share/{卡號}.html 會一直留在公開網站上
+      # （TW0198 停用後個資仍公開，舊分享連結被點開還會觸發 LINE 誤報）。這裡把「不在有效清單裡」
+      # 的正式卡（TW+數字）公開檔案刪掉；卡片恢復啟用後會重新回到清單，下次排程自動產生回來。
+      # 安全煞車：一次要刪超過現有正式卡的 20%，代表清單可能異常（例如 getCards 回傳不完整），
+      # 這次整個跳過不刪，只留警告。
+      - name: Remove public files of cards no longer valid
+        run: |
+          set -uo pipefail
+          VALID_COUNT=$(grep -c . valid_card_ids.txt || true)
+          EXISTING=$(ls api/cards/ share/ 2>/dev/null | grep -oE '^TW[0-9]+' | sort -u || true)
+          EXISTING_COUNT=$(echo "$EXISTING" | grep -c . || true)
+          STALE=""
+          for CARD_ID in $EXISTING; do
+            grep -qx "$CARD_ID" valid_card_ids.txt || STALE="$STALE $CARD_ID"
+          done
+          STALE_COUNT=$(echo $STALE | wc -w)
+          echo "有效 $VALID_COUNT 張，網站上有 $EXISTING_COUNT 張，待下架 $STALE_COUNT 張：$STALE"
+          if [ "$STALE_COUNT" -eq 0 ]; then exit 0; fi
+          if [ "$VALID_COUNT" -eq 0 ] || [ $((STALE_COUNT * 5)) -gt "$EXISTING_COUNT" ]; then
+            echo "::warning::待下架數量異常（超過 20% 或有效清單為空），這次不刪任何檔案，請人工確認"
+            exit 0
+          fi
+          for CARD_ID in $STALE; do
+            rm -f "api/cards/${CARD_ID}.json" "api/cards/${CARD_ID}-shell.json" "share/${CARD_ID}.html"
+            echo "已下架 $CARD_ID"
+          done
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"

@@ -481,6 +481,7 @@ function buildInviteReplyText(request) {
         <button class="btn btn-primary btn-sm" id="btnGoDeliveryFromDetail" data-cid="${escapeHtml(id)}">📦 前往交付</button>
         <button class="btn btn-soft btn-sm" id="btnOpenPreview" data-cid="${escapeHtml(id)}">預覽</button>
         <button class="btn btn-warn btn-sm" id="btnGrantUnlimitedUpdate" data-cid="${escapeHtml(id)}">🔄 補開無限更新</button>
+        ${renderCardStatusToggleBtn(card, id)}
       </div>`;
     wrap.querySelector('#btnGoDeliveryFromDetail')?.addEventListener('click', e => {
       const cid = e.currentTarget.dataset.cid;
@@ -500,8 +501,8 @@ function buildInviteReplyText(request) {
       e.currentTarget.disabled = true;
       e.currentTarget.textContent = '處理中…';
       try {
-        const res = await postToGas({ action: 'adminGrantUnlimitedUpdate', card_id: cid });
-        if (!res.ok) throw new Error(res.error || '失敗');
+        // 2026-10-30：原本呼叫的 postToGas 只存在 form.js，admin 頁沒載入，按鈕必定失敗；改用 admin.js 自己的 apiPost
+        const res = await apiPost('adminGrantUnlimitedUpdate', { card_id: cid });
         alert(`✅ 已為 ${cid} 開通無限更新\n到期日：${res.update_unlimited_expires_at}`);
       } catch (err) {
         alert('❌ 失敗：' + err.message);
@@ -509,6 +510,39 @@ function buildInviteReplyText(request) {
         e.currentTarget.textContent = '🔄 補開無限更新';
       }
     });
+    wrap.querySelector('#btnToggleCardStatus')?.addEventListener('click', async e => {
+      const btn = e.currentTarget;
+      const cid = btn.dataset.cid;
+      const nextStatus = btn.dataset.next;
+      const msg = nextStatus === 'inactive'
+        ? `確定要停用 ${cid}？\n\n停用後名片頁無法開啟，之後可以再按「恢復」。`
+        : `確定要恢復 ${cid}？\n\n帳務：${billingStatusText(card.billing_status)}\n到期日：${formatValue(card.expires_at)}\n\n恢復後名片頁立刻可以開啟；分享預覽會在下次自動同步（約 3～4 小時內）更新。`;
+      if (!confirm(msg)) return;
+      btn.disabled = true;
+      btn.textContent = '處理中…';
+      try {
+        await apiPost('adminUpdateCard', { card_id: cid, status: nextStatus });
+        alert(nextStatus === 'inactive' ? `✅ 已停用 ${cid}` : `✅ 已恢復 ${cid}`);
+        loadCardDetail(cid);
+      } catch (err) {
+        alert('❌ 失敗：' + err.message);
+        btn.disabled = false;
+        btn.textContent = nextStatus === 'inactive' ? '⛔ 停用名片' : '♻️ 恢復名片';
+      }
+    });
+  }
+
+  // 停用／恢復按鈕：只在 active ↔ inactive 之間切換。
+  // locked（逾期未付款鎖卡）、draft、expired 不顯示按鈕，避免繞過付款／續約流程。
+  function renderCardStatusToggleBtn(card, id) {
+    const status = textOf(card.status).toLowerCase();
+    if (status === 'active') {
+      return `<button class="btn btn-soft btn-sm" id="btnToggleCardStatus" data-cid="${escapeHtml(id)}" data-next="inactive">⛔ 停用名片</button>`;
+    }
+    if (status === 'inactive') {
+      return `<button class="btn btn-ok btn-sm" id="btnToggleCardStatus" data-cid="${escapeHtml(id)}" data-next="active">♻️ 恢復名片</button>`;
+    }
+    return '';
   }
 
   // ── 分頁輔助：產生「載入更多」按鈕 HTML ──
