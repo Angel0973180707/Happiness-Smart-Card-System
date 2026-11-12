@@ -5664,6 +5664,9 @@ function createCardWithOfflinePayment_(req) {
   var inviteCode = sanitizeText_(req.invite_code || req.inviteCode);
   if (!inviteCode) throw new Error("Missing invite_code");
 
+  var createResult = null;
+  var newApplicationNotice = null;
+
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
@@ -5870,7 +5873,16 @@ if (!marqueePurchased && Array.isArray(req.addon_items)) {
 
     var marqueeWarning = marqueePurchased && !shouldEnableMarquee ? "marquee_purchased=true but marquee_text is empty, marquee not enabled" : "";
 
-    return {
+    // 鎖放開後才推管理員通知（見下方 finally 之後），避免 LINE 連線拖住其他人建卡
+    newApplicationNotice = {
+      card_id: createdCardId,
+      card: (cardResult && cardResult.card) ? cardResult.card : {},
+      amount: finalAmount,
+      addon_items: createCardReq.addon_items,
+      features_json: createCardReq.features_json
+    };
+
+    createResult = {
       ok: true,
       version: HSC_VERSION,
       action: "createCardWithOfflinePayment",
@@ -5900,6 +5912,9 @@ if (!marqueePurchased && Array.isArray(req.addon_items)) {
       Logger.log("createCardWithOfflinePayment_ lock release failed: " + (releaseErr && releaseErr.message ? releaseErr.message : String(releaseErr)));
     }
   }
+
+  if (newApplicationNotice) notifyAdminNewApplication_(newApplicationNotice);
+  return createResult;
 }
 
 function requireCardByIdOrToken_(req) {
@@ -8571,6 +8586,71 @@ function checkAndNotifyUpgradeEligible_(agentId) {
  *   }
  * @return {object} { ok: boolean, reason?: string }
  */
+/**
+ * 2026-11-12 Angel 要求：客戶送出申請表單、填付款確認單時推 LINE 給管理員。
+ * 一律包 try/catch，通知失敗絕不影響客戶送出；LINE 失敗時改寄 ADMIN_ALERT_EMAIL（沒設就跳過）。
+ */
+function notifyAdminBusinessEvent_(title, lines) {
+  try {
+    var backupEmail = "";
+    try {
+      backupEmail = sanitizeText_(PropertiesService.getScriptProperties().getProperty("ADMIN_ALERT_EMAIL"));
+    } catch (propErr) {}
+    var message = (lines || []).filter(function (s) { return s !== null && s !== undefined && String(s) !== ""; }).join("\n");
+    return notifyAdminLine_({ title: title, message: message, backup_email: backupEmail });
+  } catch (err) {
+    Logger.log("notifyAdminBusinessEvent_ failed: " + (err && err.message ? err.message : String(err)));
+    return { ok: false, reason: "exception" };
+  }
+}
+
+function notifyAdminNewApplication_(info) {
+  try {
+    info = info || {};
+    var card = info.card || {};
+    var features = parseJsonSafe_(info.features_json, {}) || {};
+    var summary = (features && features.order_summary) || {};
+    var planLabel = sanitizeText_(summary.plan_label) || sanitizeText_(card.plan) || "—";
+    var addonNames = (Array.isArray(info.addon_items) ? info.addon_items : []).map(function (it) {
+      return sanitizeText_(it && (it.name || it.code));
+    }).filter(function (s) { return !!s; });
+    var nameLine = sanitizeText_(card.name) + (sanitizeText_(card.unit) ? "｜" + sanitizeText_(card.unit) : "");
+    notifyAdminBusinessEvent_("🆕 新名片申請", [
+      "卡號：" + sanitizeText_(info.card_id),
+      "姓名：" + (nameLine || "—"),
+      "方案：" + planLabel + (addonNames.length ? "＋" + addonNames.join("、") : ""),
+      "應付：NT$" + Number(info.amount || 0).toLocaleString("en-US"),
+      "個人照：" + (sanitizeText_(card.avatar_url) ? "✅ 已上傳" : "❌ 未上傳"),
+      "請留意客戶付款後對帳開通。"
+    ]);
+  } catch (err) {
+    Logger.log("notifyAdminNewApplication_ failed: " + (err && err.message ? err.message : String(err)));
+  }
+}
+
+function notifyAdminPaymentCheck_(cardId, amount, last5, inboxId) {
+  try {
+    var card = null;
+    try { card = findRowByField_("card_db", "id", String(cardId || "").toUpperCase()) || findRowByField_("card_db", "id", cardId); } catch (e1) {}
+    var matched = false;
+    try {
+      clearSheetRowCache_("payment_inbox_db");
+      var inbox = findRowByField_("payment_inbox_db", "inbox_id", inboxId);
+      matched = !!inbox && sanitizeText_(inbox.matched).toUpperCase() === "TRUE";
+    } catch (e2) {}
+    var nameLine = card ? (sanitizeText_(card.name) + (sanitizeText_(card.unit) ? "｜" + sanitizeText_(card.unit) : "")) : "";
+    notifyAdminBusinessEvent_("💰 客戶填了付款確認單", [
+      "卡號：" + sanitizeText_(cardId),
+      nameLine ? "姓名：" + nameLine : "",
+      "金額：NT$" + Number(amount || 0).toLocaleString("en-US"),
+      "帳號末五碼：" + sanitizeText_(last5),
+      matched ? "狀態：✅ 已自動比對成功並開通" : "狀態：⏳ 待對帳，請到後台填銀行入帳"
+    ]);
+  } catch (err) {
+    Logger.log("notifyAdminPaymentCheck_ failed: " + (err && err.message ? err.message : String(err)));
+  }
+}
+
 function notifyAdminLine_(payload) {
   var title = sanitizeText_(payload && payload.title);
   var message = sanitizeText_(payload && payload.message);
@@ -16465,6 +16545,9 @@ function submitPaymentCheck_(req) {
     Logger.log("submitPaymentCheck_ autoMatch error: " + err.message);
   }
 
+  // 2026-11-12：推 LINE 通知管理員（失敗不影響客戶送出）
+  notifyAdminPaymentCheck_(cardId, amount, last5, row.inbox_id);
+
   return {
     ok: true,
     version: HSC_VERSION,
@@ -16990,7 +17073,7 @@ function assignPaymentToCard_(req) {
 // 原檔:
 //   const HSC_VERSION = "v7.12.2-payment-type-routing";
 // 改為:
-const HSC_VERSION = "v509";
+const HSC_VERSION = "v510";
 
 /* ============================================================
  * ======= [ADD] LIFF URL 轉換工具(v7.15 LINE 整合)==========

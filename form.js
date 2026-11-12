@@ -1557,7 +1557,7 @@ function syncRenewQuote() {
     for (let i = 1; i <= wallLimit; i++) ensurePhotoMetaKey(`photo${i}`);
     els["photo-slots"].innerHTML = "";
     const sections = [
-      { title: "個人照", desc: "固定 1 張,套用到成品卡頭像。", keys: ["avatar"] },
+      { title: "個人照（必填）", desc: "固定 1 張,套用到成品卡頭像與分享預覽圖。", keys: ["avatar"] },
       { title: "Logo",   desc: "固定 1 張,套用到成品卡 logo。", keys: ["logo"] },
       { title: "照片牆", desc: `本次可上傳 ${wallLimit} 張(不含個人照與 Logo)`, keys: Array.from({ length: wallLimit }, (_, i) => `photo${i + 1}`) }
     ];
@@ -1828,6 +1828,8 @@ function syncRenewQuote() {
     if (!getInviteCodeFromPage()) { setStatus("缺少邀請資訊,請確認是從正確的邀請連結進入。", "error"); return false; }
     if (!valueOf("display_name")) { setStatus("請填寫姓名/品牌名稱。", "error"); return false; }
     if (!valueOf("phone")) { setStatus("請填寫電話。", "error"); return false; }
+    // 2026-11-12（TW0203 開通後分享沒有大頭照）：個人照改為必填，分享預覽才會出現本人照片
+    if (!hasAvatarForSubmit()) { setStatus("請上傳個人照（大頭照），分享名片時才會出現您的照片。", "error"); return false; }
     const limits = getLimitsCreate();
     for (let i = 1; i <= limits.ctas; i++) {
       const textVal = valueOf(`cta_text_${i}`);
@@ -1847,7 +1849,16 @@ function syncRenewQuote() {
       setStatus("目前無法判斷更新資格,請重新整理後再試。", "error");
       return false;
     }
+    // 更新時把個人照移除且沒有換新照片 → 擋下（舊卡本來就沒照片的不受影響）
+    if (state.photoUploadState.avatar === "removed" && !hasAvatarForSubmit()) {
+      setStatus("個人照（大頭照）不能移除，請換一張新照片後再送出。", "error");
+      return false;
+    }
     return true;
+  }
+
+  function hasAvatarForSubmit() {
+    return !!(state.photoFiles.avatar || state.photoRealUrls.avatar);
   }
 
   function validateRenewBeforeSubmit() {
