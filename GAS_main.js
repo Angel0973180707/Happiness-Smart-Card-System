@@ -614,6 +614,7 @@ const ACTIONS = [
   "adminGetBatchMaster",
   "adminDeleteBatchMaster",
   "adminGrantUnlimitedUpdate",
+  "adminMarkBackupDone",
   "adminRepairCardLimits",
   "adminPreviewTestMarker",
   "adminCleanupTestMarker",
@@ -749,6 +750,7 @@ const ADMIN_PROTECTED_ACTIONS = [
   "adminGetBatchMaster",
   "adminDeleteBatchMaster",
   "adminGrantUnlimitedUpdate",
+  "adminMarkBackupDone",
   "adminRepairCardLimits",
   "adminPreviewTestMarker",
   "adminCleanupTestMarker",
@@ -8621,10 +8623,55 @@ function notifyAdminNewApplication_(info) {
       "方案：" + planLabel + (addonNames.length ? "＋" + addonNames.join("、") : ""),
       "應付：NT$" + Number(info.amount || 0).toLocaleString("en-US"),
       "個人照：" + (sanitizeText_(card.avatar_url) ? "✅ 已上傳" : "❌ 未上傳"),
-      "請留意客戶付款後對帳開通。"
+      "請留意客戶付款後對帳開通。",
+      buildBackupReminderLines_(info.card_id)
     ]);
   } catch (err) {
     Logger.log("notifyAdminNewApplication_ failed: " + (err && err.message ? err.message : String(err)));
+  }
+}
+
+/**
+ * 2026-11-12 Angel 要求：每新增 10 張卡提醒備份。
+ * 上次備份到哪張卡，存在指令碼屬性 HSC_LAST_BACKUP_CARD_ID（沒設定時預設 TW0200＝2026-10-28 那份備份）。
+ * 做完新備份後，把這個屬性改成當時最新卡號，計數就會歸零。
+ */
+var HSC_LAST_BACKUP_CARD_ID_DEFAULT_ = "TW0200";
+
+// 後台「📦 已完成資料備份」按鈕：把目前最大的 TW 卡號記成上次備份點
+function adminMarkBackupDone_(req) {
+  requireAdminKey_(req);
+  var maxNum = 0;
+  getSheetRowsByName_("card_db").forEach(function (r) {
+    var m = String(sanitizeText_(r.id)).match(/^TW(\d+)$/i);
+    if (m && Number(m[1]) > maxNum) maxNum = Number(m[1]);
+  });
+  if (!maxNum) throw new Error("找不到任何 TW 卡號");
+  var lastId = "TW" + (maxNum < 10000 ? ("0000" + maxNum).slice(-4) : String(maxNum));
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty("HSC_LAST_BACKUP_CARD_ID", lastId);
+  props.setProperty("HSC_LAST_BACKUP_AT", nowIso_());
+  return { ok: true, version: HSC_VERSION, action: "adminMarkBackupDone", last_backup_card_id: lastId };
+}
+
+function buildBackupReminderLines_(cardId) {
+  try {
+    var base = "";
+    try {
+      base = sanitizeText_(PropertiesService.getScriptProperties().getProperty("HSC_LAST_BACKUP_CARD_ID"));
+    } catch (propErr) {}
+    if (!base) base = HSC_LAST_BACKUP_CARD_ID_DEFAULT_;
+    var cur = String(cardId || "").match(/^TW(\d+)$/i);
+    var prev = base.match(/^TW(\d+)$/i);
+    if (!cur || !prev) return "";
+    var added = Number(cur[1]) - Number(prev[1]);
+    if (!(added > 0)) return "";
+    var line = "📦 距上次備份（" + base.toUpperCase() + "）已新增 " + added + " 張";
+    if (added >= 10) line += "\n⚠️ 已滿 10 張，請做 HSC 資料備份";
+    return line;
+  } catch (err) {
+    Logger.log("buildBackupReminderLines_ failed: " + (err && err.message ? err.message : String(err)));
+    return "";
   }
 }
 
@@ -17073,7 +17120,7 @@ function assignPaymentToCard_(req) {
 // 原檔:
 //   const HSC_VERSION = "v7.12.2-payment-type-routing";
 // 改為:
-const HSC_VERSION = "v510";
+const HSC_VERSION = "v511";
 
 /* ============================================================
  * ======= [ADD] LIFF URL 轉換工具(v7.15 LINE 整合)==========
@@ -19630,6 +19677,7 @@ function routeAction_(e, method) {
       case "getRenewalDetail": result = adminGetRenewalDetail_(req); break;
       case "adminGrantAddon": result = adminGrantAddon_(req); break;
       case "adminGrantUnlimitedUpdate": result = adminGrantUnlimitedUpdate_(req); break;
+      case "adminMarkBackupDone": result = adminMarkBackupDone_(req); break;
       case "adminRepairCardLimits": result = adminRepairCardLimits_(req); break;
       case "adminPreviewTestMarker": result = adminPreviewTestMarker_(req); break;
       case "adminCleanupTestMarker": result = adminCleanupTestMarker_(req); break;

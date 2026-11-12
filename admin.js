@@ -1874,6 +1874,20 @@ syncDeliveryControlPanel(card);
       catch { toast("查詢失敗"); }
     });
     on("#btnCheckSchema", "click", checkSchemaStatus);
+    // 2026-11-12：備份完成後一鍵重設 LINE 備份提醒的計數起點
+    on("#btnMarkBackupDone", "click", async e => {
+      const btn = e.currentTarget;
+      if (!confirm("確定已經完成 HSC 資料備份了嗎？\n按下後，LINE 備份提醒會從目前最新卡號重新計算。")) return;
+      btn.disabled = true;
+      try {
+        const res = await apiPost("adminMarkBackupDone", {});
+        alert(`✅ 已記錄備份到 ${res.last_backup_card_id}\n之後新增滿 10 張會再提醒你。`);
+      } catch (err) {
+        alert("❌ 失敗：" + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
     on("#btnRunDailyOps", "click", runDailyOps);
     on("#btnRepairDueAt", "click", () => runRepairAction("due_at"));
     on("#btnRepairAddonStatusTool", "click", () => runRepairAction("addon_status"));
