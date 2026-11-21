@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>天使幸福智慧名片館</title>
+  <!-- 名片館分享預覽頁（2026-11-22）：
+       正式站 nginx 對 LINE／Facebook 爬蟲讀首頁（/、/index.html、SPA fallback）回 502，
+       名片館分享（/?ref=…）因此只剩網址沒有預覽圖；/share/*.html 這種獨立靜態檔爬蟲讀得到。
+       比照個人名片 share/TWxxxx.html：這頁只放名片館的 OG meta，真人打開後用 JS 立刻導回
+       名片館首頁並帶上 ref 推薦碼。
+       - 刻意不加 og:url／canonical：Facebook 會把分享連結改寫成 og:url，弄丟 ?ref= 推薦碼。
+       - 刻意不用 meta refresh：爬蟲可能跟著跳到首頁，又讀到 502。
+       - 檔名不是 TW 開頭，update-card-cache.yml 的過期分享頁清理不會刪到它。 -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="天使幸福智慧名片館" />
+  <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
+  <meta property="og:site_name" content="天使幸福智慧名片館" />
+  <meta property="og:locale" content="zh_TW" />
+  <meta property="og:image" content="https://angel-namecard.letssyncus.com/og-card.png?v=v1.7" />
+  <meta property="og:image:secure_url" content="https://angel-namecard.letssyncus.com/og-card.png?v=v1.7" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="天使幸福智慧名片館" />
+  <meta name="twitter:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
+  <meta name="twitter:image" content="https://angel-namecard.letssyncus.com/og-card.png?v=v1.7" />
+
+  <meta name="robots" content="noindex" />
+</head>
+<body>
+  <p><a id="fallbackLink" href="https://angel-namecard.letssyncus.com/">天使幸福智慧名片館</a></p>
+  <script>
+    // 只有真人瀏覽器會執行到這裡（分享爬蟲不執行 JS，只讀上面的 OG meta），
+    // 立刻換頁到名片館首頁，原封不動帶上 ref 推薦碼與分享追蹤參數。
+    (function () {
+      var target = new URL("https://angel-namecard.letssyncus.com/");
+      try {
+        var incoming = new URLSearchParams(location.search);
+        var forwardKeys = ["ref", "share_card_id", "share_agent_id", "share_source", "share_channel", "share_visit_id"];
+        forwardKeys.forEach(function (k) {
+          var v = incoming.get(k);
+          if (v !== null && v !== "") target.searchParams.set(k, v);
+        });
+      } catch (e) {}
+      var link = document.getElementById("fallbackLink");
+      if (link) link.href = target.toString();
+      location.replace(target.toString());
+    })();
+  </script>
+</body>
+</html>

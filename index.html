@@ -37,7 +37,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" href="./card-renderer.js?v=v8.4.5-cta-stability" as="script" />
-  <link rel="preload" href="./app.js?v=v8.4.0" as="script" />
+  <link rel="preload" href="./app.js?v=v8.4.1" as="script" />
   <!-- 非阻塞字型載入：頁面不等字型就先畫，字型到了再換 -->
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" /></noscript>
@@ -1152,7 +1152,7 @@
   </div>
 
   <script src="./card-renderer.js?v=v8.4.5-cta-stability"></script>
-  <script src="./app.js?v=v8.4.0"></script>
+  <script src="./app.js?v=v8.4.1"></script>
 
   <script>
     (function(){
@@ -1236,13 +1236,16 @@
 
       function buildHubShareUrlFallback(){
         // 固定用持卡人自己的 card_id 當 ref，不走 app.js getReferralSourceCode_
+        // 名片館分享預覽修復（2026-11-22）：正式站 nginx 對 LINE／FB 爬蟲讀首頁回 502，
+        // 分享 /?ref=… 只剩網址。改分享靜態的 share/hub.html?ref=…（爬蟲讀得到預覽圖），
+        // 真人打開後由 hub.html 帶著 ref 導回名片館首頁。
         try{
-          var u = new URL(BASE_URL);
+          var u = new URL(BASE_URL + "share/hub.html");
           var cardId = getCurrentCardId();
           if(cardId) u.searchParams.set("ref", cardId);
           return u.toString();
         }catch(e){
-          return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
+          return BASE_URL + "share/hub.html?ref=" + encodeURIComponent(getCurrentCardId());
         }
       }
 

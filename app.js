@@ -616,6 +616,21 @@ function buildHubShareUrl_(){
   }
 }
 
+// 名片館分享預覽修復（2026-11-22）：正式站 nginx 對 LINE／FB 爬蟲讀首頁回 502，
+// 分享 /?ref=… 出去只剩網址沒有預覽圖。「分享智慧名片館」按鈕改分享靜態的
+// share/hub.html?ref=…（爬蟲讀得到 og-card 預覽圖），真人打開後由 hub.html 帶著 ref
+// 導回名片館首頁。QR code／hub_url 仍用 buildHubShareUrl_ 直連首頁，掃碼不多跳一次。
+function buildHubSharePreviewUrl_(){
+  try{
+    const u = new URL("share/hub.html", CONFIG.HUB_URL);
+    const code = getReferralSourceCode_(getActiveCardPayload_());
+    if(code) u.searchParams.set("ref", code);
+    return u.toString();
+  }catch{
+    return buildHubShareUrl_();
+  }
+}
+
 function buildInviteApplyText_(refCode, applyCode){
   const lines = [
     "您好，我想申請天使幸福智慧名片邀請碼。",
@@ -1912,7 +1927,7 @@ function renderBottomHubShareBtn_(){
     btn.style.maxWidth = "260px"; btn.style.width = "100%"; btn.style.borderRadius = "999px";
     btn.style.fontWeight = "900"; btn.style.boxShadow = "0 10px 22px rgba(83,62,45,.08)";
     btn.innerHTML = `<i class="fa-solid fa-share-nodes"></i><span>分享智慧名片館</span>`;
-    btn.addEventListener("click", async () => { const url = buildHubShareUrl_(); await shareUrl_(url, "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結"); });
+    btn.addEventListener("click", async () => { const url = buildHubSharePreviewUrl_(); await shareUrl_(url, "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結"); });
     wrap.appendChild(btn);
     sec.insertAdjacentElement("afterend", wrap);
   }
