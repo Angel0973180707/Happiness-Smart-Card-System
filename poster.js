@@ -1244,7 +1244,11 @@ function buildRenewalFormUrl(item) {
   }
 
   function getAvatarUrl(item) {
-    return __fbProxy(txt(item?.avatar_url) || txt(item?.avatar_img_fast) || txt(item?.avatar_img));
+    const url = __fbProxy(txt(item?.avatar_url) || txt(item?.avatar_img_fast) || txt(item?.avatar_img));
+    // 2026-11-22 換頭像後交付卡仍舊照：/img/ 網址固定且 immutable 快取一年 → 加名片更新時間當版本號
+    const v = txt(item?.updated_at).replace(/\D/g, "");
+    if (!url || !v || /^data:/i.test(url)) return url;
+    return url + (url.includes("?") ? "&" : "?") + "v=" + v;
   }
 
   function normalizeBase(v) {

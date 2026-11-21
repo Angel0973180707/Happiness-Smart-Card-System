@@ -146,6 +146,9 @@
       var currentSearch = location.search || "";
       var deliveryUrl = BASE_URL + "poster.html" + currentSearch;
       var avatarUrl = cardData.avatar_url || "";
+      // 2026-11-22 加名片更新時間當版本號，避免拿到快取的舊頭像
+      var avatarVer = String(cardData.updated_at || "").replace(/\D/g, "");
+      if (avatarUrl && avatarVer) avatarUrl += (avatarUrl.indexOf("?") >= 0 ? "&" : "?") + "v=" + avatarVer;
       var cardName = cardData.name || cardId;
       var displayName = cardName + " · 交付卡";
 
@@ -965,6 +968,6 @@
   </script>
 
   <script src="./qrcode.min.js"></script>
-  <script src="./poster.js?v=143-wallet-fix"></script>
+  <script src="./poster.js?v=144-avatar-ver"></script>
 </body>
 </html>
