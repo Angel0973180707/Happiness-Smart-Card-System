@@ -58,6 +58,21 @@ function versionFromUpdatedAt(updatedAt) {
   return digits || String(Date.now());
 }
 
+// 換大頭照後預覽仍是舊照修正（2026-11-21）：Firebase 上傳新大頭照會覆蓋同一個 avatar.jpg，
+// 下載網址（含 token）一個字都不會變；LINE／Facebook 是用「圖片網址」快取預覽圖，網址沒變就
+// 一直拿舊照。這裡在 og:image 後面加上 v=<updated_at 版號>，卡片一更新圖片網址就跟著變，
+// 爬蟲會重抓新照。Firebase Storage 下載端點會忽略不認識的參數（已實測 &v= 照常回 200 image/jpeg）。
+// 預設圖 og-card.png 不加版號（它不會因卡片更新而改變）。
+function withImageVersion(url, version) {
+  const u = String(url || '').trim();
+  if (!u || !version) return u;
+  const hashIdx = u.indexOf('#');
+  const base = hashIdx === -1 ? u : u.slice(0, hashIdx);
+  const hash = hashIdx === -1 ? '' : u.slice(hashIdx);
+  if (/[?&]v=/.test(base)) return u; // 已帶版號就不重複加
+  return base + (base.indexOf('?') === -1 ? '?' : '&') + 'v=' + encodeURIComponent(version) + hash;
+}
+
 function buildDescription(card) {
   const slogan = toSingleLine(card.slogan || card.intro || '');
   if (slogan) return slogan;
@@ -83,8 +98,8 @@ function generateSharePage(cardId) {
   const avatarUrl = card.avatar_url;
   const updatedAt = card.updated_at;
 
-  const ogImage = isUsableImageUrl(avatarUrl) ? avatarUrl : DEFAULT_OG_IMAGE;
   const version = versionFromUpdatedAt(updatedAt);
+  const ogImage = isUsableImageUrl(avatarUrl) ? withImageVersion(avatarUrl, version) : DEFAULT_OG_IMAGE;
   const canonicalUrl = BASE_URL + 'share/' + encodeURIComponent(cardId) + '.html?v=' + version;
   const targetUrl = BASE_URL + 'index.html?id=' + encodeURIComponent(cardId) + '&view=1';
 
@@ -169,4 +184,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { generateSharePage, escapeHtml, toSingleLine, isUsableImageUrl, buildDescription, versionFromUpdatedAt };
+module.exports = { generateSharePage, escapeHtml, toSingleLine, isUsableImageUrl, buildDescription, versionFromUpdatedAt, withImageVersion };

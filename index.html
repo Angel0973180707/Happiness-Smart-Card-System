@@ -1376,7 +1376,22 @@
               if (typeof body === "string" &&
                   body.indexOf('id="fallbackLink"') !== -1 &&
                   body.indexOf(expectTarget) !== -1) {
-                __resolvedShareUrl = ogCandidate;
+                // 換大頭照後預覽仍是舊照修正（2026-11-21）：原本每次分享出去的網址都一模一樣
+                // （share/TWxxxx.html?share_...），LINE／Facebook 用網址快取預覽，看到同一個網址
+                // 就不會重讀分享頁，換了大頭照也一直顯示舊照。分享頁的 canonical 本來就帶
+                // ?v=<名片更新時間>，這裡把同一個版號加到分享網址上：名片一更新，分享出去的網址
+                // 就不同，爬蟲會重新讀取分享頁（以及頁面裡同樣帶版號的新大頭照網址）。
+                // 分享頁本身的導轉只轉發追蹤參數、會丟掉 v，不影響最終名片頁。
+                var shareUrl = ogCandidate;
+                try{
+                  var vm = body.match(/rel="canonical"\s+href="[^"]*[?&]v=([0-9]+)"/);
+                  if (vm && vm[1]) {
+                    var su = new URL(ogCandidate);
+                    su.searchParams.set("v", vm[1]);
+                    shareUrl = su.toString();
+                  }
+                }catch(e){}
+                __resolvedShareUrl = shareUrl;
               }
             })
             .catch(function(){ clearTimeout(timer); })

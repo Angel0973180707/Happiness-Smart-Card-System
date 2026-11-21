@@ -48,6 +48,16 @@ try {
   log('A3.卡A的 og:image 是卡A自己的 avatar_url', htmlA.indexOf('fake-avatar-A.jpg') !== -1);
   log('A4.卡A的 slogan 換行正確轉成單行（不含原始\\n）', htmlA.indexOf('這是卡A的slogan　第二行内容') !== -1 && !/slogan\\n/.test(htmlA));
   log('A5.卡A的 og:url 含正確 card_id 與 updated_at 版號', htmlA.indexOf('share/TESTSHAREA01.html?v=20260801100000') !== -1);
+  // 換大頭照後預覽仍是舊照修正（2026-11-21）：og:image 要帶 updated_at 版號，換照後網址才會變
+  log('A5b.卡A的 og:image 帶 updated_at 版號', htmlA.indexOf('fake-avatar-A.jpg?v=20260801100000"') !== -1);
+  {
+    const { withImageVersion } = require('../scripts/generate-share-page.js');
+    const fb = 'https://firebasestorage.googleapis.com/v0/b/x/o/cards%2FTW0001%2Favatar.jpg?alt=media&token=abc';
+    log('A5c.Firebase 網址（已有?）用 &v= 接上', withImageVersion(fb, '20261121') === fb + '&v=20261121');
+    log('A5d.已帶 v= 的網址不重複加', withImageVersion(fb + '&v=1', '2') === fb + '&v=1');
+    const fb2 = fb.replace('token=abc', 'token=abc');
+    log('A5e.換照後（版號不同）圖片網址就不同', withImageVersion(fb2, '20261121000000') !== withImageVersion(fb2, '20261122000000'));
+  }
   log('A6.卡A的導轉目標是自己的 index.html?id=TESTSHAREA01&view=1', htmlA.indexOf('id=TESTSHAREA01&amp;view=1') !== -1 || htmlA.indexOf('id=TESTSHAREA01\\u0026view=1') !== -1 || /location\.replace\("https:\/\/angel-namecard\.letssyncus\.com\/index\.html\?id=TESTSHAREA01&view=1"\)/.test(htmlA));
 
   // ═══ 私人欄位絕對不能出現在輸出裡 ═══
